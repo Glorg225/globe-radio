@@ -5,6 +5,10 @@ import { applyDirection, createI18n, resolveLocale, type Messages } from '../i18
 import { safeStorage } from '../i18n/storage';
 import { detectWebGL, measureFps } from '../map/choose-mode';
 import { renderStarfield } from '../map/starfield';
+import { flagUrl } from '../place-card/flag';
+import { createPlaceCard } from '../place-card/place-card';
+import { findArticle } from '../place-card/wiki';
+import { createWikiCache } from '../place-card/wiki-cache';
 import { createBlacklist } from '../player/blacklist';
 import { loadHls } from '../player/hls-loader';
 import { createPlayer } from '../player/player';
@@ -20,6 +24,16 @@ const i18n = createI18n(locale, catalogs[locale]);
 applyDirection(document, locale);
 const refs = renderShell(document.getElementById('app')!, i18n);
 renderStarfield(refs.stars);
+
+const wikiCache = createWikiCache(storage);
+const card = createPlaceCard(refs.placeCard, refs.stage, {
+  i18n,
+  storage,
+  flagUrl,
+  findArticle: (info) => findArticle(info, fetch, wikiCache),
+  now: () => new Date(),
+  userOffset: () => -new Date().getTimezoneOffset(),
+});
 
 const base = import.meta.env.BASE_URL;
 const blacklist = createBlacklist(storage);
@@ -39,6 +53,7 @@ void startApp({
   },
   player,
   blacklist,
+  card,
   hasWebGL: detectWebGL(),
   narrowTouch: matchMedia('(max-width: 760px) and (pointer: coarse)').matches,
   measureFps: () => measureFps(3000),

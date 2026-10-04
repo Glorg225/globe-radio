@@ -1,6 +1,7 @@
 import { countryName, placeTitle } from '../data/place-name';
 import type { Place } from '../data/places';
-import type { ShardStore, StationLite } from '../data/shards';
+import type { PlaceInfo, ShardStore, StationLite } from '../data/shards';
+import type { PlaceCardData } from '../place-card/place-card';
 import type { I18n } from '../i18n/i18n';
 import { initialMode, MODE_STORAGE_KEY, type ViewMode } from '../map/choose-mode';
 import { createClusterer, type Clusterer, type MapItem } from '../map/cluster';
@@ -21,6 +22,7 @@ export interface AppDeps {
   player: Player; blacklist: Blacklist;
   hasWebGL: boolean; narrowTouch: boolean;
   measureFps(): Promise<number>;
+  card: { show(d: PlaceCardData | null): void };
   mediaSession?: MediaSession;
 }
 export interface AppHandle { mode(): ViewMode; selectPlace(p: Place): Promise<void>; next(): Promise<void> }
@@ -128,6 +130,21 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     await playStation(found.station, found.place);
   }
 
+  // The card follows the playing station; a slow place-info answer for an older station is dropped.
+  let cardKey = '';
+  let cardToken = 0;
+  async function updateCard(station: StationLite | null) {
+    const place = playingPlace;
+    const key = station && place ? `${station.id}|${place.id}` : '';
+    if (key === cardKey) return;
+    cardKey = key;
+    const my = ++cardToken;
+    if (!station || !place) { d.card.show(null); return; }
+    let info: PlaceInfo | null = null;
+    try { info = (await d.shards.info(place.cc)).get(place.id) ?? null; } catch { info = null; }
+    if (my === cardToken) d.card.show({ place, station, info });
+  }
+
   player.subscribe((s) => {
     renderBar();
     const station = s.kind === 'idle' ? null : s.station;
@@ -138,6 +155,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       { play: () => player.toggle(), pause: () => player.pause(), next: () => { void next(); } },
     );
     if (list && selected && list.placeId === selected.id) list.handle.setPlaying(station?.id ?? null);
+    void updateCard(station);
   });
 
   let mountToken = 0;
@@ -189,6 +207,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   });
 
   const handle: AppHandle = { mode: () => mode, selectPlace, next };
+  d.card.show(null);
   renderBar();
 
   refs.status.textContent = t('data.loading');
