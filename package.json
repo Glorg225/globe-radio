@@ -22,6 +22,7 @@
     "world-countries": "^5.1.0"
   },
   "dependencies": {
+    "globe.gl": "^2.46.2",
     "hls.js": "^1.7.3",
     "supercluster": "^9.1.0"
   }
