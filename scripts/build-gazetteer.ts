@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
-import { encodeGazetteer, normalizeName, type GzAdmin1, type GzCity } from '../src/data/gazetteer';
+import { encodeGazetteer, normalizeName, type GzAdmin1, type GzCity, type GzCountry } from '../src/data/gazetteer';
 
 const ALIAS_MIN_POP = 100_000;
 const SKIP_LANGS = new Set(['link', 'post', 'iata', 'icao', 'faac', 'wkdt', 'unlc', 'tcid', 'fr_1793', 'phon', 'piny']);
@@ -48,25 +48,36 @@ export function parseAdmin1(text: string): (GzAdmin1 & { geonameId: number })[] 
 
 const WIKI = /^https?:\/\/(en|ru)\.wikipedia\.org\/wiki\/(.+)$/;
 
+// countryInfo.txt: ISO code in column 0, GeoNames id of the country in column 16; '#' lines are comments.
+export function parseCountryInfo(text: string): (GzCountry & { geonameId: number })[] {
+  return text.split('\n')
+    .filter((l) => l && !l.startsWith('#'))
+    .map((l) => l.split('\t'))
+    .filter((f) => f.length > 16 && f[0])
+    .map((f) => ({ cc: f[0], geonameId: Number(f[16]), wikiRu: '', wikiEn: '' }));
+}
+
+function setWiki(target: { wikiRu: string; wikiEn: string }, url: string) {
+  const m = WIKI.exec(url);
+  if (!m) return;
+  let title = m[2].split('#')[0];
+  try { title = decodeURIComponent(title); } catch { /* keep raw */ }
+  title = title.replace(/_/g, ' ');
+  if (m[1] === 'ru' && !target.wikiRu) target.wikiRu = title;
+  if (m[1] === 'en' && !target.wikiEn) target.wikiEn = title;
+}
+
 // Row of alternateNamesV2.txt: id, geonameid, isolanguage, name, isPreferred, isShort, isColloquial, isHistoric, ...
-export function applyAltName(row: string[], cities: Map<number, GzCity>, admins: Map<number, GzAdmin1>): void {
+export function applyAltName(row: string[], cities: Map<number, GzCity>, admins: Map<number, GzAdmin1>, countries?: Map<number, GzCountry>): void {
   const id = Number(row[1]);
   const lang = row[2];
   const name = row[3];
   const preferred = row[4] === '1';
   const target = cities.get(id) ?? admins.get(id);
+  const country = countries?.get(id);
+  if (country) { if (lang === 'link') setWiki(country, name ?? ''); return; }
   // 'link' rows carry Wikipedia URLs: keep the first en/ru article title.
-  if (target && lang === 'link') {
-    const m = WIKI.exec(name ?? '');
-    if (m) {
-      let title = m[2];
-      try { title = decodeURIComponent(title); } catch { /* keep raw */ }
-      title = title.replace(/_/g, ' ');
-      if (m[1] === 'ru' && !target.wikiRu) target.wikiRu = title;
-      if (m[1] === 'en' && !target.wikiEn) target.wikiEn = title;
-    }
-    return;
-  }
+  if (target && lang === 'link') { setWiki(target, name ?? ''); return; }
   if (!target || !name || SKIP_LANGS.has(lang)) return;
   if (lang === 'ru' && (!target.nameRu || (preferred && !preferredRu.has(id)))) {
     target.nameRu = name;
@@ -99,17 +110,19 @@ async function main() {
   mkdirSync(CACHE, { recursive: true });
   unzip(await download('cities15000.zip'));
   await download('admin1CodesASCII.txt');
+  await download('countryInfo.txt');
   unzip(await download('alternateNamesV2.zip'));
 
   const cities = parseCities(readFileSync(`${CACHE}/cities15000.txt`, 'utf8'));
   const adminRows = parseAdmin1(readFileSync(`${CACHE}/admin1CodesASCII.txt`, 'utf8'));
   const cityMap = new Map(cities.map((c) => [c.id, c]));
   const adminMap = new Map<number, GzAdmin1>(adminRows.map(({ geonameId, ...a }) => [geonameId, a]));
+  const countryMap = new Map<number, GzCountry>(parseCountryInfo(readFileSync(`${CACHE}/countryInfo.txt`, 'utf8')).map(({ geonameId, ...c }) => [geonameId, c]));
 
   const lines = createInterface({ input: createReadStream(`${CACHE}/alternateNamesV2.txt`, 'utf8'), crlfDelay: Infinity });
-  for await (const line of lines) applyAltName(line.split('\t'), cityMap, adminMap);
+  for await (const line of lines) applyAltName(line.split('\t'), cityMap, adminMap, countryMap);
 
-  const file = encodeGazetteer({ cities, admin1: [...adminMap.values()] });
+  const file = encodeGazetteer({ cities, admin1: [...adminMap.values()], countries: [...countryMap.values()] });
   mkdirSync('data', { recursive: true });
   writeFileSync('data/gazetteer.json', JSON.stringify(file));
   console.log(`cities: ${cities.length}, admin1: ${adminMap.size}, size: ${(JSON.stringify(file).length / 1e6).toFixed(1)} MB`);

@@ -88,6 +88,6 @@ export function placeInfoRows(places: Place[], cc: string): PlaceInfoRow[] {
   return places
     .filter((p) => p.cc === cc)
     .map((p): PlaceInfoRow => (p.kind === 'country'
-      ? [p.id, p.tz ?? '', p.nameRu, p.name]
+      ? [p.id, p.tz ?? '', p.wikiRu || p.nameRu, p.wikiEn || p.name]
       : [p.id, p.tz ?? '', p.wikiRu ?? '', p.wikiEn ?? '']));
 }

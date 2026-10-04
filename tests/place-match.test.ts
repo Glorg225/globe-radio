@@ -121,3 +121,19 @@ test('country timezone is set only when every city of the country shares one', (
   }, { US: [39, -98] }, (cc) => cc);
   expect(multi.match(st({ cc: 'US' }))!.tz).toBeUndefined();
 });
+
+test('country places carry the country Wikipedia titles from the gazetteer', () => {
+  const withCountry = createPlaceMatcher({ ...gz, countries: [{ cc: 'DE', wikiRu: 'Германия', wikiEn: 'Germany' }] }, centroids, (cc, l) => names[l][cc]);
+  expect(withCountry.match(st({ state: 'Atlantis' }))).toMatchObject({ id: 'k:DE', wikiRu: 'Германия', wikiEn: 'Germany' });
+});
+
+test('a country whose zones all keep the same clock gets a timezone (e.g. Argentina)', () => {
+  const ar = createPlaceMatcher({
+    cities: [
+      { id: 1, nameRu: '', name: 'BA', lat: -34.6, lon: -58.4, cc: 'AR', admin1: '07', pop: 3, aliases: ['ba'], tz: 'America/Argentina/Buenos_Aires', wikiRu: '', wikiEn: '' },
+      { id: 2, nameRu: '', name: 'Cba', lat: -31.4, lon: -64.2, cc: 'AR', admin1: '05', pop: 1, aliases: ['cba'], tz: 'America/Argentina/Cordoba', wikiRu: '', wikiEn: '' },
+    ],
+    admin1: [],
+  }, { AR: [-34, -64] }, (cc) => cc);
+  expect(ar.match(st({ cc: 'AR' }))!.tz).toBe('America/Argentina/Buenos_Aires');
+});

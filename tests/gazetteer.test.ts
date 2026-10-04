@@ -56,6 +56,7 @@ test('encode/decode roundtrip', () => {
   const g = {
     cities: [{ id: 1, nameRu: 'Мюнхен', name: 'Munich', lat: 48.1, lon: 11.5, cc: 'DE', admin1: '02', pop: 5, aliases: ['munich'], tz: 'Europe/Berlin', wikiRu: 'Мюнхен', wikiEn: 'Munich' }],
     admin1: [{ cc: 'DE', code: '02', nameRu: 'Бавария', name: 'Bavaria', aliases: ['bavaria', 'bayern'], wikiRu: 'Бавария', wikiEn: 'Bavaria' }],
+    countries: [],
   };
   expect(decodeGazetteer(encodeGazetteer(g))).toEqual(g);
 });
@@ -87,4 +88,22 @@ test('decode reads v1 files without the new fields', () => {
   const g = decodeGazetteer(v1 as never);
   expect(g.cities[0]).toMatchObject({ tz: '', wikiRu: '', wikiEn: '' });
   expect(g.admin1[0]).toMatchObject({ wikiRu: '', wikiEn: '' });
+});
+
+test('Wikipedia link fragments (#section) are dropped from titles', () => {
+  const [a] = parseAdmin1('CO.34\tBogota D.C.\tBogota D.C.\t3688685');
+  applyAltName(['1', '3688685', 'link', 'https://en.wikipedia.org/wiki/Bogot%C3%A1#Pre-Colombian', '', '', '', ''], new Map(), new Map([[3688685, a]]));
+  expect(a.wikiEn).toBe('Bogotá');
+});
+
+test('countries get Wikipedia titles from their own GeoNames link rows', async () => {
+  const { parseCountryInfo } = await import('../scripts/build-gazetteer');
+  const [cd] = parseCountryInfo('# comment\nCD\tCOD\t180\tCG\tDR Congo\tKinshasa\t2345410\t0\tAF\t.cd\tCDF\tFranc\t243\t\t\tfr-CD\t203312\t\t');
+  expect(cd).toMatchObject({ cc: 'CD', geonameId: 203312, wikiRu: '', wikiEn: '' });
+  const countries = new Map([[203312, cd]]);
+  applyAltName(['1', '203312', 'link', 'https://en.wikipedia.org/wiki/Democratic_Republic_of_the_Congo', '', '', '', ''], new Map(), new Map(), countries);
+  applyAltName(['2', '203312', 'ru', 'ДР Конго', '1', '', '', ''], new Map(), new Map(), countries);
+  expect(cd.wikiEn).toBe('Democratic Republic of the Congo');
+  const g = { cities: [], admin1: [], countries: [{ cc: 'CD', wikiRu: 'Демократическая Республика Конго', wikiEn: 'Democratic Republic of the Congo' }] };
+  expect(decodeGazetteer(encodeGazetteer(g)).countries).toEqual(g.countries);
 });

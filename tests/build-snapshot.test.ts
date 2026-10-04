@@ -82,3 +82,9 @@ test('placeInfoRows: per-country place data, countries use their own names as ar
   ]);
   expect(placeInfoRows(places, 'FR')).toEqual([['k:FR', '', 'Франция', 'France']]);
 });
+
+test('placeInfoRows prefers gazetteer country articles over display names', async () => {
+  const { placeInfoRows } = await import('../scripts/build-snapshot');
+  const places: Place[] = [{ id: 'k:CD', lat: 0, lon: 0, kind: 'country', cc: 'CD', nameRu: 'Конго - Киншаса', name: 'Congo - Kinshasa', count: 1, pop: 1, wikiRu: 'Демократическая Республика Конго', wikiEn: 'Democratic Republic of the Congo' }];
+  expect(placeInfoRows(places, 'CD')).toEqual([['k:CD', '', 'Демократическая Республика Конго', 'Democratic Republic of the Congo']]);
+});
