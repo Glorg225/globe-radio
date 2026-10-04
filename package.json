@@ -29,6 +29,7 @@
     "d3-geo": "^3.1.1",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
+    "flag-icons": "^7.5.0",
     "globe.gl": "^2.46.2",
     "hls.js": "^1.7.3",
     "supercluster": "^9.1.0",

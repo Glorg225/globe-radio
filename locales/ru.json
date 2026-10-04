@@ -48,5 +48,21 @@
   "player.volume": "Громкость",
   "player.mute": "Выключить звук",
   "player.unmute": "Включить звук",
-  "player.placeCountry": "{place}, {country}"
+  "player.placeCountry": "{place}, {country}",
+  "place.empty": "Карточка места появится, когда начнёт играть станция",
+  "place.approx": "Примерное расположение станций",
+  "place.expand": "Развернуть карточку",
+  "place.time": "Местное время",
+  "place.time.same": "как у вас",
+  "place.time.earlier": "на {diff} раньше вас",
+  "place.time.later": "на {diff} позже вас",
+  "place.time.h": "{h} ч",
+  "place.time.m": "{m} мин",
+  "place.time.hm": "{h} ч {m} мин",
+  "place.lang": "Язык эфира",
+  "place.lang.none": "Язык не указан",
+  "place.learn": "Учить этот язык",
+  "place.wiki.read": "Читать в Википедии",
+  "place.wiki.more": "Подробнее в Википедии",
+  "place.wiki.english": "Статья на английском"
 }
