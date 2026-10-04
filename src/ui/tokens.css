@@ -42,6 +42,8 @@
   --map-grid: #25305C;
   --map-axis: #33407A;
   --dot-muted: #5A6690;
+  --globe-glow: #5A82FF;
+  --map-land: #131B3A;
 
   --font-display: 'Unbounded', system-ui, 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans Arabic', sans-serif;
   --font-body: 'Golos Text', system-ui, -apple-system, 'Segoe UI', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans Arabic', sans-serif;

@@ -47,3 +47,15 @@ test('translated strings are escaped, not parsed as HTML', () => {
   expect(refs.header.textContent).toContain('<img src=x onerror=alert(1)>');
   expect(refs.header.querySelector('input')!.getAttribute('placeholder')).toBe('a"b<c');
 });
+
+test('exposes map, stars, panel body, zoom and view buttons', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.map.classList.contains('stage__map')).toBe(true);
+  expect(refs.stars.classList.contains('stage__stars')).toBe(true);
+  expect(refs.panelBody.textContent).toContain('Выберите точку на глобусе');
+  expect(refs.zoomIn.getAttribute('aria-label')).toBe('Приблизить');
+  expect(refs.zoomOut.getAttribute('aria-label')).toBe('Отдалить');
+  expect(refs.viewButtons.map((b) => b.dataset.view)).toEqual(['globe', 'map']);
+  expect(refs.closePanel.getAttribute('aria-label')).toBe('Закрыть список');
+  expect(refs.stage.textContent).toContain('GeoNames');
+});
