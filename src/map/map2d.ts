@@ -11,7 +11,7 @@ import { hitTest } from './hit-test';
 import './map.css';
 import type { MapFactory } from './map-view';
 import { createPulse } from './pulse';
-import { scaleToZoom } from './zoom';
+import { MAX_SCALE, scaleToZoom } from './zoom';
 
 const SPHERE: GeoPermissibleObjects = { type: 'Sphere' };
 const AXES: GeoPermissibleObjects = {
@@ -49,7 +49,7 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
   let screen: { x: number; y: number; r: number; item: MapItem }[] = [];
   let playing: Place | null = null;
 
-  const zb = d3zoom<HTMLCanvasElement, unknown>().scaleExtent([1, 256]).on('zoom', (e: { transform: ZoomTransform }) => {
+  const zb = d3zoom<HTMLCanvasElement, unknown>().scaleExtent([1, MAX_SCALE]).on('zoom', (e: { transform: ZoomTransform }) => {
     transform = e.transform;
     draw();
   });
@@ -138,7 +138,7 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
   canvas.addEventListener('click', (e) => {
     const item = at(e);
     if (!item) return;
-    if (item.type === 'cluster') centerOn(item.lon, item.lat, Math.min(256, 2 ** (item.zoomTo - 1)));
+    if (item.type === 'cluster') centerOn(item.lon, item.lat, Math.min(MAX_SCALE, 2 ** (item.zoomTo - 1)));
     else cb.onSelect(item.place);
   });
 

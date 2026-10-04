@@ -54,3 +54,17 @@ test('place and station encodings roundtrip', () => {
   const s = { id: 'u', name: 'N', url: 'https://x', placeId: 'c:1', cc: 'DE', langs: ['de'], tags: ['pop'], votes: 1, clicks: 2, favicon: '', hls: true };
   expect(decodeStation(encodeStation(s), 'DE')).toEqual(s);
 });
+
+test('places sharing exact coordinates are nudged apart so each one can be clicked', async () => {
+  const { haversineKm } = await import('../src/data/geo');
+  const m = { match: (s: Station): PlaceRef => ({ id: s.state === 'R' ? 'a:FR.11' : 'c:9', lat: 48.85, lon: 2.35, kind: s.state === 'R' ? 'region' : 'exact', cc: 'FR', nameRu: '', name: 'X' }) };
+  const { places } = buildSnapshot([
+    raw({ stationuuid: 'a', countrycode: 'FR', geo_lat: 48.85, geo_long: 2.35 }),
+    raw({ stationuuid: 'b', countrycode: 'FR', state: 'R' }),
+  ], centroids, m);
+  const [x, y] = places;
+  const km = haversineKm(x.lat, x.lon, y.lat, y.lon);
+  expect(km).toBeGreaterThan(5);
+  expect(km).toBeLessThan(20);
+  expect(places.find((pl) => pl.id === 'c:9')).toMatchObject({ lat: 48.85, lon: 2.35 });
+});

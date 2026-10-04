@@ -1,11 +1,13 @@
 import Supercluster from 'supercluster';
 import type { Place } from '../data/places';
-import { MAX_ZOOM } from './zoom';
 
 export type MapItem =
   | { type: 'place'; key: string; place: Place; lat: number; lon: number; count: number; pop: number }
   | { type: 'cluster'; key: string; lat: number; lon: number; count: number; pop: number; zoomTo: number };
 export interface Clusterer { items(zoom: number): MapItem[] }
+
+// Above this zoom places are never grouped; both views can zoom past it, so every cluster opens.
+export const CLUSTER_MAX_ZOOM = 6;
 
 interface Props { i: number; count: number; pop: number }
 interface Reduced { count: number; pop: number }
@@ -13,7 +15,7 @@ interface Reduced { count: number; pop: number }
 export function createClusterer(places: Place[]): Clusterer {
   const index = new Supercluster<Props, Reduced>({
     radius: 40,
-    maxZoom: MAX_ZOOM - 1,
+    maxZoom: CLUSTER_MAX_ZOOM,
     map: (p) => ({ count: p.count, pop: p.pop }),
     reduce: (acc, p) => { acc.count += p.count; acc.pop += p.pop; },
   });

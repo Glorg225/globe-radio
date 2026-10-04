@@ -1,4 +1,7 @@
 export const MAX_ZOOM = 12;
+// How close each view can get; clustering must end before these limits (see CLUSTER_MAX_ZOOM).
+export const MIN_ALTITUDE = 0.02;
+export const MAX_SCALE = 256;
 const BASE_ALTITUDE = 2.5;
 const clamp = (z: number) => Math.min(MAX_ZOOM, Math.max(0, z));
 

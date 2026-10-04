@@ -6,7 +6,7 @@ import { dotStyle, hexToRgba } from './dot-style';
 import './map.css';
 import type { MapFactory } from './map-view';
 import { createPulse } from './pulse';
-import { altitudeToZoom, zoomToAltitude } from './zoom';
+import { altitudeToZoom, MIN_ALTITUDE, zoomToAltitude } from './zoom';
 
 // Globe diameter ≈ 580 px on a 1440×900 screen, as in the approved mockup.
 const INITIAL_ALTITUDE = 1.85;
@@ -87,7 +87,7 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
     },
     zoomBy(factor) {
       const pov = globe.pointOfView();
-      globe.pointOfView({ ...pov, altitude: Math.min(4, Math.max(0.05, pov.altitude / factor)) }, reducedMotion() ? 0 : 300);
+      globe.pointOfView({ ...pov, altitude: Math.min(4, Math.max(MIN_ALTITUDE, pov.altitude / factor)) }, reducedMotion() ? 0 : 300);
     },
     destroy() {
       ro.disconnect();
