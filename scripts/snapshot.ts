@@ -5,7 +5,7 @@ import { createPlaceMatcher } from '../src/data/place-match';
 import { encodePlace, type PlacesFile } from '../src/data/places';
 import { encodeStation, type ShardFile } from '../src/data/shards';
 import type { Centroids, RawStation } from '../src/data/types';
-import { buildSnapshot } from './build-snapshot';
+import { buildSnapshot, placeInfoRows } from './build-snapshot';
 import { fetchWithMirrors } from './radio-browser';
 
 const require = createRequire(import.meta.url);
@@ -25,7 +25,7 @@ mkdirSync('public/data/stations', { recursive: true });
 const placesFile: PlacesFile = { v: 2, generated, places: places.map(encodePlace) };
 writeFileSync('public/data/places.json', JSON.stringify(placesFile));
 for (const [cc, list] of shards) {
-  const file: ShardFile = { v: 2, cc, stations: list.map(encodeStation) };
+  const file: ShardFile = { v: 2, cc, stations: list.map(encodeStation), places: placeInfoRows(places, cc) };
   writeFileSync(`public/data/stations/${cc}.json`, JSON.stringify(file));
 }
 writeFileSync('public/data/meta.json', JSON.stringify({ generated, ...report }, null, 2));

@@ -59,6 +59,11 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
     return best;
   }
 
+  // A country gets a timezone only if all its cities share one (single-zone countries).
+  const countryZones = new Map<string, Set<string>>();
+  for (const c of gz.cities) if (c.tz) (countryZones.get(c.cc) ?? countryZones.set(c.cc, new Set()).get(c.cc)!).add(c.tz);
+  const countryTz = (cc: string) => { const z = countryZones.get(cc); return z && z.size === 1 ? [...z][0] : undefined; };
+
   // "London, England", "Moscow (Russia)", "Athens Greece", "New York NY" -> also try without the tail.
   function keyVariants(state: string, cc: string): string[] {
     const out: string[] = [];
@@ -73,7 +78,7 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
   }
 
   const cityRef = (c: GzCity, kind: PlaceKind): PlaceRef =>
-    ({ id: `c:${c.id}`, lat: c.lat, lon: c.lon, kind, cc: c.cc, nameRu: c.nameRu, name: c.name });
+    ({ id: `c:${c.id}`, lat: c.lat, lon: c.lon, kind, cc: c.cc, nameRu: c.nameRu, name: c.name, tz: c.tz, wikiRu: c.wikiRu, wikiEn: c.wikiEn });
 
   function match(s: Station): PlaceRef | null {
     if (!s.approx) {
@@ -83,6 +88,7 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
       return {
         id: `p:${s.cc}:${s.lat.toFixed(2)},${s.lon.toFixed(2)}`, lat: s.lat, lon: s.lon, kind: 'exact', cc: s.cc,
         nameRu: named?.nameRu ?? countryName(s.cc, 'ru'), name: named?.name ?? countryName(s.cc, 'en'),
+        tz: named?.tz || countryTz(s.cc), wikiRu: named?.wikiRu, wikiEn: named?.wikiEn,
       };
     }
     const keys = keyVariants(s.state, s.cc);
@@ -90,7 +96,7 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
       const a = admin1ByAlias.get(`${s.cc}|${key}`);
       const center = a && admin1Center.get(`${s.cc}.${a.code}`);
       if (a && center) {
-        return { id: `a:${s.cc}.${a.code}`, lat: center.lat, lon: center.lon, kind: 'region', cc: s.cc, nameRu: a.nameRu, name: a.name };
+        return { id: `a:${s.cc}.${a.code}`, lat: center.lat, lon: center.lon, kind: 'region', cc: s.cc, nameRu: a.nameRu, name: a.name, tz: center.tz, wikiRu: a.wikiRu, wikiEn: a.wikiEn };
       }
     }
     for (const key of keys) {
@@ -99,7 +105,7 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
     }
     const c = centroids[s.cc];
     if (!c) return null;
-    return { id: `k:${s.cc}`, lat: c[0], lon: c[1], kind: 'country', cc: s.cc, nameRu: countryName(s.cc, 'ru'), name: countryName(s.cc, 'en') };
+    return { id: `k:${s.cc}`, lat: c[0], lon: c[1], kind: 'country', cc: s.cc, nameRu: countryName(s.cc, 'ru'), name: countryName(s.cc, 'en'), tz: countryTz(s.cc) };
   }
 
   return { match };

@@ -37,4 +37,4 @@ export interface Station {
 export type Centroids = Record<string, [lat: number, lon: number]>;
 
 export type PlaceKind = 'exact' | 'region' | 'country';
-export interface PlaceRef { id: string; lat: number; lon: number; kind: PlaceKind; cc: string; nameRu: string; name: string }
+export interface PlaceRef { id: string; lat: number; lon: number; kind: PlaceKind; cc: string; nameRu: string; name: string; tz?: string; wikiRu?: string; wikiEn?: string }

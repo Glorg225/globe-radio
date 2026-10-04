@@ -68,3 +68,17 @@ test('places sharing exact coordinates are nudged apart so each one can be click
   expect(km).toBeLessThan(20);
   expect(places.find((pl) => pl.id === 'c:9')).toMatchObject({ lat: 48.85, lon: 2.35 });
 });
+
+test('placeInfoRows: per-country place data, countries use their own names as articles', async () => {
+  const { placeInfoRows } = await import('../scripts/build-snapshot');
+  const places: Place[] = [
+    { id: 'c:1', lat: 0, lon: 0, kind: 'exact', cc: 'DE', nameRu: 'Мюнхен', name: 'Munich', count: 1, pop: 1, tz: 'Europe/Berlin', wikiRu: 'Мюнхен', wikiEn: 'Munich' },
+    { id: 'k:DE', lat: 0, lon: 0, kind: 'country', cc: 'DE', nameRu: 'Германия', name: 'Germany', count: 1, pop: 1, tz: 'Europe/Berlin' },
+    { id: 'k:FR', lat: 0, lon: 0, kind: 'country', cc: 'FR', nameRu: 'Франция', name: 'France', count: 1, pop: 1 },
+  ];
+  expect(placeInfoRows(places, 'DE')).toEqual([
+    ['c:1', 'Europe/Berlin', 'Мюнхен', 'Munich'],
+    ['k:DE', 'Europe/Berlin', 'Германия', 'Germany'],
+  ]);
+  expect(placeInfoRows(places, 'FR')).toEqual([['k:FR', '', 'Франция', 'France']]);
+});

@@ -51,14 +51,14 @@ let deps: AppDeps;
 let globe: ReturnType<typeof fakeFactory>;
 let map: ReturnType<typeof fakeFactory>;
 let player: ReturnType<typeof fakePlayer>;
-let shards: ShardStore & { get: ReturnType<typeof vi.fn> };
+let shards: ShardStore & { get: ReturnType<typeof vi.fn>; info: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
   document.body.innerHTML = '<div id="app"></div>';
   globe = fakeFactory();
   map = fakeFactory();
   player = fakePlayer();
-  shards = { get: vi.fn(async () => pt) };
+  shards = { get: vi.fn(async () => pt), info: vi.fn(async () => new Map([['c:1', { tz: 'Europe/Lisbon', wikiRu: 'Лиссабон', wikiEn: 'Lisbon' }]])) };
   deps = {
     refs: renderShell(document.getElementById('app')!, i18n),
     i18n,

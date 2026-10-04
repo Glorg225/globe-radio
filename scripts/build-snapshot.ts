@@ -1,5 +1,5 @@
 import type { Place } from '../src/data/places';
-import type { StationLite } from '../src/data/shards';
+import type { PlaceInfoRow, StationLite } from '../src/data/shards';
 import { dedupe, toStation } from '../src/data/stations';
 import type { Centroids, PlaceKind, PlaceRef, RawStation, Station } from '../src/data/types';
 
@@ -82,4 +82,12 @@ export function buildSnapshot(raw: RawStation[], centroids: Centroids, matcher: 
     unknownLanguages: top(unknownLanguages),
   };
   return { places: [...places.values()], shards, report };
+}
+
+export function placeInfoRows(places: Place[], cc: string): PlaceInfoRow[] {
+  return places
+    .filter((p) => p.cc === cc)
+    .map((p): PlaceInfoRow => (p.kind === 'country'
+      ? [p.id, p.tz ?? '', p.nameRu, p.name]
+      : [p.id, p.tz ?? '', p.wikiRu ?? '', p.wikiEn ?? '']));
 }
