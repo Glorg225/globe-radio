@@ -150,3 +150,16 @@ test('browser autoplay block (NotAllowedError) pauses without blaming the statio
   expect(p.getState().kind).toBe('paused');
   expect(failures).toEqual([]);
 });
+
+test('the 8 s no-sound timer starts when the stream is attached, not while the url is resolving', async () => {
+  let release!: (u: string) => void;
+  const p = make(() => new Promise<string>((r) => { release = r; }));
+  void p.play(st('a'));
+  await vi.advanceTimersByTimeAsync(STREAM_TIMEOUT_MS + 2000);
+  expect(p.getState().kind).toBe('loading');
+  release('https://a');
+  await vi.advanceTimersByTimeAsync(STREAM_TIMEOUT_MS - 1);
+  expect(p.getState().kind).toBe('loading');
+  await vi.advanceTimersByTimeAsync(1);
+  expect(p.getState().kind).toBe('error');
+});

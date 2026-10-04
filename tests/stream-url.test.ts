@@ -26,3 +26,21 @@ test('no https url at all → rejects', async () => {
   const down = (async () => { throw new Error('offline'); }) as unknown as typeof fetch;
   await expect(resolveStreamUrl({ id: 'x', url: 'http://old' }, down, ['m1'])).rejects.toThrow(/https/);
 });
+
+test('mirrors are asked in parallel and a slow API falls back to the snapshot url within the budget', async () => {
+  vi.useFakeTimers();
+  const hang = ((_u: string, init?: RequestInit) => new Promise((_, reject) => init?.signal?.addEventListener('abort', () => reject(new Error('aborted'))))) as unknown as typeof fetch;
+  const started = Date.now();
+  const p = resolveStreamUrl(station, hang, ['m1', 'm2', 'm3', 'm4'], 3000);
+  await vi.advanceTimersByTimeAsync(3000);
+  await expect(p).resolves.toBe('https://snapshot/stream');
+  expect(Date.now() - started).toBeLessThanOrEqual(3000);
+  vi.useRealTimers();
+});
+
+test('the first mirror that answers wins, even if others are slow', async () => {
+  const f = ((u: string, init?: RequestInit) => (u.includes('m2')
+    ? Promise.resolve(json({ ok: true, url: 'https://fresh-m2' }))
+    : new Promise((_, reject) => init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))))) as unknown as typeof fetch;
+  await expect(resolveStreamUrl(station, f, ['m1', 'm2', 'm3'], 3000)).resolves.toBe('https://fresh-m2');
+});

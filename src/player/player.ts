@@ -70,7 +70,6 @@ export function createPlayer(deps: PlayerDeps): Player {
     const t = ++token;
     teardown();
     set({ kind: 'loading', station });
-    arm(t);
     try {
       const url = await deps.resolveUrl(station);
       if (t !== token) return;
@@ -86,6 +85,8 @@ export function createPlayer(deps: PlayerDeps): Player {
       } else {
         audio.src = url;
       }
+      // The 8 s "no sound" window starts once the stream is attached (URL resolution has its own budget).
+      arm(t);
       await audio.play();
     } catch (e) {
       if (t !== token) return;
