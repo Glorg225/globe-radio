@@ -21,7 +21,7 @@ export function parseCities(text: string): GzCity[] {
     const pop = Number(f[14]) || 0;
     const city: GzCity = {
       id: Number(f[0]), nameRu: '', name: f[1], lat: Number(f[4]), lon: Number(f[5]),
-      cc: f[8], admin1: f[10], pop, aliases: [],
+      cc: f[8], admin1: f[10], pop, aliases: [], tz: f[17] ?? '', wikiRu: '', wikiEn: '',
     };
     addAlias(city.aliases, f[1]);
     addAlias(city.aliases, f[2]);
@@ -38,13 +38,15 @@ export function parseAdmin1(text: string): (GzAdmin1 & { geonameId: number })[] 
     const f = line.split('\t');
     if (f.length < 4) continue;
     const [cc, code] = f[0].split('.');
-    const a = { cc, code, nameRu: '', name: f[1], aliases: [] as string[], geonameId: Number(f[3]) };
+    const a = { cc, code, nameRu: '', name: f[1], aliases: [] as string[], wikiRu: '', wikiEn: '', geonameId: Number(f[3]) };
     addAlias(a.aliases, f[1]);
     addAlias(a.aliases, f[2]);
     out.push(a);
   }
   return out;
 }
+
+const WIKI = /^https?:\/\/(en|ru)\.wikipedia\.org\/wiki\/(.+)$/;
 
 // Row of alternateNamesV2.txt: id, geonameid, isolanguage, name, isPreferred, isShort, isColloquial, isHistoric, ...
 export function applyAltName(row: string[], cities: Map<number, GzCity>, admins: Map<number, GzAdmin1>): void {
@@ -53,6 +55,18 @@ export function applyAltName(row: string[], cities: Map<number, GzCity>, admins:
   const name = row[3];
   const preferred = row[4] === '1';
   const target = cities.get(id) ?? admins.get(id);
+  // 'link' rows carry Wikipedia URLs: keep the first en/ru article title.
+  if (target && lang === 'link') {
+    const m = WIKI.exec(name ?? '');
+    if (m) {
+      let title = m[2];
+      try { title = decodeURIComponent(title); } catch { /* keep raw */ }
+      title = title.replace(/_/g, ' ');
+      if (m[1] === 'ru' && !target.wikiRu) target.wikiRu = title;
+      if (m[1] === 'en' && !target.wikiEn) target.wikiEn = title;
+    }
+    return;
+  }
   if (!target || !name || SKIP_LANGS.has(lang)) return;
   if (lang === 'ru' && (!target.nameRu || (preferred && !preferredRu.has(id)))) {
     target.nameRu = name;

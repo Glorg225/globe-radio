@@ -6,17 +6,17 @@ import type { Station } from '../src/data/types';
 
 const gz: Gazetteer = {
   cities: [
-    { id: 1, nameRu: 'Мюнхен', name: 'Munich', lat: 48.137, lon: 11.575, cc: 'DE', admin1: '02', pop: 1_260_000, aliases: ['munich', 'munchen', 'мюнхен'] },
-    { id: 2, nameRu: 'Нюрнберг', name: 'Nuremberg', lat: 49.45, lon: 11.08, cc: 'DE', admin1: '02', pop: 500_000, aliases: ['nuremberg'] },
-    { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow', 'москва'] },
-    { id: 4, nameRu: 'Париж', name: 'Paris', lat: 48.85, lon: 2.35, cc: 'FR', admin1: '11', pop: 2_100_000, aliases: ['paris'] },
-    { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'] },
+    { id: 1, nameRu: 'Мюнхен', name: 'Munich', lat: 48.137, lon: 11.575, cc: 'DE', admin1: '02', pop: 1_260_000, aliases: ['munich', 'munchen', 'мюнхен'], tz: '', wikiRu: '', wikiEn: '' },
+    { id: 2, nameRu: 'Нюрнберг', name: 'Nuremberg', lat: 49.45, lon: 11.08, cc: 'DE', admin1: '02', pop: 500_000, aliases: ['nuremberg'], tz: '', wikiRu: '', wikiEn: '' },
+    { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow', 'москва'], tz: '', wikiRu: '', wikiEn: '' },
+    { id: 4, nameRu: 'Париж', name: 'Paris', lat: 48.85, lon: 2.35, cc: 'FR', admin1: '11', pop: 2_100_000, aliases: ['paris'], tz: '', wikiRu: '', wikiEn: '' },
+    { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'], tz: '', wikiRu: '', wikiEn: '' },
   ],
   admin1: [
-    { cc: 'DE', code: '02', nameRu: 'Бавария', name: 'Bavaria', aliases: ['bavaria', 'bayern', 'бавария'] },
-    { cc: 'FR', code: '11', nameRu: 'Иль-де-Франс', name: 'Île-de-France', aliases: ['ile de france'] },
-    { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'] },
-    { cc: 'DE', code: '99', nameRu: '', name: 'Empty Land', aliases: ['empty land'] },
+    { cc: 'DE', code: '02', nameRu: 'Бавария', name: 'Bavaria', aliases: ['bavaria', 'bayern', 'бавария'], wikiRu: '', wikiEn: '' },
+    { cc: 'FR', code: '11', nameRu: 'Иль-де-Франс', name: 'Île-de-France', aliases: ['ile de france'], wikiRu: '', wikiEn: '' },
+    { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'], wikiRu: '', wikiEn: '' },
+    { cc: 'DE', code: '99', nameRu: '', name: 'Empty Land', aliases: ['empty land'], wikiRu: '', wikiEn: '' },
   ],
 };
 const centroids = { DE: [51, 9] as [number, number], RU: [60, 100] as [number, number], FR: [46, 2] as [number, number] };
@@ -83,7 +83,7 @@ test('no centroid and no coords → null', () =>
 
 test('a station is never snapped to a city of another country (review: places must be country-scoped)', () => {
   const border = createPlaceMatcher({
-    cities: [{ id: 50, nameRu: 'Зальцбург', name: 'Salzburg', lat: 47.8, lon: 13.04, cc: 'AT', admin1: '05', pop: 150_000, aliases: ['salzburg'] }],
+    cities: [{ id: 50, nameRu: 'Зальцбург', name: 'Salzburg', lat: 47.8, lon: 13.04, cc: 'AT', admin1: '05', pop: 150_000, aliases: ['salzburg'], tz: 'Europe/Vienna', wikiRu: '', wikiEn: '' }],
     admin1: [],
   }, centroids, (cc, l) => names[l][cc] ?? cc);
   const p = border.match(st({ approx: false, cc: 'DE', lat: 47.75, lon: 12.95 }))!;
@@ -94,12 +94,12 @@ test('a station is never snapped to a city of another country (review: places mu
 test('a region primary name beats a translated alias of another region', () => {
   const ru = createPlaceMatcher({
     cities: [
-      { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow'] },
-      { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'] },
+      { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow'], tz: '', wikiRu: '', wikiEn: '' },
+      { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'], tz: '', wikiRu: '', wikiEn: '' },
     ],
     admin1: [
-      { cc: 'RU', code: '48', nameRu: 'Москва', name: 'Moscow', aliases: ['moscow', 'москва'] },
-      { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'] },
+      { cc: 'RU', code: '48', nameRu: 'Москва', name: 'Moscow', aliases: ['moscow', 'москва'], wikiRu: '', wikiEn: '' },
+      { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'], wikiRu: '', wikiEn: '' },
     ],
   }, centroids, (cc, l) => names[l][cc]);
   expect(ru.match(st({ cc: 'RU', state: 'Moscow' }))!.id).toBe('a:RU.48');
