@@ -54,6 +54,13 @@ test('region matching ignores case, diacritics and generic words (review focus 5
   expect(m.match(st({ cc: 'RU', state: 'Московская область' }))!.id).toBe('a:RU.47');
 });
 
+test('region with a trailing country, state code or note is still matched (from snapshot report)', () => {
+  expect(m.match(st({ state: 'Bayern, Deutschland' }))!.id).toBe('a:DE.02');
+  expect(m.match(st({ state: 'Bayern Germany' }))!.id).toBe('a:DE.02');
+  expect(m.match(st({ cc: 'RU', state: 'Moscow (Russia)' }))!.id).toBe('a:RU.47');
+  expect(m.match(st({ state: 'Munich BY' }))!.id).toBe('c:1');
+});
+
 test('admin1 wins over a city with the same alias', () =>
   expect(m.match(st({ cc: 'RU', state: 'Moscow' }))!.id).toBe('a:RU.47'));
 

@@ -42,6 +42,19 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
     return best;
   }
 
+  // "London, England", "Moscow (Russia)", "Athens Greece", "New York NY" -> also try without the tail.
+  function keyVariants(state: string, cc: string): string[] {
+    const out: string[] = [];
+    const add = (raw: string) => { const k = normalizeName(raw); if (k && !out.includes(k)) out.push(k); };
+    add(state);
+    add(state.split(/[,(]/)[0]);
+    const words = normalizeName(state).split(' ');
+    const last = words[words.length - 1];
+    const country = [normalizeName(countryName(cc, 'en') ?? ''), normalizeName(countryName(cc, 'ru') ?? '')];
+    if (words.length > 1 && (last.length === 2 || country.includes(last))) add(words.slice(0, -1).join(' '));
+    return out;
+  }
+
   const cityRef = (c: GzCity, kind: PlaceKind): PlaceRef =>
     ({ id: `c:${c.id}`, lat: c.lat, lon: c.lon, kind, cc: c.cc, nameRu: c.nameRu, name: c.name });
 
@@ -55,13 +68,15 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
         nameRu: named?.nameRu ?? countryName(s.cc, 'ru'), name: named?.name ?? countryName(s.cc, 'en'),
       };
     }
-    const key = normalizeName(s.state);
-    if (key) {
+    const keys = keyVariants(s.state, s.cc);
+    for (const key of keys) {
       const a = admin1ByAlias.get(`${s.cc}|${key}`);
       const center = a && admin1Center.get(`${s.cc}.${a.code}`);
       if (a && center) {
         return { id: `a:${s.cc}.${a.code}`, lat: center.lat, lon: center.lon, kind: 'region', cc: s.cc, nameRu: a.nameRu, name: a.name };
       }
+    }
+    for (const key of keys) {
       const city = cityByAlias.get(`${s.cc}|${key}`);
       if (city) return cityRef(city, 'region');
     }
