@@ -9,7 +9,8 @@ const path = (title: string) => encodeURIComponent(title.replace(/ /g, '_'));
 export const articleUrl = (lang: Lang, title: string) => `https://${lang}.wikipedia.org/wiki/${path(title)}`;
 
 export function trimSentences(text: string, max = 3, maxChars = 320): string {
-  const clean = text.replace(/\s+/g, ' ').trim();
+  // Russian Wikipedia marks stress with a combining acute accent (U+0301); the card shows plain text.
+  const clean = text.replace(/́/g, '').replace(/\s+/g, ' ').trim();
   if (!clean) return '';
   const sentences = clean.split(/(?<=[.!?…])\s+/);
   let out = '';
@@ -25,6 +26,16 @@ export function trimSentences(text: string, max = 3, maxChars = 320): string {
 
 class NetworkError extends Error {}
 
+// Only images served by Wikimedia (upload.*, thumb.* …) are shown.
+function isWikimedia(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && (u.hostname === 'wikimedia.org' || u.hostname.endsWith('.wikimedia.org'));
+  } catch {
+    return false;
+  }
+}
+
 // Returns undefined when the article does not exist; throws NetworkError on connectivity problems.
 async function summary(lang: Lang, title: string, fetchFn: typeof fetch, cache: WikiCache): Promise<WikiSummary | undefined> {
   const key = `${lang}:${title}`;
@@ -37,7 +48,7 @@ async function summary(lang: Lang, title: string, fetchFn: typeof fetch, cache: 
   const b = (await r.json()) as { type?: string; extract?: string; thumbnail?: { source?: string } };
   if (b.type === 'disambiguation' || !b.extract) { cache.set(key, null); return undefined; }
   const img = b.thumbnail?.source ?? '';
-  const s: WikiSummary = { lang, title, text: trimSentences(b.extract), image: img.startsWith('https://upload.wikimedia.org/') ? img : '', url: articleUrl(lang, title) };
+  const s: WikiSummary = { lang, title, text: trimSentences(b.extract), image: isWikimedia(img) ? img : '', url: articleUrl(lang, title) };
   cache.set(key, s);
   return s;
 }

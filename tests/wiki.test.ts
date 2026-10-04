@@ -112,3 +112,14 @@ test('a Russian title that does not exist (e.g. country name spelled differently
   const r = await findArticle({ wikiRu: 'Соединенные Штаты', wikiEn: 'United States' }, f, createWikiCache(null));
   expect(r.summary).toMatchObject({ lang: 'ru', title: 'Соединённые Штаты Америки' });
 });
+
+test('Wikimedia thumbnails from any wikimedia.org host are accepted (thumb.wikimedia.org)', async () => {
+  const f = wikiFetch({ 'summary/T': () => json(summary('T', 'Текст.', 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/b.jpg/330px-b.jpg')) });
+  expect((await findArticle({ wikiRu: 'T', wikiEn: '' }, f, createWikiCache(null))).summary!.image).toBe('https://thumb.wikimedia.org/wikipedia/commons/thumb/a/b.jpg/330px-b.jpg');
+  const g = wikiFetch({ 'summary/U': () => json(summary('U', 'Текст.', 'https://wikimedia.org.evil.example/x.jpg')) });
+  expect((await findArticle({ wikiRu: 'U', wikiEn: '' }, g, createWikiCache(null))).summary!.image).toBe('');
+});
+
+test('Russian stress marks are removed from the text', () => {
+  expect(trimSentences('Лиссабо́н — столица. Герма́ния рядом.')).toBe('Лиссабон — столица. Германия рядом.');
+});
