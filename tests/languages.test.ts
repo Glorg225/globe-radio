@@ -14,3 +14,17 @@ test('drops unknown codes and names', () =>
 test('3-letter ISO 639-2 codes map to 639-1 when known', () =>
   expect(normalizeLanguages('spa,eng', '')).toEqual(['es', 'en']));
 test('empty input', () => expect(normalizeLanguages('', '')).toEqual([]));
+test('regional variants resolve to the base language (from snapshot report)', () => {
+  expect(normalizeLanguages('', 'español mexico')).toEqual(['es']);
+  expect(normalizeLanguages('', 'american english')).toEqual(['en']);
+  expect(normalizeLanguages('', 'castellano. español')).toEqual(['es']);
+  expect(normalizeLanguages('', 'português (brasil)')).toEqual(['pt']);
+  expect(normalizeLanguages('', 'swiss german')).toEqual(['de']);
+  expect(normalizeLanguages('', 'язык: русский')).toEqual(['ru']);
+});
+test('a bare ISO code in the name field is accepted', () =>
+  expect(normalizeLanguages('', 'ar')).toEqual(['ar']));
+test('frequent misspellings', () =>
+  expect(normalizeLanguages('', 'engilsh, francaise')).toEqual(['en', 'fr']));
+test('country names are not mistaken for languages', () =>
+  expect(normalizeLanguages('', 'montenegro')).toEqual([]));

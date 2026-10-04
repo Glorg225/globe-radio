@@ -16,6 +16,8 @@ const NAME_TO_CODE: Record<string, string> = {
   thai: 'th', vietnamese: 'vi', 'tiếng việt': 'vi', indonesian: 'id', 'bahasa indonesia': 'id', malay: 'ms', filipino: 'tl', tagalog: 'tl',
   swahili: 'sw', amharic: 'am', hausa: 'ha', yoruba: 'yo', zulu: 'zu', afrikaans: 'af', somali: 'so',
   armenian: 'hy', georgian: 'ka', azerbaijani: 'az', kazakh: 'kk', uzbek: 'uz', mongolian: 'mn', albanian: 'sq', esperanto: 'eo', latin: 'la',
+  // frequent misspellings seen in the snapshot report
+  engilsh: 'en', englisch: 'en', francaise: 'fr', 'française': 'fr', espanhol: 'es', portugese: 'pt',
 };
 
 // ISO 639-2/3 -> 639-1 for common cases
@@ -38,9 +40,16 @@ function fromCode(raw: string): string | undefined {
   return isKnownCode(c) ? c : undefined;
 }
 
+// "español mexico", "american english", "язык: русский" -> first word that is a known language name.
 function fromName(raw: string): string | undefined {
   const n = raw.trim().toLowerCase();
-  return n ? NAME_TO_CODE[n] : undefined;
+  if (!n) return undefined;
+  if (NAME_TO_CODE[n]) return NAME_TO_CODE[n];
+  if (isKnownCode(n)) return n;
+  for (const word of n.split(/[^\p{L}]+/u)) {
+    if (word && NAME_TO_CODE[word]) return NAME_TO_CODE[word];
+  }
+  return undefined;
 }
 
 export function normalizeLanguages(languagecodes: string, language: string): string[] {
