@@ -41,3 +41,14 @@ test('throws after all mirrors fail', async () => {
   }) as unknown as typeof fetch;
   await expect(fetchWithMirrors('/json/stats', fake, () => 0)).rejects.toThrow(/all mirrors failed/);
 });
+
+test('a stalled mirror times out and the next one is used', async () => {
+  const fake = ((url: string, init?: RequestInit) => {
+    if (url.endsWith('/json/servers')) return Promise.resolve(new Response(JSON.stringify([{ name: 'stall.example' }, { name: 'ok.example' }])));
+    if (url.includes('stall.example')) {
+      return new Promise((_, reject) => init?.signal?.addEventListener('abort', () => reject(new Error('aborted'))));
+    }
+    return Promise.resolve(new Response(JSON.stringify({ ok: true })));
+  }) as unknown as typeof fetch;
+  await expect(fetchWithMirrors('/json/stats', fake, () => 0, 50)).resolves.toEqual({ ok: true });
+});

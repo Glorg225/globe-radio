@@ -1,4 +1,5 @@
 import type { I18n } from '../i18n/i18n';
+import { escapeHtml } from './html';
 import { icons } from './icons';
 import './tokens.css';
 import './shell.css';
@@ -13,8 +14,8 @@ export interface ShellRefs {
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
-  const { t } = i18n;
-  document.title = t('app.name');
+  const t = (key: string) => escapeHtml(i18n.t(key));
+  document.title = i18n.t('app.name');
   root.className = 'shell';
   root.innerHTML = `
     <header class="shell__header">

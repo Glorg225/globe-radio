@@ -39,3 +39,11 @@ test('every button has an accessible name', () => {
     expect(name, b.outerHTML).toBeTruthy();
   }
 });
+
+test('translated strings are escaped, not parsed as HTML', () => {
+  const evil = { ...ru, 'app.name': '<img src=x onerror=alert(1)>', 'header.search.placeholder': 'a"b<c' };
+  const refs = renderShell(root, createI18n('ru', evil));
+  expect(root.querySelector('img')).toBeNull();
+  expect(refs.header.textContent).toContain('<img src=x onerror=alert(1)>');
+  expect(refs.header.querySelector('input')!.getAttribute('placeholder')).toBe('a"b<c');
+});

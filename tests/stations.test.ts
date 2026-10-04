@@ -42,3 +42,14 @@ test('encode/decode roundtrip', () => {
   const s = toStation(raw({ hls: 1 }), centroids)!;
   expect(decode(encode(s))).toEqual(s);
 });
+
+test('null string fields from the API do not throw', () => {
+  const nulls = { tags: null, state: null, language: null, languagecodes: null, favicon: null } as unknown as Partial<RawStation>;
+  const s = toStation(raw(nulls), centroids)!;
+  expect([s.tags, s.state, s.langs, s.favicon]).toEqual([[], '', [], '']);
+});
+test('null name, url or country drops the station instead of throwing', () => {
+  expect(toStation(raw({ name: null } as unknown as Partial<RawStation>), centroids)).toBeNull();
+  expect(toStation(raw({ url_resolved: null } as unknown as Partial<RawStation>), centroids)).toBeNull();
+  expect(toStation(raw({ countrycode: null, geo_lat: null, geo_long: null } as unknown as Partial<RawStation>), centroids)).toBeNull();
+});

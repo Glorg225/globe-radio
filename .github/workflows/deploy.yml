@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -24,12 +24,22 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - id: pages
+        uses: actions/configure-pages@v5
       - run: npm ci
       - run: npm test
-      - run: npm run snapshot
+      # If Radio Browser is down, reuse the currently deployed snapshot so code changes still ship.
+      - name: Snapshot stations (fallback to last deployed)
+        run: |
+          if ! npm run snapshot; then
+            echo "::warning::Radio Browser unavailable, reusing the last deployed snapshot"
+            mkdir -p public/data
+            curl -fsSL "${{ steps.pages.outputs.base_url }}/data/stations.json" -o public/data/stations.json
+            curl -fsSL "${{ steps.pages.outputs.base_url }}/data/meta.json" -o public/data/meta.json
+          fi
       - run: npm run build
         env:
-          BASE_PATH: /${{ github.event.repository.name }}/
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
