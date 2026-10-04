@@ -13,3 +13,27 @@ export function decodeStation(c: CompactStationV2, cc: string): StationLite {
   const [id, name, url, placeId, langs, tags, votes, clicks, favicon, hls] = c;
   return { id, name, url, placeId, cc, langs: langs ? langs.split(',') : [], tags: tags ? tags.split(',') : [], votes, clicks, favicon, hls: hls === 1 };
 }
+
+export interface ShardStore { get(cc: string): Promise<StationLite[]> }
+
+export function createShardStore(baseUrl: string, fetchFn: typeof fetch = fetch): ShardStore {
+  const cache = new Map<string, Promise<StationLite[]>>();
+  async function load(cc: string): Promise<StationLite[]> {
+    const r = await fetchFn(`${baseUrl}data/stations/${cc}.json`);
+    if (!r.ok) throw new Error(`stations ${cc} HTTP ${r.status}`);
+    const body = (await r.json()) as Partial<ShardFile>;
+    if (body.v !== 2 || !Array.isArray(body.stations)) throw new Error('unsupported stations format');
+    return body.stations.map((c) => decodeStation(c, cc));
+  }
+  return {
+    get(cc) {
+      let p = cache.get(cc);
+      if (!p) {
+        p = load(cc);
+        cache.set(cc, p);
+        p.catch(() => cache.delete(cc));
+      }
+      return p;
+    },
+  };
+}

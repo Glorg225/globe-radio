@@ -14,3 +14,11 @@ export function decodePlace(c: CompactPlace): Place {
   const [id, lat, lon, kind, cc, nameRu, name, count, pop] = c;
   return { id, lat, lon, kind: KINDS[kind], cc, nameRu, name, count, pop };
 }
+
+export async function loadPlaces(baseUrl: string, fetchFn: typeof fetch = fetch): Promise<Place[]> {
+  const r = await fetchFn(`${baseUrl}data/places.json`);
+  if (!r.ok) throw new Error(`places HTTP ${r.status}`);
+  const body = (await r.json()) as Partial<PlacesFile>;
+  if (body.v !== 2 || !Array.isArray(body.places)) throw new Error('unsupported places format');
+  return body.places.map(decodePlace);
+}
