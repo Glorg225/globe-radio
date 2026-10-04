@@ -139,3 +139,14 @@ test('volume is clamped and unsubscribed listeners are not called', async () => 
   audio.fire('playing');
   expect(seen).toEqual(['loading']);
 });
+
+test('browser autoplay block (NotAllowedError) pauses without blaming the station', async () => {
+  const p = make();
+  audio.play = () => Promise.reject(new DOMException('needs a user gesture', 'NotAllowedError'));
+  await p.play(st('a'));
+  expect(p.getState()).toMatchObject({ kind: 'paused', station: { id: 'a' } });
+  expect(failures).toEqual([]);
+  await vi.advanceTimersByTimeAsync(STREAM_TIMEOUT_MS * 2);
+  expect(p.getState().kind).toBe('paused');
+  expect(failures).toEqual([]);
+});

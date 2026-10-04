@@ -87,8 +87,11 @@ export function createPlayer(deps: PlayerDeps): Player {
         audio.src = url;
       }
       await audio.play();
-    } catch {
-      if (t === token) fail();
+    } catch (e) {
+      if (t !== token) return;
+      // Autoplay blocked: the station is fine, the browser wants a user gesture first.
+      if (e instanceof DOMException && e.name === 'NotAllowedError') pause();
+      else fail();
     }
   }
 
