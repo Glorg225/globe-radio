@@ -40,3 +40,6 @@ export type CompactStation = [
 ];
 
 export type Centroids = Record<string, [lat: number, lon: number]>;
+
+export type PlaceKind = 'exact' | 'region' | 'country';
+export interface PlaceRef { id: string; lat: number; lon: number; kind: PlaceKind; cc: string; nameRu: string; name: string }
