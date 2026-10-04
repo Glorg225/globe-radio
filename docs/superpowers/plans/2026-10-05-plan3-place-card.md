@@ -1091,8 +1091,8 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
 
   return {
     show(d) {
-      const my = ++token;
       if (!d) {
+        token++;
         currentPlaceId = null;
         tz = '';
         schedule();
@@ -1101,12 +1101,395 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
         sheet.hidden = true;
         return;
       }
+      // Language depends on the station: refresh it even when the place is the same (pause/resume, next in the same city).
       const langs = languageNames(d.station.langs, i18n.locale) || i18n.t('place.lang.none');
       el.langs.textContent = langs;
       const country = countryName(d.place.cc, i18n.locale);
       el.sMeta.textContent = `${d.place.kind === 'country' ? i18n.t('place.approx') : country} · ${langs}`;
       if (d.place.id === currentPlaceId) return;
       currentPlaceId = d.place.id;
+      const my = ++token;
+
+      el.empty.hidden = true;
+      el.content.hidden = false;
+      sheet.hidden = false;
+      const title = placeTitle(d.place, i18n.locale);
+      el.name.textContent = title;
+      el.sName.textContent = title;
+      el.country.textContent = d.place.kind === 'country' ? i18n.t('place.approx') : country;
+      const flag = deps.flagUrl(d.place.cc);
+      for (const img of [el.flag, el.sFlag]) { img.hidden = !flag; if (flag) img.src = flag; }
+
+      tz = d.info && isValidTimeZone(d.info.tz) ? d.info.tz : '';
+      el.time.hidden = !tz;
+      el.sClock.hidden = !tz;
+      tick();
+      schedule();
+
+      el.wiki.hidden = true;
+      el.sText.hidden = true;
+      el.sLink.hidden = true;
+      if (!d.info || (!d.info.wikiRu && !d.info.wikiEn)) return;
+      void deps.findArticle(d.info).then((r) => { if (my === token) renderWiki(r); });
+    },
+    destroy() {
+      token++;
+      if (timer !== undefined) clearTimeout(timer);
+      sheet.remove();
+    },
+  };
+}
+```
+`src/place-card/place-card.css`, `tests/place-card.test.ts`
+- Modify: `src/ui/shell.css` (удалить правило `.place__head`, если мешает; см. Step 4)
+
+**Interfaces:**
+- Consumes: `Place` (План 2), `StationLite`, `PlaceInfo` (Task 2), `WikiResult` (Task 4), time/language/flag (Task 3), `I18n`.
+- Produces:
+  ```ts
+  export interface PlaceCardData { place: Place; station: StationLite; info: PlaceInfo | null }
+  export interface PlaceCardDeps {
+    i18n: I18n; storage: Storage | null;
+    flagUrl(cc: string): string | null;
+    findArticle(info: PlaceInfo): Promise<WikiResult>;
+    now(): Date; userOffset(): number;
+  }
+  export interface PlaceCard { show(d: PlaceCardData | null): void; destroy(): void }
+  export const COLLAPSE_KEY = 'placeCardCollapsed';
+  export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps: PlaceCardDeps): PlaceCard
+  ```
+  `panel` — правая панель (`refs.placeCard`), её содержимое заменяется; `sheetHost` — `refs.stage` (туда добавляется шторка телефона `.pc-sheet`).
+
+- [ ] **Step 1: Тесты**
+
+`tests/place-card.test.ts`:
+```ts
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import ru from '../locales/ru.json';
+import type { Place } from '../src/data/places';
+import type { PlaceInfo, StationLite } from '../src/data/shards';
+import { createI18n } from '../src/i18n/i18n';
+import { COLLAPSE_KEY, createPlaceCard, type PlaceCardDeps } from '../src/place-card/place-card';
+import type { WikiResult } from '../src/place-card/wiki';
+
+const i18n = createI18n('ru', ru);
+const lisbon: Place = { id: 'c:1', lat: 38.7, lon: -9.1, kind: 'exact', cc: 'PT', nameRu: 'Лиссабон', name: 'Lisbon', count: 12, pop: 1 };
+const country: Place = { ...lisbon, id: 'k:PT', kind: 'country' };
+const st = (langs: string[] = ['pt']): StationLite =>
+  ({ id: 's', name: 'Fado', url: 'https://x', placeId: 'c:1', cc: 'PT', langs, tags: [], votes: 0, clicks: 0, favicon: '', hls: false });
+const info: PlaceInfo = { tz: 'Europe/Lisbon', wikiRu: 'Лиссабон', wikiEn: 'Lisbon' };
+const wiki = (text: string, lang: 'ru' | 'en' = 'ru'): WikiResult =>
+  ({ summary: { lang, title: 'T', text, image: 'https://upload.wikimedia.org/p.jpg', url: 'https://ru.wikipedia.org/wiki/T' }, link: 'https://ru.wikipedia.org/wiki/T' });
+
+class Mem { m = new Map<string, string>(); getItem(k: string) { return this.m.get(k) ?? null; } setItem(k: string, v: string) { this.m.set(k, v); } }
+
+let panel: HTMLElement;
+let stage: HTMLElement;
+let deps: PlaceCardDeps;
+const flush = () => vi.advanceTimersByTimeAsync(0);
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(Date.UTC(2026, 0, 15, 14, 32, 30)));
+  document.body.innerHTML = '<aside class="shell__place"></aside><main></main>';
+  panel = document.querySelector('aside')!;
+  stage = document.querySelector('main')!;
+  deps = {
+    i18n,
+    storage: new Mem() as unknown as Storage,
+    flagUrl: (cc) => (cc === 'PT' ? '/flags/pt.svg' : null),
+    findArticle: vi.fn(async () => wiki('Лиссабон — столица Португалии.')),
+    now: () => new Date(),
+    userOffset: () => 180,
+  };
+});
+afterEach(() => vi.useRealTimers());
+const q = (s: string) => panel.querySelector(s) as HTMLElement;
+
+test('empty state before anything plays', () => {
+  createPlaceCard(panel, stage, deps).show(null);
+  expect(panel.textContent).toContain('Карточка места появится');
+  expect(q('.pc__content').hidden).toBe(true);
+});
+
+test('city card: flag, title, country, time, difference, language, disabled learn button, wiki', async () => {
+  createPlaceCard(panel, stage, deps).show({ place: lisbon, station: st(['pt']), info });
+  await flush();
+  expect((q('.pc__flag') as HTMLImageElement).src).toContain('/flags/pt.svg');
+  expect(q('.pc__name').textContent).toBe('Лиссабон');
+  expect(q('.pc__country').textContent).toBe('Португалия');
+  expect(q('.pc__clock').textContent).toBe('14:32');
+  expect(q('.pc__diff').textContent).toBe('на 3 ч раньше вас');
+  expect(q('.pc__langs').textContent).toBe('португальский');
+  const learn = q('.pc__learn') as HTMLButtonElement;
+  expect(learn.disabled).toBe(true);
+  expect(learn.title).toBe('Появится скоро');
+  expect(q('.pc__text').textContent).toBe('Лиссабон — столица Португалии.');
+  expect((q('.pc__link') as HTMLAnchorElement).href).toBe('https://ru.wikipedia.org/wiki/T');
+  expect(q('.pc__link').textContent).toContain('Читать в Википедии');
+  expect(q('.pc__note').hidden).toBe(true);
+});
+
+test('country card says the location is approximate', () => {
+  createPlaceCard(panel, stage, deps).show({ place: country, station: st(), info });
+  expect(q('.pc__name').textContent).toBe('Португалия');
+  expect(q('.pc__country').textContent).toBe('Примерное расположение станций');
+});
+
+test('missing place info: no time tile, no wiki, flag/title/language still shown (review focus 5)', async () => {
+  createPlaceCard(panel, stage, deps).show({ place: lisbon, station: st([]), info: null });
+  await flush();
+  expect(q('.pc__time').hidden).toBe(true);
+  expect(q('.pc__wiki').hidden).toBe(true);
+  expect(q('.pc__langs').textContent).toBe('Язык не указан');
+  expect(deps.findArticle).not.toHaveBeenCalled();
+});
+
+test('unknown timezone hides the time tile; unknown flag hides the flag', () => {
+  createPlaceCard(panel, stage, deps).show({ place: { ...lisbon, cc: 'QQ' }, station: st(), info: { ...info, tz: 'Mars/Olympus' } });
+  expect(q('.pc__time').hidden).toBe(true);
+  expect(q('.pc__flag').hidden).toBe(true);
+});
+
+test('English article gets a note; link-only result shows "Подробнее"; nothing hides the block', async () => {
+  const card = createPlaceCard(panel, stage, deps);
+  deps.findArticle = vi.fn(async () => wiki('A town.', 'en'));
+  card.show({ place: lisbon, station: st(), info });
+  await flush();
+  expect(q('.pc__note').hidden).toBe(false);
+  expect(q('.pc__note').textContent).toBe('Статья на английском');
+  deps.findArticle = vi.fn(async () => ({ summary: null, link: 'https://ru.wikipedia.org/wiki/X' }));
+  card.show({ place: { ...lisbon, id: 'c:2' }, station: st(), info });
+  await flush();
+  expect(q('.pc__text').hidden).toBe(true);
+  expect(q('.pc__link').textContent).toContain('Подробнее в Википедии');
+  deps.findArticle = vi.fn(async () => ({ summary: null, link: null }));
+  card.show({ place: { ...lisbon, id: 'c:3' }, station: st(), info });
+  await flush();
+  expect(q('.pc__wiki').hidden).toBe(true);
+});
+
+test('Wikipedia text with markup is shown as text (review focus 2)', async () => {
+  deps.findArticle = vi.fn(async () => wiki('<img src=x onerror=alert(1)> текст'));
+  createPlaceCard(panel, stage, deps).show({ place: lisbon, station: st(), info });
+  await flush();
+  expect(panel.querySelector('.pc__text img')).toBeNull();
+  expect(q('.pc__text').textContent).toBe('<img src=x onerror=alert(1)> текст');
+});
+
+test('a late answer for a previous place is dropped (review focus 1)', async () => {
+  let releaseA!: (r: WikiResult) => void;
+  deps.findArticle = vi.fn((i: PlaceInfo) => (i.wikiRu === 'A' ? new Promise<WikiResult>((r) => { releaseA = r; }) : Promise.resolve(wiki('B text'))));
+  const card = createPlaceCard(panel, stage, deps);
+  card.show({ place: lisbon, station: st(), info: { ...info, wikiRu: 'A' } });
+  card.show({ place: { ...lisbon, id: 'c:2', nameRu: 'Порту' }, station: st(), info: { ...info, wikiRu: 'B' } });
+  await flush();
+  releaseA(wiki('A text'));
+  await flush();
+  expect(q('.pc__name').textContent).toBe('Порту');
+  expect(q('.pc__text').textContent).toBe('B text');
+});
+
+test('same place again (pause/resume) does not refetch; new station updates language only', async () => {
+  const card = createPlaceCard(panel, stage, deps);
+  card.show({ place: lisbon, station: st(['pt']), info });
+  await flush();
+  card.show({ place: lisbon, station: { ...st(['en']), id: 's2' }, info });
+  await flush();
+  expect(deps.findArticle).toHaveBeenCalledTimes(1);
+  expect(q('.pc__langs').textContent).toBe('английский');
+});
+
+test('clock ticks on the minute boundary', async () => {
+  createPlaceCard(panel, stage, deps).show({ place: lisbon, station: st(), info });
+  expect(q('.pc__clock').textContent).toBe('14:32');
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(q('.pc__clock').textContent).toBe('14:33');
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(q('.pc__clock').textContent).toBe('14:34');
+});
+
+test('collapse toggles the panel, swaps the label and is remembered', () => {
+  createPlaceCard(panel, stage, deps).show(null);
+  const btn = q('.pc__collapse') as HTMLButtonElement;
+  expect(btn.getAttribute('aria-label')).toBe('Свернуть');
+  btn.click();
+  expect(panel.classList.contains('is-collapsed')).toBe(true);
+  expect(btn.getAttribute('aria-label')).toBe('Развернуть карточку');
+  expect(deps.storage!.getItem(COLLAPSE_KEY)).toBe('1');
+  document.body.innerHTML = '<aside class="shell__place"></aside><main></main>';
+  panel = document.querySelector('aside')!;
+  createPlaceCard(panel, document.querySelector('main')!, deps);
+  expect(panel.classList.contains('is-collapsed')).toBe(true);
+});
+
+test('phone sheet mirrors the card and hides when nothing plays', async () => {
+  const card = createPlaceCard(panel, stage, deps);
+  const sheet = stage.querySelector('.pc-sheet') as HTMLElement;
+  card.show(null);
+  expect(sheet.hidden).toBe(true);
+  card.show({ place: lisbon, station: st(['pt']), info });
+  await flush();
+  expect(sheet.hidden).toBe(false);
+  expect(sheet.querySelector('.pcs__name')!.textContent).toBe('Лиссабон');
+  expect(sheet.querySelector('.pcs__meta')!.textContent).toBe('Португалия · португальский');
+  expect(sheet.querySelector('.pcs__clock')!.textContent).toBe('14:32');
+  expect(sheet.querySelector('.pcs__text')!.textContent).toBe('Лиссабон — столица Португалии.');
+  expect(sheet.querySelector('.pcs__link')!.textContent).toContain('Подробнее в Википедии');
+});
+```
+
+- [ ] **Step 2: Run** → FAIL.
+
+- [ ] **Step 3: Реализация**
+
+`src/place-card/place-card.ts`:
+```ts
+import { countryName, placeTitle } from '../data/place-name';
+import type { Place } from '../data/places';
+import type { PlaceInfo, StationLite } from '../data/shards';
+import type { I18n } from '../i18n/i18n';
+import { escapeHtml } from '../ui/html';
+import { icons } from '../ui/icons';
+import { languageNames } from './language';
+import './place-card.css';
+import { diffLabel, formatClock, isValidTimeZone, msUntilNextMinute, offsetMinutes } from './time';
+import type { WikiResult } from './wiki';
+
+export interface PlaceCardData { place: Place; station: StationLite; info: PlaceInfo | null }
+export interface PlaceCardDeps {
+  i18n: I18n; storage: Storage | null;
+  flagUrl(cc: string): string | null;
+  findArticle(info: PlaceInfo): Promise<WikiResult>;
+  now(): Date; userOffset(): number;
+}
+export interface PlaceCard { show(d: PlaceCardData | null): void; destroy(): void }
+export const COLLAPSE_KEY = 'placeCardCollapsed';
+
+export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps: PlaceCardDeps): PlaceCard {
+  const { i18n } = deps;
+  const t = (k: string) => escapeHtml(i18n.t(k));
+  panel.innerHTML = `
+    <div class="place__head">
+      <span class="section-label">${t('place.title')}</span>
+      <button class="btn--ghost pc__collapse">${icons.chevronRight}</button>
+    </div>
+    <p class="panel-empty pc__empty">${t('place.empty')}</p>
+    <div class="pc__content" hidden>
+      <div class="pc__title">
+        <img class="pc__flag" width="54" height="36" alt="">
+        <div><div class="pc__name"></div><div class="pc__country"></div></div>
+      </div>
+      <div class="pc__tiles">
+        <div class="pc__tile pc__time"><div class="pc__label">${t('place.time')}</div><div class="pc__clock"></div><div class="pc__diff"></div></div>
+        <div class="pc__tile"><div class="pc__label">${t('place.lang')}</div><div class="pc__langs"></div>
+          <button class="pc__learn" disabled title="${t('common.soon')}">${t('place.learn')}</button></div>
+      </div>
+      <div class="pc__wiki" hidden>
+        <img class="pc__photo" alt="" referrerpolicy="no-referrer">
+        <p class="pc__note" hidden>${t('place.wiki.english')}</p>
+        <p class="pc__text"></p>
+        <a class="pc__link" target="_blank" rel="noopener noreferrer"></a>
+      </div>
+    </div>`;
+  const sheet = document.createElement('div');
+  sheet.className = 'pc-sheet';
+  sheet.hidden = true;
+  sheet.innerHTML = `
+    <div class="pcs__handle"></div>
+    <div class="pcs__top">
+      <img class="pcs__flag" width="36" height="24" alt="">
+      <div class="pcs__head"><div class="pcs__name"></div><div class="pcs__meta"></div></div>
+      <div class="pcs__clock"></div>
+    </div>
+    <p class="pcs__text"></p>
+    <a class="pcs__link" target="_blank" rel="noopener noreferrer"></a>`;
+  sheetHost.append(sheet);
+
+  const q = <T extends HTMLElement>(root: HTMLElement, s: string) => root.querySelector<T>(s)!;
+  const el = {
+    collapse: q<HTMLButtonElement>(panel, '.pc__collapse'), empty: q(panel, '.pc__empty'), content: q(panel, '.pc__content'),
+    flag: q<HTMLImageElement>(panel, '.pc__flag'), name: q(panel, '.pc__name'), country: q(panel, '.pc__country'),
+    time: q(panel, '.pc__time'), clock: q(panel, '.pc__clock'), diff: q(panel, '.pc__diff'), langs: q(panel, '.pc__langs'),
+    wiki: q(panel, '.pc__wiki'), photo: q<HTMLImageElement>(panel, '.pc__photo'), note: q(panel, '.pc__note'),
+    text: q(panel, '.pc__text'), link: q<HTMLAnchorElement>(panel, '.pc__link'),
+    sFlag: q<HTMLImageElement>(sheet, '.pcs__flag'), sName: q(sheet, '.pcs__name'), sMeta: q(sheet, '.pcs__meta'),
+    sClock: q(sheet, '.pcs__clock'), sText: q(sheet, '.pcs__text'), sLink: q<HTMLAnchorElement>(sheet, '.pcs__link'),
+  };
+
+  let collapsed = false;
+  try { collapsed = deps.storage?.getItem(COLLAPSE_KEY) === '1'; } catch { collapsed = false; }
+  const applyCollapse = () => {
+    panel.classList.toggle('is-collapsed', collapsed);
+    el.collapse.setAttribute('aria-label', i18n.t(collapsed ? 'place.expand' : 'place.collapse'));
+  };
+  el.collapse.addEventListener('click', () => {
+    collapsed = !collapsed;
+    try { deps.storage?.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch { /* unavailable */ }
+    applyCollapse();
+  });
+  applyCollapse();
+  el.photo.addEventListener('error', () => { el.photo.hidden = true; });
+  el.flag.addEventListener('error', () => { el.flag.hidden = true; el.sFlag.hidden = true; });
+
+  let token = 0;
+  let currentPlaceId: string | null = null;
+  let tz = '';
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const tick = () => {
+    if (!tz) return;
+    const now = deps.now();
+    el.clock.textContent = formatClock(tz, now, i18n.locale);
+    el.sClock.textContent = el.clock.textContent;
+    el.diff.textContent = diffLabel(i18n, offsetMinutes(tz, now), deps.userOffset());
+  };
+  const schedule = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+    if (!tz) return;
+    timer = setTimeout(() => { tick(); schedule(); }, msUntilNextMinute(deps.now().getTime()));
+  };
+
+  function renderWiki(r: WikiResult) {
+    const s = r.summary;
+    el.wiki.hidden = !s && !r.link;
+    el.photo.hidden = !s?.image;
+    if (s?.image) el.photo.src = s.image;
+    el.note.hidden = s?.lang !== 'en';
+    el.text.hidden = !s;
+    el.text.textContent = s?.text ?? '';
+    el.sText.textContent = s?.text ?? '';
+    el.sText.hidden = !s;
+    const label = i18n.t(s ? 'place.wiki.read' : 'place.wiki.more');
+    for (const a of [el.link, el.sLink]) {
+      a.hidden = !r.link;
+      if (r.link) a.href = r.link;
+    }
+    el.link.textContent = `${label} ↗`;
+    el.sLink.textContent = `${i18n.t('place.wiki.more')} ↗`;
+  }
+
+  return {
+    show(d) {
+      if (!d) {
+        token++;
+        currentPlaceId = null;
+        tz = '';
+        schedule();
+        el.empty.hidden = false;
+        el.content.hidden = true;
+        sheet.hidden = true;
+        return;
+      }
+      // Language depends on the station: refresh it even when the place is the same (pause/resume, next in the same city).
+      const langs = languageNames(d.station.langs, i18n.locale) || i18n.t('place.lang.none');
+      el.langs.textContent = langs;
+      const country = countryName(d.place.cc, i18n.locale);
+      el.sMeta.textContent = `${d.place.kind === 'country' ? i18n.t('place.approx') : country} · ${langs}`;
+      if (d.place.id === currentPlaceId) return;
+      currentPlaceId = d.place.id;
+      const my = ++token;
 
       el.empty.hidden = true;
       el.content.hidden = false;
