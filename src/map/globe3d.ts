@@ -8,7 +8,8 @@ import type { MapFactory } from './map-view';
 import { createPulse } from './pulse';
 import { altitudeToZoom, zoomToAltitude } from './zoom';
 
-const INITIAL_ALTITUDE = 2.2;
+// Globe diameter ≈ 580 px on a 1440×900 screen, as in the approved mockup.
+const INITIAL_ALTITUDE = 1.85;
 // Angular size of one screen pixel per unit of camera altitude (tuned so dots stay 3–7 px).
 const DEG_PER_PX_PER_ALT = 0.12;
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;

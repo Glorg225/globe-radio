@@ -102,7 +102,7 @@ button:disabled { cursor: default; opacity: .55; }
   .pb__right .pb__sleep, .pb__right .pb__share { display: none; }
 }
 @media (max-width: 760px) {
-  .shell__left { display: flex; position: fixed; z-index: 10; inset-inline: 0; inset-block-end: 0; max-block-size: 60vh; border-radius: 22px 22px 0 0; border: 1px solid var(--border-card); background: var(--surface-raised); transform: translateY(100%); transition: transform .25s ease-out; inline-size: auto; }
+  .shell__left { display: flex; position: fixed; z-index: 10; inset-inline: 0; inset-block-end: 68px; max-block-size: 60vh; border-radius: 22px 22px 0 0; border: 1px solid var(--border-card); background: var(--surface-raised); transform: translateY(calc(100% + 68px)); transition: transform .25s ease-out; inline-size: auto; }
   .shell__left.is-open { transform: none; }
   .panel-close { display: inline-flex; }
   .shell__player { block-size: 68px; padding-inline: 12px; gap: 10px; }

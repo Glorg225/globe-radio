@@ -76,6 +76,7 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
     stroke(land, color.border, lw);
     stroke(graticule, color.grid, lw);
     stroke(AXES, color.axis, lw);
+    stroke(SPHERE, color.border, lw);
     ctx.restore();
 
     const items = clusterer.items(scaleToZoom(transform.k));

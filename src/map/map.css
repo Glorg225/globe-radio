@@ -8,6 +8,6 @@
 .pulse__ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--accent); animation: rp-pulse 1.8s ease-out infinite; }
 .pulse__dot { position: absolute; inset: 2px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 16px var(--accent); }
 @keyframes rp-pulse { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(3.2); opacity: 0; } }
-.map2d { display: block; border-radius: 16px; border: 1px solid var(--border-card); cursor: grab; touch-action: none; }
+.map2d { display: block; cursor: grab; touch-action: none; }
 .view-host { position: absolute; inset: 0; }
 .view-host--map { inset: 20px; }
