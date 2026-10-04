@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Радио планеты — главный экран</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&amp;family=Golos+Text:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#FFC978}a:hover{color:#FFE2B0}
+@keyframes rp-pulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(3.2);opacity:0}}
+.rp-ring{animation:rp-pulse 1.8s ease-out infinite}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #0A0F1E; color: #EEF1F8; font-family: 'Golos Text', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 68px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; padding: 0 24px; border-bottom: 1px solid #222B4F; background: #0D1326">
+    <div style="display: flex; align-items: center; gap: 10px; width: 272px">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><ellipse cx="12" cy="12" rx="4" ry="9"></ellipse><path d="M3.5 9h17M3.5 15h17"></path></svg>
+      <span style="font-family: Unbounded, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: .2px">Радио планеты</span>
+    </div>
+    <label style="flex: 1; max-width: 520px; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border-radius: 12px; background: #151C38; border: 1px solid #2A3460; color: #A3ADC8">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <input type="search" placeholder="Станция, город или страна" style="flex: 1; background: transparent; border: 0; outline: 0; color: #EEF1F8; font-size: 15px; font-family: inherit">
+    </label>
+    <button style="height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 18px; border-radius: 12px; border: 0; background: {{accent}}; color: #1A1206; font-size: 15px; font-weight: 600; cursor: pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path></svg>
+      Удиви меня
+    </button>
+    <div style="flex: 1"></div>
+    <button style="height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-radius: 12px; background: transparent; border: 1px solid #2A3460; color: #EEF1F8; font-size: 15px; cursor: pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12z"></path></svg>
+      Учу язык
+    </button>
+    <div role="group" aria-label="Вид карты" style="display: flex; padding: 4px; border-radius: 12px; background: #151C38; border: 1px solid #2A3460">
+      <button aria-pressed="true" style="height: 34px; padding: 0 14px; border-radius: 9px; border: 0; background: #2A3566; color: #EEF1F8; font-size: 14px; font-weight: 600; cursor: pointer">3D</button>
+      <button aria-pressed="false" style="height: 34px; padding: 0 14px; border-radius: 9px; border: 0; background: transparent; color: #A3ADC8; font-size: 14px; cursor: pointer">Карта</button>
+    </div>
+    <button aria-label="Установить на устройство" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: transparent; border: 1px solid #2A3460; color: #EEF1F8; cursor: pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>
+    </button>
+  </header>
+
+  <div style="flex: 1; display: flex; min-height: 0">
+
+    <aside style="width: 320px; flex-shrink: 0; border-right: 1px solid #222B4F; background: #0D1326; display: flex; flex-direction: column">
+      <nav style="display: flex; gap: 4px; padding: 16px 16px 8px">
+        <button style="flex: 1; height: 36px; border-radius: 10px; border: 0; background: #1E2850; color: #EEF1F8; font-size: 14px; font-weight: 600">Здесь</button>
+        <button style="flex: 1; height: 36px; border-radius: 10px; border: 0; background: transparent; color: #A3ADC8; font-size: 14px">Избранное</button>
+        <button style="flex: 1; height: 36px; border-radius: 10px; border: 0; background: transparent; color: #A3ADC8; font-size: 14px">История</button>
+      </nav>
+      <div style="padding: 10px 20px 12px">
+        <div style="font-family: Unbounded, sans-serif; font-size: 20px; font-weight: 500">Лиссабон</div>
+        <div style="font-size: 14px; color: #A3ADC8; margin-top: 4px">Португалия · 12 станций · по популярности</div>
+      </div>
+      <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 2px; padding: 0 10px">
+        <sc-for list="{{stations}}" as="st" hint-placeholder-count="7">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 12px; background: {{st.bg}}">
+            <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #222D5A; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-weight: 700; font-size: 16px; color: {{st.letterColor}}">{{st.letter}}</div>
+            <div style="flex: 1; min-width: 0">
+              <div style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{st.name}}</div>
+              <div style="font-size: 13px; color: #A3ADC8">{{st.tags}}</div>
+            </div>
+            <button aria-label="В избранное" style="width: 36px; height: 36px; border: 0; background: transparent; color: {{st.starColor}}; cursor: pointer; display: flex; align-items: center; justify-content: center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="{{st.starFill}}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"></path></svg>
+            </button>
+          </div>
+        </sc-for>
+      </div>
+    </aside>
+
+    <main style="flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center">
+      <sc-for list="{{stars}}" as="s" hint-placeholder-count="0">
+        <div style="position: absolute; left: {{s.x}}%; top: {{s.y}}%; width: {{s.s}}px; height: {{s.s}}px; border-radius: 50%; background: #C9D3F5; opacity: {{s.o}}"></div>
+      </sc-for>
+      <div style="position: relative; width: 580px; height: 580px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #1E2C55 0%, #111A3A 55%, #070B1A 100%); box-shadow: 0 0 90px rgba(90,130,255,.22), inset -30px -30px 80px rgba(0,0,0,.55); border: 1px solid #2A3768">
+        <svg width="580" height="580" viewBox="0 0 580 580" fill="none" stroke="#3A4A85" stroke-width="1" style="position: absolute; inset: 0; opacity: .55">
+          <ellipse cx="290" cy="290" rx="60" ry="289"></ellipse>
+          <ellipse cx="290" cy="290" rx="150" ry="289"></ellipse>
+          <ellipse cx="290" cy="290" rx="230" ry="289"></ellipse>
+          <line x1="290" y1="1" x2="290" y2="579"></line>
+          <line x1="40" y1="145" x2="540" y2="145"></line>
+          <line x1="4" y1="230" x2="576" y2="230"></line>
+          <line x1="4" y1="350" x2="576" y2="350"></line>
+          <line x1="40" y1="435" x2="540" y2="435"></line>
+        </svg>
+        <sc-for list="{{dots}}" as="d" hint-placeholder-count="0">
+          <div style="position: absolute; left: calc({{d.x}}% - {{d.h}}px); top: calc({{d.y}}% - {{d.h}}px); width: {{d.s}}px; height: {{d.s}}px; border-radius: 50%; background: {{d.c}}; opacity: {{d.o}}; box-shadow: 0 0 8px {{d.c}}"></div>
+        </sc-for>
+        <div style="position: absolute; left: calc(38% - 7px); top: calc(40% - 7px); width: 14px; height: 14px">
+          <div class="rp-ring" style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid {{accent}}"></div>
+          <div style="position: absolute; inset: 2px; border-radius: 50%; background: {{accent}}; box-shadow: 0 0 16px {{accent}}"></div>
+        </div>
+        <div style="position: absolute; left: 38%; top: 40%; transform: translate(-50%, -150%); white-space: nowrap; padding: 8px 12px; border-radius: 10px; background: rgba(13,19,38,.92); border: 1px solid #34407A; font-size: 13px">
+          <b>Лиссабон</b> · 12 станций
+        </div>
+      </div>
+      <div style="position: absolute; right: 20px; bottom: 16px; display: flex; flex-direction: column; gap: 8px">
+        <button aria-label="Приблизить" style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid #2A3460; background: #121931; color: #EEF1F8; font-size: 20px">+</button>
+        <button aria-label="Отдалить" style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid #2A3460; background: #121931; color: #EEF1F8; font-size: 20px">−</button>
+      </div>
+      <div style="position: absolute; left: 20px; bottom: 16px; font-size: 12px; color: #8D97B5">Данные о станциях — Radio Browser · Тексты — Википедия (CC BY-SA) · Мы не храним и не ретранслируем эфир</div>
+    </main>
+
+    <aside style="width: 360px; flex-shrink: 0; border-left: 1px solid #222B4F; background: #0D1326; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <span style="font-size: 13px; letter-spacing: 1.2px; text-transform: uppercase; color: #A3ADC8">Карточка места</span>
+        <button aria-label="Свернуть карточку" style="width: 32px; height: 32px; border: 0; background: transparent; color: #A3ADC8">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px">
+        <svg width="54" height="36" viewBox="0 0 54 36" style="border-radius: 4px; flex-shrink: 0"><rect width="22" height="36" fill="#046A38"></rect><rect x="22" width="32" height="36" fill="#DA291C"></rect><circle cx="22" cy="18" r="7" fill="#FFE900"></circle></svg>
+        <div>
+          <div style="font-family: Unbounded, sans-serif; font-size: 24px; font-weight: 500">Лиссабон</div>
+          <div style="font-size: 15px; color: #A3ADC8">Португалия</div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <div style="padding: 14px; border-radius: 14px; background: #151C38; border: 1px solid #26305A">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #A3ADC8">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+            Местное время
+          </div>
+          <div style="font-family: Unbounded, sans-serif; font-size: 28px; font-weight: 500; margin-top: 6px">14:32</div>
+          <div style="font-size: 12px; color: #A3ADC8">на 2 ч раньше вас</div>
+        </div>
+        <div style="padding: 14px; border-radius: 14px; background: #151C38; border: 1px solid #26305A">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #A3ADC8">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12z"></path></svg>
+            Язык эфира
+          </div>
+          <div style="font-size: 18px; font-weight: 600; margin-top: 10px">португальский</div>
+          <button style="margin-top: 6px; padding: 0; border: 0; background: transparent; color: #5EE0D0; font-size: 13px; text-decoration: underline; cursor: pointer">Учить этот язык</button>
+        </div>
+      </div>
+      <div style="border-radius: 14px; overflow: hidden; background: #151C38; border: 1px solid #26305A">
+        <div style="height: 150px; background: repeating-linear-gradient(135deg, #1B2448 0 12px, #18203F 12px 24px); display: flex; align-items: center; justify-content: center; color: #A3ADC8; font-size: 13px">[Фото города из Википедии]</div>
+        <div style="padding: 14px">
+          <div style="font-size: 15px; line-height: 1.5">Лиссабон — столица и крупнейший город Португалии. Стоит на берегу эстуария реки Тежу, у выхода к Атлантическому океану.</div>
+          <a href="https://ru.wikipedia.org/wiki/Лиссабон" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 14px">
+            Читать в Википедии
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"></path></svg>
+          </a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="height: 92px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; padding: 0 24px; border-top: 1px solid #222B4F; background: #111833">
+    <div style="display: flex; align-items: center; gap: 14px; width: 340px">
+      <div style="width: 56px; height: 56px; border-radius: 12px; background: #222D5A; display: flex; align-items: center; justify-content: center; font-family: Unbounded, sans-serif; font-weight: 700; font-size: 22px; color: {{accent}}">F</div>
+      <div style="min-width: 0">
+        <div style="font-size: 16px; font-weight: 600">Fado Lisboa 24</div>
+        <div style="font-size: 13px; color: #A3ADC8; display: flex; align-items: center; gap: 6px">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #FF5D6C"></span>
+          В эфире · Лиссабон, Португалия
+        </div>
+      </div>
+      <button aria-label="В избранное" style="width: 40px; height: 40px; border: 0; background: transparent; color: {{accent}}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"></path></svg>
+      </button>
+    </div>
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 16px">
+      <button aria-label="Пауза" style="width: 56px; height: 56px; border-radius: 50%; border: 0; background: {{accent}}; color: #1A1206; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 24px rgba(255,181,71,.35)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+      </button>
+      <button style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-radius: 12px; border: 1px solid #2A3460; background: transparent; color: #EEF1F8; font-size: 14px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l10 7-10 7zM19 5v14"></path></svg>
+        Следующая рядом
+      </button>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <button style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 12px; border: 1px solid #2A3460; background: transparent; color: #EEF1F8; font-size: 14px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"></path></svg>
+        Сон · 30 мин
+      </button>
+      <button aria-label="Поделиться" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #2A3460; background: transparent; color: #EEF1F8; display: flex; align-items: center; justify-content: center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"></path></svg>
+      </button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-left: 8px; color: #A3ADC8">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7"></path></svg>
+        <label style="display: flex"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Громкость</span><input type="range" min="0" max="100" value="70" style="width: 120px; accent-color: #FFB547"></label>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#FFB547","options":["#FFB547","#5EE0D0","#FF7A90","#8FA8FF"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#FFB547';
+    let seed = 11;
+    const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    const clusters = [[52,30,10,30],[40,40,4,10],[45,23,4,8],[60,26,8,14],[74,20,10,12],[56,58,10,10],[70,45,7,9],[22,70,6,8],[88,50,4,5],[48,74,8,6],[30,54,5,4]];
+    const dots = [];
+    clusters.forEach(function (c) {
+      for (let i = 0; i < c[3]; i++) {
+        const x = c[0] + (rand() - 0.5) * c[2] * 2;
+        const y = c[1] + (rand() - 0.5) * c[2] * 1.6;
+        const dx = x - 50, dy = y - 50;
+        if (dx * dx + dy * dy > 46 * 46) continue;
+        const s = 3 + Math.round(rand() * 4);
+        dots.push({ x: x.toFixed(2), y: y.toFixed(2), s: s, h: s / 2, o: (0.45 + rand() * 0.55).toFixed(2), c: accent });
+      }
+    });
+    const stars = [];
+    for (let i = 0; i < 70; i++) stars.push({ x: (rand() * 100).toFixed(1), y: (rand() * 100).toFixed(1), s: rand() > 0.85 ? 2 : 1, o: (0.25 + rand() * 0.5).toFixed(2) });
+    const list = [
+      ['Fado Lisboa 24', 'фаду · музыка', true, true],
+      ['Rádio Tejo Notícias', 'новости · разговорное', false, false],
+      ['Lisboa Jazz Club', 'джаз', false, true],
+      ['Atlântico FM', 'поп · хиты', false, false],
+      ['Alfama Clássica', 'классика', false, false],
+      ['Bairro Indie', 'инди · рок', false, false],
+      ['Costa Chill', 'электроника · спокойное', false, false]
+    ];
+    const stations = list.map(function (r) {
+      return { name: r[0], tags: r[1], letter: r[0].charAt(0), bg: r[2] ? '#1E2850' : 'transparent', letterColor: r[2] ? accent : '#C9D3F5', starColor: r[3] ? accent : '#6E7899', starFill: r[3] ? 'currentColor' : 'none' };
+    });
+    return { accent: accent, dots: dots, stars: stars, stations: stations };
+  }
+}
+</script>
+</body>
+</html>
