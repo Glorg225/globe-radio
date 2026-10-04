@@ -11,7 +11,7 @@ import { findNextNearby } from '../player/next-nearby';
 import type { Player } from '../player/player';
 import { createPlayerBar } from '../ui/player-bar';
 import type { ShellRefs } from '../ui/shell';
-import { renderListMessage, renderStationList } from '../ui/station-list';
+import { renderListMessage, renderStationList, type StationListHandle } from '../ui/station-list';
 import { showToast } from '../ui/toast';
 
 export interface AppDeps {
@@ -41,6 +41,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   let mode: ViewMode = 'globe';
   let selected: Place | null = null;
   let playingPlace: Place | null = null;
+  let list: { placeId: string; handle: StationListHandle } | null = null;
 
   const storedVolume = Number(read(VOLUME_KEY) ?? '0.8');
   let volume = Number.isFinite(storedVolume) && storedVolume >= 0 && storedVolume <= 1 ? storedVolume : 0.8;
@@ -74,6 +75,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   const renderBar = () => bar.render({ state: player.getState(), place: placeLabel(playingPlace), volume, muted });
 
   async function renderList(place: Place, showLoading = true) {
+    list = null;
     if (showLoading) renderListMessage(refs.panelBody, t('data.loading'));
     try {
       const all = await d.shards.get(place.cc);
@@ -83,13 +85,14 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       const subtitle = place.kind === 'country'
         ? t('list.subtitleApprox', { stations: stationsLabel(stations.length) })
         : t('list.subtitle', { country: countryName(place.cc, i18n.locale), stations: stationsLabel(stations.length) });
-      renderStationList(refs.panelBody, i18n, {
+      const handle = renderStationList(refs.panelBody, i18n, {
         title: placeTitle(place, i18n.locale),
         subtitle,
         stations,
         playingId: state.kind === 'idle' ? null : state.station.id,
         onPick: (s) => { void playStation(s, place); },
       });
+      list = { placeId: place.id, handle };
     } catch {
       if (selected !== place) return;
       renderListMessage(refs.panelBody, t('list.loadError'), { label: t('common.retry'), onClick: () => { void renderList(place); } });
@@ -134,7 +137,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       s.kind === 'playing' || s.kind === 'loading' ? 'playing' : s.kind === 'idle' ? 'none' : 'paused',
       { play: () => player.toggle(), pause: () => player.pause(), next: () => { void next(); } },
     );
-    if (selected) void renderList(selected, false);
+    if (list && selected && list.placeId === selected.id) list.handle.setPlaying(station?.id ?? null);
   });
 
   let mountToken = 0;

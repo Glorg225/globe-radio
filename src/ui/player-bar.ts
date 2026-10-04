@@ -66,6 +66,7 @@ export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandl
       play.innerHTML = active ? icons.pause : icons.play;
       next.disabled = !station;
       nextLabel.textContent = i18n.t(state.kind === 'error' ? 'player.tryNext' : 'player.next');
+      next.setAttribute('aria-label', nextLabel.textContent);
       mute.setAttribute('aria-label', i18n.t(muted ? 'player.unmute' : 'player.mute'));
       mute.innerHTML = muted ? icons.volumeOff : icons.volume;
       range.value = String(Math.round((muted ? 0 : volume) * 100));

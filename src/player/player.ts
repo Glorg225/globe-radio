@@ -65,6 +65,16 @@ export function createPlayer(deps: PlayerDeps): Player {
   });
   audio.addEventListener('waiting', () => { if (state.kind === 'playing') arm(token); });
   audio.addEventListener('error', () => { if (state.kind === 'loading' || state.kind === 'playing') fail(); });
+  // A live stream never ends on its own: 'ended' means the server closed the connection.
+  audio.addEventListener('ended', () => { if (state.kind === 'loading' || state.kind === 'playing') fail(); });
+  // Paused from outside (headphones unplugged, OS interruption): reflect it so the next press resumes.
+  audio.addEventListener('pause', () => {
+    if (state.kind !== 'playing') return;
+    const station = state.station;
+    token++;
+    clearTimer();
+    set({ kind: 'paused', station });
+  });
 
   async function play(station: StationLite) {
     const t = ++token;

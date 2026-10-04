@@ -163,3 +163,21 @@ test('the 8 s no-sound timer starts when the stream is attached, not while the u
   await vi.advanceTimersByTimeAsync(1);
   expect(p.getState().kind).toBe('error');
 });
+
+test('a live stream that ends (server closed) is a failure, not silent "live"', async () => {
+  const p = make();
+  await p.play(st('a'));
+  audio.fire('playing');
+  audio.fire('ended');
+  expect(p.getState().kind).toBe('error');
+  expect(failures).toEqual(['a']);
+});
+
+test('an outside pause (headphones unplugged, OS) is reflected as paused', async () => {
+  const p = make();
+  await p.play(st('a'));
+  audio.fire('playing');
+  audio.fire('pause');
+  expect(p.getState().kind).toBe('paused');
+  expect(failures).toEqual([]);
+});

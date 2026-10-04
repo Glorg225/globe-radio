@@ -28,10 +28,13 @@ function tile(s: StationLite): HTMLElement {
   return box;
 }
 
-export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListProps): void {
+export interface StationListHandle { setPlaying(id: string | null): void }
+
+export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListProps): StationListHandle {
   const head = el('div', 'list-head');
   head.append(el('h2', 'list-title', p.title), el('p', 'list-sub', p.subtitle));
   const list = el('ul', 'stations');
+  const rows = new Map<string, { row: HTMLLIElement; pick: HTMLButtonElement }>();
   for (const s of p.stations) {
     const playing = s.id === p.playingId;
     const row = el('li', playing ? 'station is-playing' : 'station');
@@ -49,9 +52,24 @@ export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListP
     star.title = i18n.t('common.soon');
     star.innerHTML = icons.star;
     row.append(pick, star);
+    rows.set(s.id, { row, pick });
     list.append(row);
   }
   host.replaceChildren(head, list);
+  let current = p.playingId;
+  return {
+    // Only moves the highlight, so a focused row keeps keyboard focus.
+    setPlaying(id) {
+      if (id === current) return;
+      const prev = current ? rows.get(current) : undefined;
+      prev?.row.classList.remove('is-playing');
+      prev?.pick.removeAttribute('aria-current');
+      const next = id ? rows.get(id) : undefined;
+      next?.row.classList.add('is-playing');
+      next?.pick.setAttribute('aria-current', 'true');
+      current = id;
+    },
+  };
 }
 
 export function renderListMessage(host: HTMLElement, text: string, action?: { label: string; onClick(): void }): void {

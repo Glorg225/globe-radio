@@ -235,3 +235,16 @@ test('rapid view toggles keep only the last view mounted', async () => {
   expect(alive[0]).toBe(made[made.length - 1]);
   expect((await app).mode()).toBe('map');
 });
+
+test('keyboard focus stays on the picked row while the player changes state', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  const pick = deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement;
+  pick.focus();
+  pick.click();
+  await flush();
+  player.set({ kind: 'playing', station: pt[0] });
+  await flush();
+  expect(document.activeElement).toBe(pick);
+  expect(deps.refs.panelBody.querySelector('.station.is-playing .station__name')!.textContent).toBe('Radio a');
+});

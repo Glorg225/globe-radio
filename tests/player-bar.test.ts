@@ -57,3 +57,8 @@ test('sleep and share are visible but disabled until Plan 5', () => {
   expect((q('.pb__sleep') as HTMLButtonElement).disabled).toBe(true);
   expect((q('.pb__share') as HTMLButtonElement).disabled).toBe(true);
 });
+
+test('next button keeps an accessible name when its text is hidden on phones', () => {
+  createPlayerBar(el, i18n, h).render({ state: { kind: 'error', station }, place: 'X', volume: 1, muted: false });
+  expect(q('.pb__next').getAttribute('aria-label')).toBe('Попробовать следующую рядом');
+});

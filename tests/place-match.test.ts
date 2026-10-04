@@ -40,7 +40,7 @@ test('exact coords within 30 km snap to the city', () =>
 
 test('exact coords far from cities keep their own point, named after the nearest city', () => {
   const p = m.match(st({ approx: false, lat: 48.9, lon: 11.3 }))!;
-  expect(p).toMatchObject({ id: 'p:48.90,11.30', lat: 48.9, lon: 11.3, kind: 'exact', nameRu: 'Нюрнберг' });
+  expect(p).toMatchObject({ id: 'p:DE:48.90,11.30', lat: 48.9, lon: 11.3, kind: 'exact', cc: 'DE', nameRu: 'Нюрнберг' });
 });
 
 test('region field matches admin1 and uses its most populous city', () =>
@@ -80,3 +80,28 @@ test('region is matched only within the station country', () =>
 
 test('no centroid and no coords → null', () =>
   expect(m.match(st({ cc: 'ZZ' }))).toBeNull());
+
+test('a station is never snapped to a city of another country (review: places must be country-scoped)', () => {
+  const border = createPlaceMatcher({
+    cities: [{ id: 50, nameRu: 'Зальцбург', name: 'Salzburg', lat: 47.8, lon: 13.04, cc: 'AT', admin1: '05', pop: 150_000, aliases: ['salzburg'] }],
+    admin1: [],
+  }, centroids, (cc, l) => names[l][cc] ?? cc);
+  const p = border.match(st({ approx: false, cc: 'DE', lat: 47.75, lon: 12.95 }))!;
+  expect(p.cc).toBe('DE');
+  expect(p.id).toBe('p:DE:47.75,12.95');
+});
+
+test('a region primary name beats a translated alias of another region', () => {
+  const ru = createPlaceMatcher({
+    cities: [
+      { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow'] },
+      { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'] },
+    ],
+    admin1: [
+      { cc: 'RU', code: '48', nameRu: 'Москва', name: 'Moscow', aliases: ['moscow', 'москва'] },
+      { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'] },
+    ],
+  }, centroids, (cc, l) => names[l][cc]);
+  expect(ru.match(st({ cc: 'RU', state: 'Moscow' }))!.id).toBe('a:RU.48');
+  expect(ru.match(st({ cc: 'RU', state: 'Московская область' }))!.id).toBe('a:RU.47');
+});

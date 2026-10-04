@@ -51,3 +51,15 @@ test('message with an action button', () => {
   (el.querySelector('button') as HTMLButtonElement).click();
   expect(onClick).toHaveBeenCalled();
 });
+
+test('setPlaying updates the highlight without rebuilding rows (keeps keyboard focus)', () => {
+  const list = renderStationList(el, i18n, { title: 'X', subtitle: '', stations: [st('a', 'A'), st('b', 'B')], playingId: null, onPick() {} });
+  const pickA = el.querySelector('.station__pick') as HTMLButtonElement;
+  pickA.focus();
+  list.setPlaying('a');
+  expect(document.activeElement).toBe(pickA);
+  expect(el.querySelector('.station.is-playing .station__name')!.textContent).toBe('A');
+  list.setPlaying('b');
+  expect(pickA.getAttribute('aria-current')).toBeNull();
+  expect(el.querySelectorAll('.station.is-playing')).toHaveLength(1);
+});

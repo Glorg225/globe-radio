@@ -24,9 +24,25 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
     const center = admin1Center.get(ak);
     if (!center || center.pop < c.pop) admin1Center.set(ak, c);
   }
-  for (const a of gz.admin1) for (const alias of a.aliases) admin1ByAlias.set(`${a.cc}|${alias}`, a);
+  // Several regions can share an alias ("Moscow" is the city region RU.48 and a translation of RU.47).
+  // Prefer the region whose own name is exactly the alias, then one whose name normalises to it, then the first seen.
+  const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const aliasScore = new Map<string, number>();
+  for (const a of gz.admin1) {
+    const exact = [plain(a.name), plain(a.nameRu)];
+    const norm = [normalizeName(a.name), normalizeName(a.nameRu)];
+    for (const alias of a.aliases) {
+      const key = `${a.cc}|${alias}`;
+      const score = exact.includes(alias) ? 2 : norm.includes(alias) ? 1 : 0;
+      if (!admin1ByAlias.has(key) || score > aliasScore.get(key)!) {
+        admin1ByAlias.set(key, a);
+        aliasScore.set(key, score);
+      }
+    }
+  }
 
-  function nearestCity(lat: number, lon: number, maxKm: number): GzCity | null {
+  // Only cities of the station's own country: the client loads a place's stations from that country's file.
+  function nearestCity(lat: number, lon: number, maxKm: number, cc: string): GzCity | null {
     const reach = Math.ceil(maxKm / 100) + 1;
     let best: GzCity | null = null;
     let bestKm = maxKm;
@@ -34,6 +50,7 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
       for (let dx = -reach; dx <= reach; dx++) {
         const lonCell = ((((Math.floor(lon) + dx + 180) % 360) + 360) % 360) - 180;
         for (const c of grid.get(`${Math.floor(lat) + dy}:${lonCell}`) ?? []) {
+          if (c.cc !== cc) continue;
           const km = haversineKm(lat, lon, c.lat, c.lon);
           if (km <= bestKm) { best = c; bestKm = km; }
         }
@@ -60,11 +77,11 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
 
   function match(s: Station): PlaceRef | null {
     if (!s.approx) {
-      const near = nearestCity(s.lat, s.lon, SNAP_KM);
+      const near = nearestCity(s.lat, s.lon, SNAP_KM, s.cc);
       if (near) return cityRef(near, 'exact');
-      const named = nearestCity(s.lat, s.lon, NAME_KM);
+      const named = nearestCity(s.lat, s.lon, NAME_KM, s.cc);
       return {
-        id: `p:${s.lat.toFixed(2)},${s.lon.toFixed(2)}`, lat: s.lat, lon: s.lon, kind: 'exact', cc: s.cc,
+        id: `p:${s.cc}:${s.lat.toFixed(2)},${s.lon.toFixed(2)}`, lat: s.lat, lon: s.lon, kind: 'exact', cc: s.cc,
         nameRu: named?.nameRu ?? countryName(s.cc, 'ru'), name: named?.name ?? countryName(s.cc, 'en'),
       };
     }
