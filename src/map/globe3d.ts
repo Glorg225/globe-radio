@@ -18,7 +18,11 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
   const accent = css.getPropertyValue('--accent').trim();
   const glow = css.getPropertyValue('--globe-glow').trim();
   const pulse = createPulse();
-  const globe = new Globe(el, { animateIn: false });
+  // Own host element: destroying a stale view must not wipe a newer view mounted into the same container.
+  const host = document.createElement('div');
+  host.className = 'view-host';
+  el.append(host);
+  const globe = new Globe(host, { animateIn: false });
   let maxPop = 1;
   let lastZoom = -1;
   let lastAlt = INITIAL_ALTITUDE;
@@ -42,8 +46,8 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
   }
 
   globe
-    .width(el.clientWidth)
-    .height(el.clientHeight)
+    .width(host.clientWidth)
+    .height(host.clientHeight)
     .backgroundColor('rgba(0,0,0,0)')
     .globeImageUrl(`${import.meta.env.BASE_URL}textures/earth-night.jpg`)
     .showAtmosphere(true)
@@ -72,8 +76,8 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
   globe.pointOfView({ lat: 30, lng: 10, altitude: INITIAL_ALTITUDE });
   refresh(true);
 
-  const ro = new ResizeObserver(() => globe.width(el.clientWidth).height(el.clientHeight));
-  ro.observe(el);
+  const ro = new ResizeObserver(() => globe.width(host.clientWidth).height(host.clientHeight));
+  ro.observe(host);
 
   return {
     setPlaying(place: Place | null) { globe.htmlElementsData(place ? [place] : []); },
@@ -87,7 +91,7 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
     destroy() {
       ro.disconnect();
       globe._destructor();
-      el.replaceChildren();
+      host.remove();
     },
   };
 };

@@ -27,7 +27,10 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
   const land = feature(topo, topo.objects.countries) as GeoPermissibleObjects;
   const graticule = geoGraticule10();
 
-  el.classList.add('stage__map--map');
+  // Own host element: destroying a stale view must not wipe a newer view mounted into the same container.
+  const host = document.createElement('div');
+  host.className = 'view-host view-host--map';
+  el.append(host);
   const canvas = document.createElement('canvas');
   canvas.className = 'map2d';
   const tooltip = document.createElement('div');
@@ -35,7 +38,7 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
   tooltip.hidden = true;
   const pulse = createPulse();
   pulse.hidden = true;
-  el.append(canvas, pulse, tooltip);
+  host.append(canvas, pulse, tooltip);
 
   const ctx = canvas.getContext('2d')!;
   const projection = geoEquirectangular();
@@ -139,7 +142,7 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
   });
 
   const ro = new ResizeObserver(resize);
-  ro.observe(el);
+  ro.observe(host);
   resize();
 
   return {
@@ -149,8 +152,7 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
     destroy() {
       ro.disconnect();
       sel.on('.zoom', null);
-      el.classList.remove('stage__map--map');
-      el.replaceChildren();
+      host.remove();
     },
   };
 };

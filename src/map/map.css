@@ -9,4 +9,5 @@
 .pulse__dot { position: absolute; inset: 2px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 16px var(--accent); }
 @keyframes rp-pulse { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(3.2); opacity: 0; } }
 .map2d { display: block; border-radius: 16px; border: 1px solid var(--border-card); cursor: grab; touch-action: none; }
-.stage__map--map { inset: 20px; }
+.view-host { position: absolute; inset: 0; }
+.view-host--map { inset: 20px; }

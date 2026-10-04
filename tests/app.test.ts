@@ -211,3 +211,27 @@ test('tooltip label for places and clusters', async () => {
   expect(label({ type: 'place', key: 'c:1', place: lisbon, lat: 0, lon: 0, count: 12, pop: 1 })).toBe('Лиссабон · 12 станций');
   expect(label({ type: 'cluster', key: 'cl:1', lat: 0, lon: 0, count: 2427, pop: 1, zoomTo: 3 })).toBe('2 427 станций');
 });
+
+test('rapid view toggles keep only the last view mounted', async () => {
+  const pending: ((v: MapView) => void)[] = [];
+  const made: (MapView & { destroy: ReturnType<typeof vi.fn> })[] = [];
+  const slow: MapFactory = () => new Promise((resolve) => {
+    const v = { setPlaying: vi.fn(), flyTo: vi.fn(), zoomBy: vi.fn(), destroy: vi.fn() };
+    made.push(v);
+    pending.push(resolve);
+  });
+  const app = startApp({ ...deps, factories: { globe: slow, map: slow } });
+  await flush();
+  pending.shift()!(made[0]);
+  await app;
+  deps.refs.viewButtons[1].click();
+  deps.refs.viewButtons[0].click();
+  deps.refs.viewButtons[1].click();
+  await flush();
+  while (pending.length) pending.shift()!(made[made.length - pending.length - 1]);
+  await flush();
+  const alive = made.filter((v) => !v.destroy.mock.calls.length);
+  expect(alive).toHaveLength(1);
+  expect(alive[0]).toBe(made[made.length - 1]);
+  expect((await app).mode()).toBe('map');
+});

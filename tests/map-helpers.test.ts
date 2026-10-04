@@ -50,3 +50,23 @@ test('measureFps averages frames over the window', async () => {
   const raf = (cb: FrameRequestCallback) => { t += 40; queueMicrotask(() => cb(t)); return 0; };
   await expect(measureFps(1000, raf, () => t)).resolves.toBe(25);
 });
+
+test('measureFps ignores time while the tab is hidden', async () => {
+  let t = 0;
+  let visibility = 'visible';
+  const listeners: (() => void)[] = [];
+  const doc = {
+    get visibilityState() { return visibility; },
+    addEventListener: (_: string, l: () => void) => listeners.push(l),
+    removeEventListener: () => {},
+  } as unknown as Document;
+  let calls = 0;
+  const raf = (cb: FrameRequestCallback) => {
+    calls++;
+    if (calls === 5) { visibility = 'hidden'; listeners.forEach((l) => l()); t += 60_000; visibility = 'visible'; listeners.forEach((l) => l()); }
+    t += 40;
+    queueMicrotask(() => cb(t));
+    return 0;
+  };
+  await expect(measureFps(1000, raf, () => t, doc)).resolves.toBe(25);
+});

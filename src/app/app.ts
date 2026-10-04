@@ -137,14 +137,17 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     if (selected) void renderList(selected, false);
   });
 
+  let mountToken = 0;
   async function mount(m: ViewMode) {
+    const token = ++mountToken;
     view?.destroy();
     view = null;
     refs.map.replaceChildren();
     mode = m;
     for (const b of refs.viewButtons) b.setAttribute('aria-pressed', String(b.dataset.view === m));
     const v = await d.factories[m](refs.map, clusterer!, { onSelect: (p) => { void selectPlace(p); }, label });
-    if (mode !== m) { v.destroy(); return; }
+    // A newer mount started while this view was loading: drop this one.
+    if (token !== mountToken) { v.destroy(); return; }
     view = v;
     v.setPlaying(playingPlace);
   }
