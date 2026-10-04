@@ -1,0 +1,60 @@
+:root {
+  --bg: #0A0F1E;
+  --surface: #0D1326;
+  --surface-player: #111833;
+  --surface-raised: #121931;
+  --surface-card: #151C38;
+  --surface-mini-player: #1A2346;
+  --item-selected: #1E2850;
+  --segment-active: #2A3566;
+  --tile: #222D5A;
+  --border-divider: #222B4F;
+  --border-card: #26305A;
+  --border-control: #2A3460;
+  --border-popover: #34407A;
+  --text: #EEF1F8;
+  --text-muted: #A3ADC8;
+  --text-faint: #8D97B5;
+  --star: #C9D3F5;
+
+  --accent: #FFB547;
+  --on-accent: #1A1206;
+  --link: #FFC978;
+  --link-hover: #FFE2B0;
+  --live: #FF5D6C;
+  --star-off: #6E7899;
+
+  --teal: #5EE0D0;
+  --on-teal: #062320;
+  --teal-banner-bg: #0E2A2F;
+  --teal-banner-border: #1E4B50;
+  --teal-tip-bg: #10262B;
+  --teal-chip-bg: #16343A;
+  --teal-tile: #1B3A40;
+  --teal-text-muted: #A9D9D3;
+  --teal-tip-text: #CBEDE8;
+  --teal-link: #7FE9DC;
+
+  --globe-gradient: radial-gradient(circle at 34% 30%, #1E2C55 0%, #111A3A 55%, #070B1A 100%);
+  --globe-border: #2A3768;
+  --globe-grid: #3A4A85;
+  --map-bg: #0F1630;
+  --map-grid: #25305C;
+  --map-axis: #33407A;
+  --dot-muted: #5A6690;
+
+  --font-display: 'Unbounded', system-ui, 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans Arabic', sans-serif;
+  --font-body: 'Golos Text', system-ui, -apple-system, 'Segoe UI', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans Arabic', sans-serif;
+
+  --r-control: 12px;
+  --r-card: 14px;
+  --r-item: 12px;
+  --r-letter: 10px;
+  --r-segment-inner: 9px;
+
+  --h-header: 68px;
+  --h-player: 92px;
+  --w-left: 320px;
+  --w-right: 360px;
+  --pad-panel: 20px;
+}
