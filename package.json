@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
+    "@types/supercluster": "^7.1.3",
     "jsdom": "^30.1.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
@@ -21,6 +22,7 @@
     "world-countries": "^5.1.0"
   },
   "dependencies": {
-    "hls.js": "^1.7.3"
+    "hls.js": "^1.7.3",
+    "supercluster": "^9.1.0"
   }
 }
