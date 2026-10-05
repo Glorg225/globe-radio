@@ -49,7 +49,7 @@ test('stations without a valid 2-letter country are skipped', () => {
 });
 
 test('place and station encodings roundtrip', () => {
-  const p: Place = { id: 'c:1', lat: 1.5, lon: 2.5, kind: 'region', cc: 'DE', nameRu: 'Я', name: 'I', count: 3, pop: 9 };
+  const p: Place = { id: 'c:1', lat: 1.5, lon: 2.5, kind: 'region', cc: 'DE', nameRu: 'Я', name: 'I', count: 3, pop: 9, langs: {} };
   expect(decodePlace(encodePlace(p))).toEqual(p);
   const s = { id: 'u', name: 'N', url: 'https://x', placeId: 'c:1', cc: 'DE', langs: ['de'], tags: ['pop'], votes: 1, clicks: 2, favicon: '', hls: true };
   expect(decodeStation(encodeStation(s), 'DE')).toEqual(s);
@@ -87,4 +87,22 @@ test('placeInfoRows prefers gazetteer country articles over display names', asyn
   const { placeInfoRows } = await import('../scripts/build-snapshot');
   const places: Place[] = [{ id: 'k:CD', lat: 0, lon: 0, kind: 'country', cc: 'CD', nameRu: 'Конго - Киншаса', name: 'Congo - Kinshasa', count: 1, pop: 1, wikiRu: 'Демократическая Республика Конго', wikiEn: 'Democratic Republic of the Congo' }];
   expect(placeInfoRows(places, 'CD')).toEqual([['k:CD', '', 'Демократическая Республика Конго', 'Democratic Republic of the Congo']]);
+});
+
+test('places count their stations per language', () => {
+  const { places } = buildSnapshot([
+    raw({ stationuuid: 'a', state: 'Bayern', languagecodes: 'de' }),
+    raw({ stationuuid: 'b', state: 'Bayern', languagecodes: 'de,en' }),
+    raw({ stationuuid: 'c', state: 'Bayern', languagecodes: '', language: '' }),
+  ], centroids, matcher);
+  expect(places.find((p) => p.id === 'a:DE.02')!.langs).toEqual({ de: 2, en: 1 });
+});
+
+test('language counts survive encode/decode; old rows without them decode to {}', async () => {
+  const { encodeLangs, decodeLangs } = await import('../src/data/places');
+  const p: Place = { id: 'c:1', lat: 1, lon: 2, kind: 'exact', cc: 'ES', nameRu: '', name: 'M', count: 15, pop: 9, langs: { es: 12, ca: 3 } };
+  expect(encodeLangs(p.langs)).toBe('es:12,ca:3');
+  expect(decodePlace(encodePlace(p)).langs).toEqual({ es: 12, ca: 3 });
+  expect(decodePlace(['c:2', 0, 0, 0, 'ES', '', 'X', 1, 1]).langs).toEqual({});
+  expect(decodeLangs('es:x,:3,ca:2')).toEqual({ ca: 2 });
 });

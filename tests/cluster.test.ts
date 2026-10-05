@@ -37,3 +37,26 @@ test('every cluster can be opened: views reach the zoom where clusters split (no
   expect(zoomToAltitude(CLUSTER_MAX_ZOOM + 1)).toBeGreaterThanOrEqual(MIN_ALTITUDE);
   expect(scaleToZoom(MAX_SCALE)).toBeGreaterThanOrEqual(CLUSTER_MAX_ZOOM + 1);
 });
+
+test('weighted clusterer counts only the weight and skips zero-weight places', async () => {
+  const withLangs: Place[] = [
+    { ...p('a', 48.1, 11.5, 3), langs: { es: 2 } },
+    { ...p('b', 48.2, 11.6, 4), langs: {} },
+    { ...p('far', -33.9, 151.2, 1), langs: { es: 1 } },
+  ];
+  const items = createClusterer(withLangs, (pl) => pl.langs?.es ?? 0).items(12);
+  expect(items.map((i) => [i.key, i.count])).toEqual(expect.arrayContaining([['a', 2], ['far', 1]]));
+  expect(items.find((i) => i.key === 'b')).toBeUndefined();
+});
+
+test('layered source: muted base first, teal highlight on top; no highlight = base as is', async () => {
+  const { layered } = await import('../src/map/cluster');
+  const base = createClusterer(places);
+  const hi = createClusterer([places[3]]);
+  expect(layered(base, null).items(12)).toEqual(base.items(12));
+  const items = layered(base, hi).items(12);
+  // A teal place is not duplicated underneath: one dot, one tooltip, on both views.
+  expect(items.filter((i) => i.tone === 'muted')).toHaveLength(3);
+  expect(items.filter((i) => i.key === 'far')).toHaveLength(1);
+  expect(items.at(-1)).toMatchObject({ key: 'far', tone: 'teal' });
+});

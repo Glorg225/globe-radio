@@ -2,8 +2,8 @@ import Supercluster from 'supercluster';
 import type { Place } from '../data/places';
 
 export type MapItem =
-  | { type: 'place'; key: string; place: Place; lat: number; lon: number; count: number; pop: number }
-  | { type: 'cluster'; key: string; lat: number; lon: number; count: number; pop: number; zoomTo: number };
+  | { type: 'place'; key: string; place: Place; lat: number; lon: number; count: number; pop: number; tone?: 'muted' | 'teal' }
+  | { type: 'cluster'; key: string; lat: number; lon: number; count: number; pop: number; zoomTo: number; tone?: 'muted' | 'teal' };
 export interface Clusterer { items(zoom: number): MapItem[] }
 
 // Above this zoom places are never grouped; both views can zoom past it, so every cluster opens.
@@ -12,7 +12,11 @@ export const CLUSTER_MAX_ZOOM = 6;
 interface Props { i: number; count: number; pop: number }
 interface Reduced { count: number; pop: number }
 
-export function createClusterer(places: Place[]): Clusterer {
+// With a weight (e.g. stations in one language) only places with weight > 0 are indexed and counted by it.
+export function createClusterer(all: Place[], weight?: (p: Place) => number): Clusterer {
+  const places = weight ? all.filter((p) => weight(p) > 0) : all;
+  const countOf = (p: Place) => (weight ? weight(p) : p.count);
+  const popOf = (p: Place) => (weight ? weight(p) : p.pop);
   const index = new Supercluster<Props, Reduced>({
     radius: 40,
     maxZoom: CLUSTER_MAX_ZOOM,
@@ -21,7 +25,7 @@ export function createClusterer(places: Place[]): Clusterer {
   });
   index.load(places.map((p, i) => ({
     type: 'Feature' as const,
-    properties: { i, count: p.count, pop: p.pop },
+    properties: { i, count: countOf(p), pop: popOf(p) },
     geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] },
   })));
 
@@ -35,8 +39,24 @@ export function createClusterer(places: Place[]): Clusterer {
           return { type: 'cluster', key: `cl:${id}`, lat, lon, count: props.count, pop: props.pop, zoomTo: index.getClusterExpansionZoom(id) };
         }
         const place = places[props.i!];
-        return { type: 'place', key: place.id, place, lat: place.lat, lon: place.lon, count: place.count, pop: place.pop };
+        return { type: 'place', key: place.id, place, lat: place.lat, lon: place.lon, count: countOf(place), pop: popOf(place) };
       });
+    },
+  };
+}
+
+// Learn mode: every place muted underneath, places of the chosen language in teal on top.
+export function layered(base: Clusterer, highlight: Clusterer | null): Clusterer {
+  if (!highlight) return base;
+  return {
+    items: (zoom) => {
+      const top = highlight.items(zoom).map((i) => ({ ...i, tone: 'teal' as const }));
+      // A teal place is not drawn again underneath: otherwise the globe picks the muted twin for the tooltip.
+      const tealPlaces = new Set(top.filter((i) => i.type === 'place').map((i) => i.key));
+      const bottom = base.items(zoom)
+        .filter((i) => !(i.type === 'place' && tealPlaces.has(i.key)))
+        .map((i) => ({ ...i, tone: 'muted' as const }));
+      return [...bottom, ...top];
     },
   };
 }

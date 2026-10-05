@@ -22,7 +22,7 @@ const AXES: GeoPermissibleObjects = {
 export const createMap2D: MapFactory = async (el, clusterer, cb) => {
   const css = getComputedStyle(document.documentElement);
   const token = (n: string) => css.getPropertyValue(n).trim();
-  const color = { bg: token('--map-bg'), land: token('--map-land'), border: token('--border-card'), grid: token('--map-grid'), axis: token('--map-axis'), accent: token('--accent') };
+  const color = { bg: token('--map-bg'), land: token('--map-land'), border: token('--border-card'), grid: token('--map-grid'), axis: token('--map-axis'), accent: token('--accent'), teal: token('--teal'), muted: token('--dot-muted') };
   const topo = world as unknown as Topology<{ countries: GeometryCollection }>;
   const land = feature(topo, topo.objects.countries) as GeoPermissibleObjects;
   const graticule = geoGraticule10();
@@ -80,18 +80,20 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
     ctx.restore();
 
     const items = clusterer.items(scaleToZoom(transform.k));
-    const maxPop = Math.max(1, ...items.map((i) => i.pop));
+    const maxPop = Math.max(1, ...items.filter((i) => i.tone !== 'muted').map((i) => i.pop));
     screen = [];
-    ctx.shadowColor = color.accent;
-    ctx.shadowBlur = 8;
-    ctx.fillStyle = color.accent;
     for (const item of items) {
       const p = projection([item.lon, item.lat]);
       if (!p) continue;
       const x = transform.applyX(p[0]);
       const y = transform.applyY(p[1]);
       if (x < -10 || y < -10 || x > w + 10 || y > h + 10) continue;
-      const { size, opacity } = dotStyle(item.pop, maxPop);
+      const muted = item.tone === 'muted';
+      const { size, opacity } = muted ? { size: 3, opacity: 0.35 } : dotStyle(item.pop, maxPop);
+      const fill = muted ? color.muted : item.tone === 'teal' ? color.teal : color.accent;
+      ctx.shadowColor = fill;
+      ctx.shadowBlur = muted ? 0 : 8;
+      ctx.fillStyle = fill;
       ctx.globalAlpha = opacity;
       ctx.beginPath(); ctx.arc(x, y, size / 2, 0, Math.PI * 2); ctx.fill();
       screen.push({ x, y, r: size / 2, item });
@@ -117,7 +119,8 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
 
   const at = (e: MouseEvent) => {
     const r = canvas.getBoundingClientRect();
-    return hitTest(screen, e.clientX - r.left, e.clientY - r.top);
+    // Teal dots are drawn last; check them first so they win over the muted dot at the same point.
+    return hitTest([...screen].reverse(), e.clientX - r.left, e.clientY - r.top);
   };
   const centerOn = (lon: number, lat: number, k: number) => {
     const p = projection([lon, lat]);
@@ -150,6 +153,7 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
     setPlaying(place) { playing = place; placePulse(); },
     flyTo(lat, lon) { centerOn(lon, lat, Math.max(transform.k, 8)); },
     zoomBy(factor) { sel.call(zb.scaleBy, factor); },
+    refresh() { draw(); },
     destroy() {
       ro.disconnect();
       sel.on('.zoom', null);

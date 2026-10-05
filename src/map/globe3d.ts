@@ -18,6 +18,8 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
   const css = getComputedStyle(document.documentElement);
   const accent = css.getPropertyValue('--accent').trim();
   const glow = css.getPropertyValue('--globe-glow').trim();
+  const teal = css.getPropertyValue('--teal').trim();
+  const muted = css.getPropertyValue('--dot-muted').trim();
   const pulse = createPulse();
   // Own host element: destroying a stale view must not wipe a newer view mounted into the same container.
   const host = document.createElement('div');
@@ -29,7 +31,11 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
   let lastAlt = INITIAL_ALTITUDE;
 
   const altitude = () => globe.pointOfView().altitude;
-  const radiusOf = (o: object) => (dotStyle((o as MapItem).pop, maxPop).size / 2) * DEG_PER_PX_PER_ALT * altitude();
+  const radiusOf = (o: object) => {
+    const item = o as MapItem;
+    const size = item.tone === 'muted' ? 3 : dotStyle(item.pop, maxPop).size;
+    return (size / 2) * DEG_PER_PX_PER_ALT * altitude();
+  };
 
   function refresh(force = false) {
     const alt = altitude();
@@ -38,7 +44,7 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
       lastZoom = zoom;
       lastAlt = alt;
       const items = clusterer.items(zoom);
-      maxPop = Math.max(1, ...items.map((i) => i.pop));
+      maxPop = Math.max(1, ...items.filter((i) => i.tone !== 'muted').map((i) => i.pop));
       globe.pointRadius(radiusOf).pointsData(items);
     } else if (Math.abs(alt - lastAlt) / lastAlt > 0.15) {
       lastAlt = alt;
@@ -58,7 +64,11 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
     .pointLng('lon')
     .pointAltitude(0.003)
     .pointResolution(8)
-    .pointColor((o: object) => hexToRgba(accent, dotStyle((o as MapItem).pop, maxPop).opacity))
+    .pointColor((o: object) => {
+      const item = o as MapItem;
+      if (item.tone === 'muted') return hexToRgba(muted, 0.35);
+      return hexToRgba(item.tone === 'teal' ? teal : accent, dotStyle(item.pop, maxPop).opacity);
+    })
     .pointLabel((o: object) => `<div class="map-tooltip">${escapeHtml(cb.label(o as MapItem))}</div>`)
     .onPointClick((o: object) => {
       const item = o as MapItem;
@@ -81,6 +91,7 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
   ro.observe(host);
 
   return {
+    refresh() { refresh(true); },
     setPlaying(place: Place | null) { globe.htmlElementsData(place ? [place] : []); },
     flyTo(lat, lon) {
       globe.pointOfView({ lat, lng: lon, altitude: Math.min(altitude(), 1.2) }, reducedMotion() ? 0 : 1200);

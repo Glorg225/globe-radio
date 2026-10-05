@@ -59,3 +59,10 @@ test('exposes map, stars, panel body, zoom and view buttons', () => {
   expect(refs.closePanel.getAttribute('aria-label')).toBe('Закрыть список');
   expect(refs.stage.textContent).toContain('GeoNames');
 });
+
+test('exposes the learn button and an empty banner slot under the header', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.learnButton.dataset.action).toBe('learn');
+  expect(refs.banner.hidden).toBe(true);
+  expect(refs.banner.previousElementSibling).toBe(refs.header);
+});
