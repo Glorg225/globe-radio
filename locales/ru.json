@@ -64,5 +64,29 @@
   "place.learn": "Учить этот язык",
   "place.wiki.read": "Читать в Википедии",
   "place.wiki.more": "Подробнее в Википедии",
-  "place.wiki.english": "Статья на английском"
+  "place.wiki.english": "Статья на английском",
+  "learn.button": "Учу язык",
+  "learn.buttonActive": "Учу язык: {lang}",
+  "learn.search": "Найти язык",
+  "learn.notFound": "Ничего не найдено",
+  "learn.banner.title": "Режим «Учу язык»",
+  "learn.banner.info": "{lang} · {stations} в {countries} · «Следующая рядом» выбирает только из них",
+  "learn.countries": {
+    "one": "{count} стране",
+    "few": "{count} странах",
+    "many": "{count} странах",
+    "other": "{count} странах"
+  },
+  "learn.off": "Выключить",
+  "learn.tip": "Совет: выбирайте разговорные и новостные станции — там больше живой речи, чем музыки.",
+  "learn.talk": "речь",
+  "learn.subtitle": "{country} · {stations} на {langPrep}",
+  "learn.subtitleApprox": "Примерное расположение · {stations} на {langPrep}",
+  "learn.empty": "Здесь нет станций на {langPrep}",
+  "learn.showAll": "Показать все станции этого места",
+  "learn.tooltip": "{place} · {stations} на {langPrep}",
+  "learn.stationsIn": "{stations} на {langPrep}",
+  "learn.next": "Следующая на {langPrep}",
+  "learn.noNext": "Рядом больше нет станций на {langPrep}",
+  "place.lang.match": "совпадает с выбранным"
 }

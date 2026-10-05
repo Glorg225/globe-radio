@@ -1,0 +1,19 @@
+[data-action="learn"].is-learning { background: var(--teal); border-color: var(--teal); color: var(--on-teal); font-weight: 600; }
+.shell__header { position: relative; }
+.learn-pop { position: absolute; z-index: 20; inset-block-start: 60px; inline-size: 300px; max-block-size: 420px; display: flex; flex-direction: column; padding: 10px; border-radius: var(--r-card); background: var(--surface-raised); border: 1px solid var(--border-popover); }
+.learn-pop__search { display: flex; align-items: center; gap: 8px; block-size: 40px; padding-inline: 12px; border-radius: var(--r-control); background: var(--surface-card); border: 1px solid var(--border-control); color: var(--text-muted); }
+.learn-pop__search input { flex: 1; min-inline-size: 0; background: transparent; border: 0; outline: 0; color: var(--text); font: inherit; }
+.learn-pop__list { margin-block-start: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.learn-pop__item { display: flex; justify-content: space-between; gap: 10px; padding: 9px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font-size: 15px; text-align: start; }
+.learn-pop__item:hover, .learn-pop__item.is-active { background: var(--item-selected); }
+.learn-pop__item.is-selected { background: var(--teal-chip-bg); color: var(--teal); }
+.learn-pop__count { color: var(--text-muted); font-size: 13px; white-space: nowrap; }
+.learn-pop__empty { margin: 10px; color: var(--text-muted); font-size: 14px; }
+.learn-banner { block-size: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding-inline: 24px; background: var(--teal-banner-bg); border-block-end: 1px solid var(--teal-banner-border); color: var(--teal); font-size: 14px; }
+.learn-banner__info { color: var(--teal-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-inline-size: 0; }
+.learn-banner__off { block-size: 32px; padding-inline: 14px; border-radius: 10px; border: 1px solid var(--teal-banner-border); background: transparent; color: var(--teal); }
+@media (max-width: 760px) {
+  .learn-pop { inset-inline: 8px; inline-size: auto; }
+  .learn-banner { padding-inline: 12px; gap: 8px; font-size: 13px; }
+  .learn-banner__title { display: none; }
+}

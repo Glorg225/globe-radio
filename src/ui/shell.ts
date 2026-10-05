@@ -3,12 +3,14 @@ import { escapeHtml } from './html';
 import { icons } from './icons';
 import './tokens.css';
 import './shell.css';
+import './learn.css';
 
 export interface ShellRefs {
   header: HTMLElement; left: HTMLElement; panelBody: HTMLElement; closePanel: HTMLButtonElement;
   stage: HTMLElement; stars: HTMLElement; map: HTMLElement; status: HTMLElement;
   zoomIn: HTMLButtonElement; zoomOut: HTMLButtonElement; viewButtons: HTMLButtonElement[];
   placeCard: HTMLElement; player: HTMLElement;
+  banner: HTMLElement; learnButton: HTMLButtonElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -30,6 +32,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       </div>
       <button class="btn btn--outline btn--icon" data-action="install" aria-label="${t('header.install')}">${icons.download}</button>
     </header>
+    <div class="learn-banner" hidden></div>
     <div class="shell__body">
       <aside class="shell__left">
         <div class="panel-top">
@@ -76,5 +79,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     viewButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-view]')],
     placeCard: q('.shell__place'),
     player: q('.shell__player'),
+    banner: q('.learn-banner'),
+    learnButton: q<HTMLButtonElement>('[data-action="learn"]'),
   };
 }
