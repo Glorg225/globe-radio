@@ -10,7 +10,8 @@
     "test": "vitest run",
     "snapshot": "tsx scripts/snapshot.ts",
     "gazetteer": "tsx scripts/build-gazetteer.ts",
-    "og": "tsx scripts/og-image.ts"
+    "og": "tsx scripts/og-image.ts",
+    "icons": "tsx scripts/icons.ts"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
@@ -24,7 +25,9 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.3",
+    "workbox-window": "^7.4.1",
     "world-countries": "^5.1.0"
   },
   "dependencies": {
