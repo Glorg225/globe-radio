@@ -660,3 +660,13 @@ test('mini-player "more" menu: sleep, share and favorite', async () => {
   ([...document.querySelectorAll('.more-menu button')][0] as HTMLButtonElement).click();
   expect(document.querySelector('.sleep-menu')).not.toBeNull();
 });
+
+test('tablet: the toggle opens and closes the place-card drawer; Escape closes it', async () => {
+  await startApp(deps);
+  deps.refs.placeToggle.click();
+  expect(deps.refs.placeCard.classList.contains('is-open')).toBe(true);
+  expect(deps.refs.placeToggle.getAttribute('aria-expanded')).toBe('true');
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(deps.refs.placeCard.classList.contains('is-open')).toBe(false);
+  expect(deps.refs.placeToggle.getAttribute('aria-expanded')).toBe('false');
+});

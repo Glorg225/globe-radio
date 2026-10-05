@@ -40,8 +40,6 @@ button { font-family: inherit; cursor: pointer; }
 
 .shell__player { block-size: var(--h-player); flex-shrink: 0; background: var(--surface-player); border-block-start: 1px solid var(--border-divider); display: flex; align-items: center; padding-inline: 24px; }
 
-/* Temporary narrow-screen fallback until Plan 6 (mobile layout per mockup): no horizontal scroll */
-@media (max-width: 1100px) { .shell__place { display: none; } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 

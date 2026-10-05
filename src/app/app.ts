@@ -302,6 +302,13 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     onLearn: () => { closeSearch(); refs.learnButton.click(); },
   });
   refs.closePanel.addEventListener('click', () => nav.set('globe'));
+  // Tablet: the place card is a drawer on the right.
+  const setPlaceDrawer = (open: boolean) => {
+    refs.placeCard.classList.toggle('is-open', open);
+    refs.placeToggle.setAttribute('aria-expanded', String(open));
+  };
+  refs.placeToggle.addEventListener('click', () => setPlaceDrawer(!refs.placeCard.classList.contains('is-open')));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && refs.placeCard.classList.contains('is-open')) setPlaceDrawer(false); });
   attachSheetDrag(refs.left, refs.sheetHandle, { expandable: true, onClose: () => { closeSheet(); nav.set('globe'); } });
   d.library.subscribe(() => {
     if (tab !== 'here') renderTab();

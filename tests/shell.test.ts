@@ -86,3 +86,9 @@ test('phone nav has four sections in mockup order', () => {
   expect(refs.navButtons.map((b) => b.textContent)).toEqual(['Глобус', 'Поиск', 'Избранное', 'Учу язык']);
   expect(root.querySelector('.mobile-nav')!.getAttribute('aria-label')).toBe('Разделы');
 });
+
+test('tablet place-card toggle is exposed', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.placeToggle.getAttribute('aria-label')).toBe('Карточка места');
+  expect(refs.placeToggle.getAttribute('aria-expanded')).toBe('false');
+});

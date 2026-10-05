@@ -15,7 +15,7 @@ export interface ShellRefs {
   banner: HTMLElement; learnButton: HTMLButtonElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
   netBanner: HTMLElement; root: HTMLElement; installButton: HTMLButtonElement;
-  navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement;
+  navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement; placeToggle: HTMLButtonElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -55,6 +55,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       <main class="shell__stage">
         <div class="stage__stars" aria-hidden="true"></div>
         <div class="stage__map"></div>
+        <button class="btn btn--outline btn--icon stage__place-toggle" type="button" aria-label="${t('place.show')}" aria-expanded="false">${icons.info}</button>
         <p class="stage__status" role="status"></p>
         <div class="stage__zoom">
           <button data-zoom="in" aria-label="${t('map.zoomIn')}">+</button>
@@ -102,5 +103,6 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     installButton: q<HTMLButtonElement>('[data-action="install"]'),
     navButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-nav]')],
     sheetHandle: q('.sheet__handle'),
+    placeToggle: q<HTMLButtonElement>('.stage__place-toggle'),
   };
 }
