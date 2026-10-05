@@ -59,6 +59,8 @@ export function buildSnapshot(raw: RawStation[], centroids: Centroids, matcher: 
     const place = places.get(ref.id) ?? places.set(ref.id, { ...ref, count: 0, pop: 0 }).get(ref.id)!;
     place.count++;
     place.pop += s.clicks;
+    place.langs ??= {};
+    for (const l of s.langs) place.langs[l] = (place.langs[l] ?? 0) + 1;
     if (RANK[ref.kind] < RANK[place.kind]) place.kind = ref.kind;
 
     const lite: StationLite = {
