@@ -356,6 +356,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     if (!found) { showToast(refs.stage, t('surprise.none')); return; }
     view?.flyTo(found.place.lat, found.place.lon);
     void selectPlace(found.place);
+    if (d.narrow?.()) closeSheet();
     await playStation(found.station, found.place);
   }
   refs.surpriseButton.addEventListener('click', () => { void surprise(); });
@@ -374,9 +375,11 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
 
   // A shared link (?station=...) opens a card; sound starts only after the "Listen" tap.
   async function openShared() {
-    if (!new URLSearchParams(d.location.search).has('station')) return;
+    // Read the link before cleaning the address: d.location is live in the browser.
+    const search = d.location.search;
+    if (!new URLSearchParams(search).has('station')) return;
+    const params = parseShareParams(search);
     d.replaceUrl(stripShareParams(d.location.href));
-    const params = parseShareParams(d.location.search);
     if (!params) { showToast(refs.stage, t('share.gone')); return; }
     const found = await resolveShared(params, { places, shards: d.shards, fetchFn: d.fetchFn });
     if (!found) { showToast(refs.stage, t('share.gone')); return; }
@@ -496,6 +499,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       const my = ++pickToken;
       view?.flyTo(h.place.lat, h.place.lon);
       void selectPlace(h.place);
+      if (d.narrow?.()) closeSheet();
       let station: StationLite | undefined;
       try { station = (await d.shards.get(h.place.cc)).find((s) => s.placeId === h.place.id && s.name === h.name); } catch { return; }
       if (my !== pickToken) return;

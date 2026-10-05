@@ -726,3 +726,27 @@ test('honest messages: search hit missing from the data; country file failed to 
   await flush();
   expect(deps.refs.stage.textContent).toContain('Не удалось загрузить станции этого места');
 });
+
+test('phone: «Удиви меня» and a station from search close the list so the place card shows', async () => {
+  const app = await startApp({ ...deps, narrow: () => true });
+  await app.surprise();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+  expect(player.play).toHaveBeenCalled();
+  deps.refs.searchInput.value = 'ра';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  ([...document.querySelectorAll('.search-pop__item')][1] as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+});
+
+test('shared link works with a live location that changes when the address is cleaned (regression)', async () => {
+  const ID = '96062a7b-0601-11e8-ae97-52543be04c81';
+  shards.get.mockResolvedValue([{ ...st('x', 'c:1', 1, ['pt']), id: ID }]);
+  const loc = { href: `https://u/?station=${ID}&c=PT`, search: `?station=${ID}&c=PT` };
+  const replaceUrl = vi.fn((url: string) => { loc.href = url; loc.search = new URL(url).search; });
+  await startApp({ ...deps, location: loc, replaceUrl });
+  await flush();
+  expect(replaceUrl).toHaveBeenCalledWith('https://u/');
+  expect(deps.refs.stage.querySelector('.share-card')).not.toBeNull();
+});

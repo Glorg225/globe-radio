@@ -16,7 +16,8 @@
   .shell__header .segment { position: fixed; z-index: 6; inset-block-start: 68px; inset-inline-start: 50%; transform: translateX(-50%); padding: 3px; border-radius: 10px; }
   .shell__header .segment button { block-size: 30px; padding-inline: 14px; border-radius: 8px; font-size: 13px; }
   .stage__zoom { display: none; }
-  .stage__attribution { inset-block-start: 108px; inset-block-end: auto; inset-inline: 16px; max-inline-size: none; text-align: center; font-size: 11px; }
+  .stage__attribution { inset-block-start: 108px; inset-block-end: auto; inset-inline: 16px; max-inline-size: none; text-align: center; font-size: 10px; line-height: 1.35; opacity: .8; }
+  .panel-body { padding-block-end: 84px; }
   .mobile-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: fixed; z-index: 12; inset-inline: 0; inset-block-end: 0; block-size: 66px; background: var(--surface); border-block-start: 1px solid var(--border-divider); }
   .mobile-nav button { border: 0; background: transparent; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; }
   .mobile-nav__bar { inline-size: 22px; block-size: 3px; border-radius: 2px; background: transparent; }
@@ -63,5 +64,12 @@
   .pb__sleep span { display: none; }
   .pb__sleep { padding-inline: 12px; }
   .pb__range { inline-size: 80px; }
+  .shell__header { gap: 12px; padding-inline: 16px; }
+  .logo { inline-size: auto; }
+  .logo__text, .shell__header .btn span { display: none; }
+  .shell__header [data-action="surprise"], .shell__header [data-action="learn"] { inline-size: 42px; padding: 0; justify-content: center; }
+  .pb__next span { display: none; }
+  .pb__next { inline-size: 44px; padding: 0; justify-content: center; }
+  .shell__player { gap: 14px; padding-inline: 16px; }
 }
 @media (max-width: 760px) { .shell__place { display: none; } }
