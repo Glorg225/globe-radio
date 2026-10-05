@@ -72,3 +72,15 @@ test('share sheet error other than cancel falls back to copying', async () => {
   const share = vi.fn(async () => { throw new DOMException('no', 'NotAllowedError'); });
   expect(await shareStation({ ...opts, preferShare: true, nav: { share, clipboard: { writeText } } })).toBe('copied');
 });
+
+test('a link without a country works where AbortSignal.timeout is missing (old iPhones)', async () => {
+  const orig = AbortSignal.timeout;
+  (AbortSignal as unknown as { timeout?: unknown }).timeout = undefined;
+  try {
+    const f = vi.fn(async () => new Response(JSON.stringify([{ countrycode: 'PT' }])));
+    const r = await resolveShared({ id: ID, cc: null }, { places: [place], shards: shards([station]), fetchFn: f as unknown as typeof fetch, mirrors: ['m1'] });
+    expect(r).toEqual({ station, place });
+  } finally {
+    AbortSignal.timeout = orig;
+  }
+});

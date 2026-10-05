@@ -30,13 +30,16 @@ export function stripShareParams(url: string): string {
 
 async function countryOf(id: string, fetchFn: typeof fetch, mirrors: readonly string[]): Promise<string | null> {
   for (const host of mirrors) {
+    // AbortController + timer instead of AbortSignal.timeout, which iOS < 16 lacks.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
     try {
-      const r = await fetchFn(`https://${host}/json/stations/byuuid/${id}`, { signal: AbortSignal.timeout(4000) });
+      const r = await fetchFn(`https://${host}/json/stations/byuuid/${id}`, { signal: ctrl.signal });
       if (!r.ok) continue;
       const list = (await r.json()) as { countrycode?: string }[];
       const cc = (list[0]?.countrycode ?? '').toUpperCase();
       return /^[A-Z]{2}$/.test(cc) ? cc : null;
-    } catch { /* next mirror */ }
+    } catch { /* next mirror */ } finally { clearTimeout(timer); }
   }
   return null;
 }

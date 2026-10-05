@@ -670,3 +670,59 @@ test('tablet: the toggle opens and closes the place-card drawer; Escape closes i
   expect(deps.refs.placeCard.classList.contains('is-open')).toBe(false);
   expect(deps.refs.placeToggle.getAttribute('aria-expanded')).toBe('false');
 });
+
+test('saved tab: the star keeps keyboard focus; the highlight follows the playing station', async () => {
+  deps.library.toggleFavorite({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  deps.library.toggleFavorite({ id: 'b', name: 'Radio b', placeId: 'c:1', cc: 'PT', favicon: '' });
+  const app = await startApp(deps);
+  app.tab('history');
+  deps.library.remember({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  (deps.refs.panelBody.querySelector('.station__star') as HTMLButtonElement).click();
+  expect(document.activeElement).toBe(deps.refs.panelBody.querySelector('.station__star'));
+  app.tab('favorites');
+  player.set({ kind: 'playing', station: st('b', 'c:1') });
+  expect(deps.refs.panelBody.querySelector('.station.is-playing .station__name')!.textContent).toBe('Radio b');
+});
+
+test('back to "Here" shows loading at once instead of the old saved list', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  app.tab('favorites');
+  shards.get.mockImplementationOnce(() => new Promise(() => {}));
+  app.tab('here');
+  expect(deps.refs.panelBody.textContent).toBe('Загружаем станции…');
+});
+
+test('the last pick wins over a slower earlier one', async () => {
+  deps.library.toggleFavorite({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  deps.library.toggleFavorite({ id: 'p', name: 'Radio p', placeId: 'c:2', cc: 'PT', favicon: '' });
+  let releaseSlow!: (v: StationLite[]) => void;
+  shards.get.mockImplementationOnce(() => new Promise((r) => { releaseSlow = r; }));
+  const app = await startApp(deps);
+  app.tab('favorites');
+  const picks = () => [...deps.refs.panelBody.querySelectorAll('.station__pick')] as HTMLButtonElement[];
+  picks()[1].click();
+  picks()[0].click();
+  await flush();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'p' }));
+  releaseSlow(pt);
+  await flush();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'p' }));
+  expect(player.play).toHaveBeenCalledTimes(1);
+});
+
+test('honest messages: search hit missing from the data; country file failed to load', async () => {
+  const app = await startApp({ ...deps, createSearch: () => ({ search: async () => ({ places: [], stations: [{ name: 'Ghost FM', place: lisbon }] }) }) });
+  deps.refs.searchInput.value = 'gh';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  (document.querySelector('.search-pop__item') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.stage.textContent).toContain('Станция больше не вещает');
+  deps.library.toggleFavorite({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  app.tab('favorites');
+  shards.get.mockRejectedValueOnce(new Error('offline'));
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.stage.textContent).toContain('Не удалось загрузить станции этого места');
+});

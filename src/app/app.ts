@@ -30,7 +30,7 @@ import { attachSheetDrag } from '../ui/sheet';
 import { showShareCard } from '../ui/share-card';
 import { openMoreMenu } from '../ui/more-menu';
 import { openSleepMenu } from '../ui/sleep-menu';
-import { renderListMessage, renderSavedList, renderStationList, type StationListHandle } from '../ui/station-list';
+import { renderListMessage, renderSavedList, renderStationList, type SavedListHandle, type StationListHandle } from '../ui/station-list';
 import { showToast } from '../ui/toast';
 
 export interface AppDeps {
@@ -85,6 +85,9 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   let playingPlace: Place | null = null;
   let list: { placeId: string; handle: StationListHandle } | null = null;
   let tab: PanelTab = 'here';
+  let saved: SavedListHandle | null = null;
+  let focusStar: { id: string; index: number } | null = null;
+  let pickToken = 0;
   let byId = new Map<string, Place>();
 
   const storedVolume = Number(read(VOLUME_KEY) ?? '0.8');
@@ -202,6 +205,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   const RECENT_LIMIT = 30;
 
   async function playStation(s: StationLite, p: Place) {
+    pickToken++;
     if (d.network && !d.network.online()) { showToast(refs.stage, t('net.offlinePlay')); return; }
     recent.splice(0, recent.length, ...recent.filter((id) => id !== s.id), s.id);
     if (recent.length > RECENT_LIMIT) recent.shift();
@@ -259,6 +263,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       { play: () => player.toggle(), pause: () => player.pause(), next: () => { void next(); } },
     );
     if (tab === 'here' && list && selected && list.placeId === selected.id) list.handle.setPlaying(station?.id ?? null);
+    if (tab !== 'here') saved?.setPlaying(station?.id ?? null);
     void updateCard(station);
   });
 
@@ -270,21 +275,28 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   const savedSub = (item: SavedStation) => placeLabel(byId.get(item.placeId) ?? null) || countryName(item.cc, i18n.locale);
   function renderTab() {
     if (tab === 'here') {
-      if (selected) void renderList(selected, false);
+      saved = null;
+      if (selected) void renderList(selected, true);
       else renderListMessage(refs.panelBody, t('panel.empty'));
       return;
     }
     list = null;
     const st = player.getState();
-    renderSavedList(refs.panelBody, i18n, {
-      items: tab === 'favorites' ? d.library.favorites() : d.library.history(),
+    const items = tab === 'favorites' ? d.library.favorites() : d.library.history();
+    saved = renderSavedList(refs.panelBody, i18n, {
+      items,
+      focus: focusStar ?? undefined,
       playingId: st.kind === 'idle' ? null : st.station.id,
       empty: t(tab === 'favorites' ? 'library.emptyFavorites' : 'library.emptyHistory'),
       sub: savedSub,
       onPick: (item) => { if (d.narrow?.()) { closeSheet(); nav.set('globe'); } void playSaved(item); },
       isFavorite: (id) => d.library.isFavorite(id),
-      onToggleFavorite: (item) => { d.library.toggleFavorite(item); },
+      onToggleFavorite: (item) => {
+        focusStar = { id: item.id, index: items.findIndex((x) => x.id === item.id) };
+        d.library.toggleFavorite(item);
+      },
     });
+    focusStar = null;
   }
   function setTab(name: PanelTab) {
     showTab(name);
@@ -317,13 +329,19 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   });
 
   async function playSaved(item: SavedStation) {
+    const my = ++pickToken;
     const place = byId.get(item.placeId);
     let station: StationLite | undefined;
-    try { station = (await d.shards.get(item.cc)).find((s) => s.id === item.id); } catch { station = undefined; }
+    try {
+      station = (await d.shards.get(item.cc)).find((s) => s.id === item.id);
+    } catch {
+      if (my === pickToken) showToast(refs.stage, t('list.loadError'));
+      return;
+    }
+    if (my !== pickToken) return;
     if (!station || !place) { showToast(refs.stage, t('library.gone')); return; }
     view?.flyTo(place.lat, place.lon);
     await playStation(station, place);
-    if (tab !== 'here') renderTab();
   }
 
   async function surprise() {
@@ -475,12 +493,14 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     onStation: async (h) => {
       closeSearch();
       nav.set('globe');
+      const my = ++pickToken;
       view?.flyTo(h.place.lat, h.place.lon);
       void selectPlace(h.place);
-      try {
-        const station = (await d.shards.get(h.place.cc)).find((s) => s.placeId === h.place.id && s.name === h.name);
-        if (station) await playStation(station, h.place);
-      } catch { /* the list shows the load error */ }
+      let station: StationLite | undefined;
+      try { station = (await d.shards.get(h.place.cc)).find((s) => s.placeId === h.place.id && s.name === h.name); } catch { return; }
+      if (my !== pickToken) return;
+      if (!station) { showToast(refs.stage, t('library.gone')); return; }
+      await playStation(station, h.place);
     },
   });
   await mountSafe(initialMode({ saved: read(MODE_STORAGE_KEY), hasWebGL: d.hasWebGL, narrowTouch: d.narrowTouch }));

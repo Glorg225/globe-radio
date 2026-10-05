@@ -112,3 +112,16 @@ test('saved list: rows with place subtitle, empty message, pick and unstar', asy
   renderSavedList(el, i18n, { items: [], playingId: null, empty: 'Пусто', sub: () => '', onPick, isFavorite: () => false, onToggleFavorite });
   expect(el.textContent).toBe('Пусто');
 });
+
+test('saved list keeps focus on the starred row, or the same position when the row is gone; highlight moves', async () => {
+  const { renderSavedList } = await import('../src/ui/station-list');
+  const item = (id: string) => ({ id, name: id, placeId: 'c:1', cc: 'PT', favicon: '' });
+  const base = { playingId: 'a', empty: 'Пусто', sub: () => '', onPick() {}, isFavorite: () => true, onToggleFavorite() {} };
+  renderSavedList(el, i18n, { ...base, items: [item('a'), item('b')], focus: { id: 'b', index: 1 } });
+  expect(document.activeElement).toBe(el.querySelectorAll('.station__star')[1]);
+  const h = renderSavedList(el, i18n, { ...base, items: [item('a'), item('c')], focus: { id: 'b', index: 1 } });
+  expect(document.activeElement).toBe(el.querySelectorAll('.station__star')[1]);
+  h.setPlaying('c');
+  expect(el.querySelectorAll('.station')[1].classList.contains('is-playing')).toBe(true);
+  expect(el.querySelectorAll('.station')[0].classList.contains('is-playing')).toBe(false);
+});

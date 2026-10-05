@@ -113,11 +113,14 @@ export interface SavedListProps {
   items: SavedStation[]; playingId: string | null; empty: string;
   sub(item: SavedStation): string; onPick(item: SavedStation): void;
   isFavorite(id: string): boolean; onToggleFavorite(item: SavedStation): void;
+  focus?: { id: string; index: number };
 }
+export interface SavedListHandle { setPlaying(id: string | null): void }
 
-export function renderSavedList(host: HTMLElement, i18n: I18n, p: SavedListProps): void {
-  if (!p.items.length) { renderListMessage(host, p.empty); return; }
+export function renderSavedList(host: HTMLElement, i18n: I18n, p: SavedListProps): SavedListHandle {
+  if (!p.items.length) { renderListMessage(host, p.empty); return { setPlaying() {} }; }
   const list = el('ul', 'stations');
+  const rows: { id: string; row: HTMLLIElement; pick: HTMLButtonElement; star: HTMLButtonElement }[] = [];
   for (const item of p.items) {
     const row = el('li', item.id === p.playingId ? 'station is-playing' : 'station');
     const pick = el('button', 'station__pick');
@@ -134,6 +137,18 @@ export function renderSavedList(host: HTMLElement, i18n: I18n, p: SavedListProps
     star.addEventListener('click', () => p.onToggleFavorite(item));
     row.append(pick, star);
     list.append(row);
+    rows.push({ id: item.id, row, pick, star });
   }
   host.replaceChildren(list);
+  // Keep keyboard focus on the same row (or the same position when that row is gone) after a re-render.
+  if (p.focus) (rows.find((r) => r.id === p.focus!.id) ?? rows[Math.min(p.focus.index, rows.length - 1)])?.star.focus();
+  return {
+    setPlaying(id) {
+      for (const r of rows) {
+        const on = r.id === id;
+        r.row.classList.toggle('is-playing', on);
+        if (on) r.pick.setAttribute('aria-current', 'true'); else r.pick.removeAttribute('aria-current');
+      }
+    },
+  };
 }
