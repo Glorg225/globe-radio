@@ -22,11 +22,11 @@ class Mem {
 }
 
 function fakeFactory() {
-  const views: (MapView & { setPlaying: ReturnType<typeof vi.fn>; flyTo: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> })[] = [];
+  const views: (MapView & { setPlaying: ReturnType<typeof vi.fn>; flyTo: ReturnType<typeof vi.fn>; refresh: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> })[] = [];
   let cb!: MapCallbacks;
   const factory: MapFactory = async (_el, _c, callbacks) => {
     cb = callbacks;
-    const v = { setPlaying: vi.fn(), flyTo: vi.fn(), zoomBy: vi.fn(), destroy: vi.fn() };
+    const v = { setPlaying: vi.fn(), flyTo: vi.fn(), zoomBy: vi.fn(), refresh: vi.fn(), destroy: vi.fn() };
     views.push(v);
     return v;
   };
@@ -217,7 +217,7 @@ test('rapid view toggles keep only the last view mounted', async () => {
   const pending: ((v: MapView) => void)[] = [];
   const made: (MapView & { destroy: ReturnType<typeof vi.fn> })[] = [];
   const slow: MapFactory = () => new Promise((resolve) => {
-    const v = { setPlaying: vi.fn(), flyTo: vi.fn(), zoomBy: vi.fn(), destroy: vi.fn() };
+    const v = { setPlaying: vi.fn(), flyTo: vi.fn(), zoomBy: vi.fn(), refresh: vi.fn(), destroy: vi.fn() };
     made.push(v);
     pending.push(resolve);
   });
