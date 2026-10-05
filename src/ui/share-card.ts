@@ -25,14 +25,25 @@ export function showShareCard(host: HTMLElement, i18n: I18n, data: ShareCardData
   card.querySelector('.share-card__line span')!.textContent = data.line;
   const flag = card.querySelector<HTMLImageElement>('.share-card__flag')!;
   if (data.flag) { flag.src = data.flag; flag.hidden = false; }
-  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { close(); h.onClose(); } };
+  // Modal: the rest of the stage is inert while the card is open.
+  const others = [...host.children].filter((c) => c !== card) as HTMLElement[];
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') { close(); h.onClose(); return; }
+    if (e.key !== 'Tab') return;
+    const f = [card.querySelector<HTMLButtonElement>('.share-card__listen')!, card.querySelector<HTMLButtonElement>('.share-card__globe')!];
+    const i = f.indexOf(document.activeElement as HTMLButtonElement);
+    e.preventDefault();
+    f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+  };
   function close() {
+    for (const o of others) o.removeAttribute('inert');
     card.remove();
     host.classList.remove('is-dimmed');
     document.removeEventListener('keydown', onKey);
   }
   card.querySelector('.share-card__listen')!.addEventListener('click', () => { close(); h.onListen(); });
   card.querySelector('.share-card__globe')!.addEventListener('click', () => { close(); h.onClose(); });
+  for (const o of others) o.setAttribute('inert', '');
   host.classList.add('is-dimmed');
   host.append(card);
   document.addEventListener('keydown', onKey);

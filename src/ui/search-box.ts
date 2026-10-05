@@ -12,6 +12,11 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
   let timer: ReturnType<typeof setTimeout> | undefined;
   let actions: (() => void)[] = [];
   let active = -1;
+  const POP_ID = 'search-pop';
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-expanded', 'false');
+  input.setAttribute('aria-controls', POP_ID);
 
   const onOutside = (e: MouseEvent) => { if (pop && !pop.contains(e.target as Node) && !anchor.contains(e.target as Node)) close(); };
   function close() {
@@ -20,6 +25,8 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
     pop = null;
     actions = [];
     active = -1;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
     document.removeEventListener('mousedown', onOutside);
   }
   function ensurePop(): HTMLElement {
@@ -27,6 +34,8 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
       pop = document.createElement('div');
       pop.className = 'search-pop';
       pop.setAttribute('role', 'listbox');
+      pop.id = POP_ID;
+      input.setAttribute('aria-expanded', 'true');
       anchor.insertAdjacentElement('afterend', pop);
       document.addEventListener('mousedown', onOutside);
     }
@@ -44,6 +53,7 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
     b.type = 'button';
     b.className = 'search-pop__item';
     b.setAttribute('role', 'option');
+    b.id = `search-opt-${actions.length}`;
     const t = document.createElement('span');
     t.className = 'search-pop__name';
     t.textContent = title;
@@ -77,12 +87,18 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
     }
   }
   function highlight() {
-    pop?.querySelectorAll('.search-pop__item').forEach((el, i) => el.classList.toggle('is-active', i === active));
+    const items = pop ? [...pop.querySelectorAll<HTMLElement>('.search-pop__item')] : [];
+    items.forEach((el, i) => { el.classList.toggle('is-active', i === active); el.setAttribute('aria-selected', String(i === active)); });
+    if (active >= 0 && items[active]) input.setAttribute('aria-activedescendant', items[active].id);
+    else input.removeAttribute('aria-activedescendant');
   }
 
   input.addEventListener('focus', () => d.prefetch?.());
   input.addEventListener('input', () => {
     clearTimeout(timer);
+    actions = [];
+    active = -1;
+    highlight();
     const q = input.value.trim();
     if (q.length < 2) { close(); return; }
     const my = ++token;
@@ -98,6 +114,7 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'Tab') { close(); return; }
     if (!actions.length) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();

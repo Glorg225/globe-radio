@@ -106,3 +106,47 @@ test('mini-player: "more" button opens with a station; sleep line replaces the p
   bar.render({ state: { kind: 'paused', station }, place: 'X', volume: 1, muted: false, sleepMinutes: 30 });
   expect(el.classList.contains('has-sleep')).toBe(false);
 });
+
+test('sleep menu: arrows, Home/End move focus; Tab closes', () => {
+  const anchor = document.createElement('button');
+  el.append(anchor);
+  openSleepMenu(anchor, i18n, null, vi.fn());
+  const items = [...document.querySelectorAll('.sleep-menu button')] as HTMLButtonElement[];
+  // No timer yet: «Выкл» is the checked option and gets focus.
+  expect(document.activeElement).toBe(items[4]);
+  const key = (k: string) => document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+  key('ArrowDown');
+  expect(document.activeElement).toBe(items[0]);
+  key('ArrowDown');
+  expect(document.activeElement).toBe(items[1]);
+  key('End');
+  expect(document.activeElement).toBe(items[4]);
+  key('ArrowDown');
+  expect(document.activeElement).toBe(items[0]);
+  key('ArrowUp');
+  expect(document.activeElement).toBe(items[4]);
+  key('Home');
+  expect(document.activeElement).toBe(items[0]);
+  key('Tab');
+  expect(document.querySelector('.sleep-menu')).toBeNull();
+});
+
+test('share card: the background is inert, Tab cycles inside the card', () => {
+  const host = document.querySelector('main')!;
+  const map = document.createElement('div');
+  host.append(map);
+  const card = showShareCard(host, i18n, { name: 'X', flag: null, line: '' }, { onListen() {}, onClose() {} });
+  expect(map.hasAttribute('inert')).toBe(true);
+  const listen = host.querySelector('.share-card__listen') as HTMLButtonElement;
+  const globe = host.querySelector('.share-card__globe') as HTMLButtonElement;
+  const tab = (shift = false) => document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: shift, bubbles: true, cancelable: true }));
+  expect(document.activeElement).toBe(listen);
+  tab();
+  expect(document.activeElement).toBe(globe);
+  tab();
+  expect(document.activeElement).toBe(listen);
+  tab(true);
+  expect(document.activeElement).toBe(globe);
+  card.close();
+  expect(map.hasAttribute('inert')).toBe(false);
+});
