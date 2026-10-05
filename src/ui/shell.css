@@ -111,3 +111,6 @@ button:disabled { cursor: default; opacity: .55; }
   .pb__play { inline-size: 48px; block-size: 48px; }
   .pb__next { inline-size: 44px; padding: 0; justify-content: center; }
 }
+
+/* Dark scrollbars in long lists (station list, language picker, place card). */
+.panel-body, .learn-pop__list, .pc__content { scrollbar-width: thin; scrollbar-color: var(--border-control) transparent; }
