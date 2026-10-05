@@ -16,7 +16,7 @@ export interface PlaceCardDeps {
   findArticle(info: PlaceInfo): Promise<WikiResult>;
   now(): Date; userOffset(): number;
 }
-export interface PlaceCard { show(d: PlaceCardData | null): void; destroy(): void }
+export interface PlaceCard { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void; destroy(): void }
 export const COLLAPSE_KEY = 'placeCardCollapsed';
 
 export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps: PlaceCardDeps): PlaceCard {
@@ -35,8 +35,9 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
       </div>
       <div class="pc__tiles">
         <div class="pc__tile pc__time"><div class="pc__label">${t('place.time')}</div><div class="pc__clock"></div><div class="pc__diff"></div></div>
-        <div class="pc__tile"><div class="pc__label">${t('place.lang')}</div><div class="pc__langs"></div>
-          <button class="pc__learn" disabled title="${t('common.soon')}">${t('place.learn')}</button></div>
+        <div class="pc__tile pc__langtile"><div class="pc__label">${t('place.lang')}</div><div class="pc__langs"></div>
+          <div class="pc__match" hidden>${t('place.lang.match')}</div>
+          <button class="pc__learn" type="button" hidden>${t('place.learn')}</button></div>
       </div>
       <div class="pc__wiki" hidden>
         <img class="pc__photo" alt="" referrerpolicy="no-referrer">
@@ -63,6 +64,7 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
   const el = {
     collapse: q<HTMLButtonElement>(panel, '.pc__collapse'), empty: q(panel, '.pc__empty'), content: q(panel, '.pc__content'),
     flag: q<HTMLImageElement>(panel, '.pc__flag'), name: q(panel, '.pc__name'), country: q(panel, '.pc__country'),
+    langTile: q(panel, '.pc__langtile'), match: q(panel, '.pc__match'), learnBtn: q<HTMLButtonElement>(panel, '.pc__learn'),
     time: q(panel, '.pc__time'), clock: q(panel, '.pc__clock'), diff: q(panel, '.pc__diff'), langs: q(panel, '.pc__langs'),
     wiki: q(panel, '.pc__wiki'), photo: q<HTMLImageElement>(panel, '.pc__photo'), note: q(panel, '.pc__note'),
     text: q(panel, '.pc__text'), link: q<HTMLAnchorElement>(panel, '.pc__link'),
@@ -123,6 +125,19 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
     el.sLink.textContent = `${i18n.t('place.wiki.more')} ↗`;
   }
 
+  let learnCode: string | null = null;
+  let onLearn: ((code: string) => void) | null = null;
+  let stationLangs: string[] = [];
+  let learnTarget: string | null = null;
+  function renderLearn() {
+    const match = !!learnCode && stationLangs.includes(learnCode);
+    el.langTile.classList.toggle('is-match', match);
+    el.match.hidden = !match;
+    learnTarget = stationLangs.find((c) => languageNames([c], i18n.locale) !== '') ?? null;
+    el.learnBtn.hidden = match || !learnTarget;
+  }
+  el.learnBtn.addEventListener('click', () => { if (learnTarget) onLearn?.(learnTarget); });
+
   return {
     show(d) {
       if (!d) {
@@ -138,6 +153,8 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
       // Language depends on the station: refresh it even when the place is the same (pause/resume, next in the same city).
       const langs = languageNames(d.station.langs, i18n.locale) || i18n.t('place.lang.none');
       el.langs.textContent = langs;
+      stationLangs = d.station.langs;
+      renderLearn();
       const country = countryName(d.place.cc, i18n.locale);
       el.sMeta.textContent = `${d.place.kind === 'country' ? i18n.t('place.approx') : country} · ${langs}`;
       if (d.place.id === currentPlaceId) return;
@@ -165,6 +182,11 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
       el.sLink.hidden = true;
       if (!d.info || (!d.info.wikiRu && !d.info.wikiEn)) return;
       void deps.findArticle(d.info).then((r) => { if (my === token) renderWiki(r); });
+    },
+    setLearn(code, cb) {
+      learnCode = code;
+      onLearn = cb;
+      renderLearn();
     },
     destroy() {
       token++;

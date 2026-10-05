@@ -63,3 +63,18 @@ test('setPlaying updates the highlight without rebuilding rows (keeps keyboard f
   expect(pickA.getAttribute('aria-current')).toBeNull();
   expect(el.querySelectorAll('.station.is-playing')).toHaveLength(1);
 });
+
+test('learn variant: tip on top, teal list, "речь" chip only on talk/news stations', () => {
+  renderStationList(el, i18n, {
+    title: 'Мадрид', subtitle: 'Испания · 2 станции на испанском',
+    stations: [st('a', 'Charla Madrid', ['talk', 'spanish']), st('b', 'Radio Gran Vía', ['pop'])],
+    playingId: null, onPick() {},
+    learn: { tip: 'Совет: выбирайте разговорные…', talkLabel: 'речь' },
+  });
+  expect(el.querySelector('.learn-tip')!.textContent).toBe('Совет: выбирайте разговорные…');
+  expect(el.querySelector('.stations')!.classList.contains('stations--learn')).toBe(true);
+  const rows = el.querySelectorAll('.station');
+  expect(rows[0].querySelector('.talk-chip')!.textContent).toBe('речь');
+  expect(rows[1].querySelector('.talk-chip')).toBeNull();
+  expect(rows[0].querySelector('.station__tags')!.textContent).toContain('talk · spanish');
+});

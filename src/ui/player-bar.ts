@@ -4,7 +4,7 @@ import { escapeHtml } from './html';
 import { icons } from './icons';
 
 export interface PlayerBarHandlers { onToggle(): void; onNext(): void; onVolume(v: number): void; onMute(): void }
-export interface PlayerBarView { state: PlayerState; place: string; volume: number; muted: boolean }
+export interface PlayerBarView { state: PlayerState; place: string; volume: number; muted: boolean; nextLabel?: string }
 
 export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandlers): { render(v: PlayerBarView): void } {
   const t = (k: string) => escapeHtml(i18n.t(k));
@@ -46,7 +46,7 @@ export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandl
   range.addEventListener('input', () => h.onVolume(Number(range.value) / 100));
 
   return {
-    render({ state, place, volume, muted }) {
+    render({ state, place, volume, muted, nextLabel: custom }) {
       const station = state.kind === 'idle' ? null : state.station;
       name.textContent = station ? station.name : i18n.t('player.idle');
       tileEl.textContent = station ? (station.name.trim()[0] ?? '?').toUpperCase() : '';
@@ -65,7 +65,7 @@ export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandl
       play.setAttribute('aria-label', i18n.t(active ? 'player.pause' : 'player.play'));
       play.innerHTML = active ? icons.pause : icons.play;
       next.disabled = !station;
-      nextLabel.textContent = i18n.t(state.kind === 'error' ? 'player.tryNext' : 'player.next');
+      nextLabel.textContent = state.kind === 'error' ? i18n.t('player.tryNext') : custom ?? i18n.t('player.next');
       next.setAttribute('aria-label', nextLabel.textContent);
       mute.setAttribute('aria-label', i18n.t(muted ? 'player.unmute' : 'player.mute'));
       mute.innerHTML = muted ? icons.volumeOff : icons.volume;

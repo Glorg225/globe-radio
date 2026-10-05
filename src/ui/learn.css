@@ -17,3 +17,8 @@
   .learn-banner { padding-inline: 12px; gap: 8px; font-size: 13px; }
   .learn-banner__title { display: none; }
 }
+.learn-tip { margin: 0 var(--pad-panel) 10px; padding: 10px 12px; border-radius: var(--r-card); background: var(--teal-tip-bg); color: var(--teal-tip-text); font-size: 13px; line-height: 1.45; }
+.stations--learn .station__tile { background: var(--teal-tile); color: var(--teal); }
+.stations--learn .station.is-playing { background: var(--teal-tip-bg); }
+.talk-chip { display: inline-flex; align-items: center; gap: 4px; margin-inline-end: 6px; padding: 1px 6px; border-radius: 6px; background: var(--teal-chip-bg); color: var(--teal); font-size: 12px; vertical-align: middle; }
+.talk-chip svg { inline-size: 12px; block-size: 12px; }

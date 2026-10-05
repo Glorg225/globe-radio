@@ -62,3 +62,11 @@ test('next button keeps an accessible name when its text is hidden on phones', (
   createPlayerBar(el, i18n, h).render({ state: { kind: 'error', station }, place: 'X', volume: 1, muted: false });
   expect(q('.pb__next').getAttribute('aria-label')).toBe('Попробовать следующую рядом');
 });
+
+test('custom next label in learn mode; error still offers "try next nearby"', () => {
+  const bar = createPlayerBar(el, i18n, h);
+  bar.render({ state: { kind: 'playing', station }, place: 'X', volume: 1, muted: false, nextLabel: 'Следующая на испанском' });
+  expect(q('.pb__next').textContent).toBe('Следующая на испанском');
+  bar.render({ state: { kind: 'error', station }, place: 'X', volume: 1, muted: false, nextLabel: 'Следующая на испанском' });
+  expect(q('.pb__next').textContent).toBe('Попробовать следующую рядом');
+});

@@ -56,8 +56,8 @@ test('city card: flag, title, country, time, difference, language, disabled lear
   expect(q('.pc__diff').textContent).toBe('на 3 ч раньше вас');
   expect(q('.pc__langs').textContent).toBe('португальский');
   const learn = q('.pc__learn') as HTMLButtonElement;
-  expect(learn.disabled).toBe(true);
-  expect(learn.title).toBe('Появится скоро');
+  expect(learn.hidden).toBe(false);
+  expect(learn.disabled).toBe(false);
   expect(q('.pc__text').textContent).toBe('Лиссабон — столица Португалии.');
   expect((q('.pc__link') as HTMLAnchorElement).href).toBe('https://ru.wikipedia.org/wiki/T');
   expect(q('.pc__link').textContent).toContain('Читать в Википедии');
@@ -170,4 +170,35 @@ test('phone sheet mirrors the card and hides when nothing plays', async () => {
   expect(sheet.querySelector('.pcs__clock')!.textContent).toBe('14:32');
   expect(sheet.querySelector('.pcs__text')!.textContent).toBe('Лиссабон — столица Португалии.');
   expect(sheet.querySelector('.pcs__link')!.textContent).toContain('Подробнее в Википедии');
+});
+
+test('"Учить этот язык" turns the learn mode on with the station language', () => {
+  const card = createPlaceCard(panel, stage, deps);
+  const onLearn = vi.fn();
+  card.setLearn(null, onLearn);
+  card.show({ place: lisbon, station: st(['pt', 'en']), info });
+  (q('.pc__learn') as HTMLButtonElement).click();
+  expect(onLearn).toHaveBeenCalledWith('pt');
+});
+
+test('language tile turns teal and says "совпадает с выбранным" when it matches the learn mode', () => {
+  const card = createPlaceCard(panel, stage, deps);
+  card.show({ place: lisbon, station: st(['pt']), info });
+  card.setLearn('pt', vi.fn());
+  expect(q('.pc__langtile').classList.contains('is-match')).toBe(true);
+  expect(q('.pc__match').hidden).toBe(false);
+  expect(q('.pc__match').textContent).toBe('совпадает с выбранным');
+  expect(q('.pc__learn').hidden).toBe(true);
+  card.setLearn('es', vi.fn());
+  expect(q('.pc__langtile').classList.contains('is-match')).toBe(false);
+  expect(q('.pc__learn').hidden).toBe(false);
+});
+
+test('no recognised station language → no learn button (review focus 5)', () => {
+  const card = createPlaceCard(panel, stage, deps);
+  card.setLearn(null, vi.fn());
+  card.show({ place: lisbon, station: st([]), info });
+  expect(q('.pc__learn').hidden).toBe(true);
+  card.show({ place: { ...lisbon, id: 'c:9' }, station: st(['zz']), info });
+  expect(q('.pc__learn').hidden).toBe(true);
 });
