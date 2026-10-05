@@ -9,10 +9,14 @@ import { flagUrl } from '../place-card/flag';
 import { createPlaceCard } from '../place-card/place-card';
 import { findArticle } from '../place-card/wiki';
 import { createWikiCache } from '../place-card/wiki-cache';
+import { createLibrary } from '../library/library';
 import { createBlacklist } from '../player/blacklist';
 import { loadHls } from '../player/hls-loader';
 import { createPlayer } from '../player/player';
 import { resolveStreamUrl } from '../player/stream-url';
+import { createSleepTimer } from '../player/sleep-timer';
+import { createSearchIndex } from '../search/search-index';
+import { shareStation } from '../share/share';
 import { renderShell } from '../ui/shell';
 import { startApp } from './app';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './config';
@@ -40,6 +44,8 @@ const blacklist = createBlacklist(storage);
 const audio = new Audio();
 audio.preload = 'none';
 const player = createPlayer({ audio, resolveUrl: (s) => resolveStreamUrl(s), loadHls, onFailure: (s) => blacklist.add(s.id) });
+const sleep = createSleepTimer({ getVolume: () => audio.volume, setVolume: (v) => player.setVolume(v), stop: () => player.pause() });
+const coarse = matchMedia('(pointer: coarse)').matches;
 
 void startApp({
   refs,
@@ -58,4 +64,12 @@ void startApp({
   narrowTouch: matchMedia('(max-width: 760px) and (pointer: coarse)').matches,
   measureFps: () => measureFps(3000),
   mediaSession: 'mediaSession' in navigator ? navigator.mediaSession : undefined,
+  library: createLibrary(storage),
+  sleep,
+  share: (o) => shareStation({ ...o, preferShare: coarse, nav: navigator }),
+  createSearch: (places) => createSearchIndex(base, places, i18n.locale),
+  location,
+  replaceUrl: (url) => history.replaceState(null, '', url),
+  flagUrl,
+  now: () => new Date(),
 });
