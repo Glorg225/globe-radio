@@ -65,7 +65,11 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
     const section = (title: string) => { const h = document.createElement('p'); h.className = 'search-pop__title'; h.textContent = title; host.append(h); };
     if (r.places.length) {
       section(i18n.t('search.places'));
-      for (const p of r.places) host.append(item(d.placeLabel(p), i18n.t('stations.count', { count: p.count }), () => d.onPlace(p)));
+      for (const p of r.places) {
+        const count = i18n.t('stations.count', { count: p.count });
+        const sub = p.kind === 'region' ? i18n.t('search.region', { stations: count }) : count;
+        host.append(item(d.placeLabel(p), sub, () => d.onPlace(p)));
+      }
     }
     if (r.stations.length) {
       section(i18n.t('search.stations'));

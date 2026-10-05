@@ -82,3 +82,12 @@ test('click outside closes', async () => {
   document.querySelector('main')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
   expect(pop()).toBeNull();
 });
+
+test('a region is marked so it differs from the city of the same name', async () => {
+  const region: Place = { ...lisbon, id: 'a:PT.14', kind: 'region', count: 23 };
+  d.search.mockResolvedValueOnce({ places: [lisbon, region], stations: [] });
+  createSearchBox(input, i18n, d);
+  await type('lis');
+  const subs = [...pop()!.querySelectorAll('.search-pop__sub')].map((s) => s.textContent);
+  expect(subs).toEqual(['1 станция', 'Регион · 23 станции']);
+});

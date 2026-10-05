@@ -94,6 +94,7 @@
   "search.empty": "Ничего не найдено",
   "search.loading": "Загружаем станции…",
   "search.error": "Не удалось загрузить поиск",
+  "search.region": "Регион · {stations}",
   "library.emptyFavorites": "Здесь будут станции, отмеченные звёздочкой",
   "library.emptyHistory": "Здесь появятся станции, которые вы слушали",
   "library.gone": "Станция больше не вещает",
