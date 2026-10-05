@@ -9,11 +9,11 @@ import type { Player, PlayerState } from '../src/player/player';
 import { renderShell } from '../src/ui/shell';
 
 const i18n = createI18n('ru', ru);
-const lisbon: Place = { id: 'c:1', lat: 38.7, lon: -9.1, kind: 'exact', cc: 'PT', nameRu: 'Лиссабон', name: 'Lisbon', count: 2, pop: 10 };
-const porto: Place = { id: 'c:2', lat: 41.1, lon: -8.6, kind: 'exact', cc: 'PT', nameRu: 'Порту', name: 'Porto', count: 1, pop: 5 };
-const st = (id: string, placeId: string, clicks = 1): StationLite =>
-  ({ id, name: `Radio ${id}`, url: 'https://x', placeId, cc: 'PT', langs: [], tags: [], votes: 0, clicks, favicon: '', hls: false });
-const pt = [st('a', 'c:1', 9), st('b', 'c:1', 3), st('p', 'c:2')];
+const lisbon: Place = { id: 'c:1', lat: 38.7, lon: -9.1, kind: 'exact', cc: 'PT', nameRu: 'Лиссабон', name: 'Lisbon', count: 2, pop: 10, langs: { pt: 1, en: 1 } };
+const porto: Place = { id: 'c:2', lat: 41.1, lon: -8.6, kind: 'exact', cc: 'PT', nameRu: 'Порту', name: 'Porto', count: 1, pop: 5, langs: { pt: 1 } };
+const st = (id: string, placeId: string, clicks = 1, langs: string[] = ['pt']): StationLite =>
+  ({ id, name: `Radio ${id}`, url: 'https://x', placeId, cc: 'PT', langs, tags: [], votes: 0, clicks, favicon: '', hls: false });
+const pt = [st('a', 'c:1', 9, ['pt']), st('b', 'c:1', 3, ['en']), st('p', 'c:2', 1, ['pt'])];
 
 class Mem {
   m = new Map<string, string>();
@@ -71,7 +71,7 @@ beforeEach(() => {
     hasWebGL: true,
     narrowTouch: false,
     measureFps: async () => 60,
-    card: { show: vi.fn() },
+    card: { show: vi.fn(), setLearn: vi.fn() },
   };
 });
 
@@ -285,4 +285,94 @@ test('a slow place-info answer for a previous station never overwrites the curre
   releaseFirst(new Map());
   await flush();
   expect(deps.card.show).toHaveBeenLastCalledWith(expect.objectContaining({ place: porto }));
+});
+
+test('learn mode filters the list, shows the tip and the language subtitle', async () => {
+  const app = await startApp(deps);
+  app.learn('pt');
+  await app.selectPlace(lisbon);
+  const body = deps.refs.panelBody;
+  expect([...body.querySelectorAll('.station__name')].map((n) => n.textContent)).toEqual(['Radio a']);
+  expect(body.querySelector('.list-sub')!.textContent).toBe('Португалия · 1 станция на португальском');
+  expect(body.querySelector('.learn-tip')).not.toBeNull();
+  expect(deps.refs.banner.hidden).toBe(false);
+  expect(deps.refs.learnButton.textContent).toContain('Учу язык: португальский');
+});
+
+test('switching the language with an open list and a playing station re-filters without stopping (review focus 1)', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  const plays = (player.play as ReturnType<typeof vi.fn>).mock.calls.length;
+  app.learn('en');
+  await flush();
+  expect([...deps.refs.panelBody.querySelectorAll('.station__name')].map((n) => n.textContent)).toEqual(['Radio b']);
+  expect((player.play as ReturnType<typeof vi.fn>).mock.calls.length).toBe(plays);
+  expect(player.pause).not.toHaveBeenCalled();
+  expect(deps.refs.player.querySelector('.pb__next')!.textContent).toBe('Следующая на английском');
+  expect(globe.views[0].refresh).toHaveBeenCalled();
+  expect(deps.card.setLearn).toHaveBeenLastCalledWith('en', expect.any(Function));
+});
+
+test('a place without stations in the language offers to show all of them', async () => {
+  const app = await startApp(deps);
+  app.learn('en');
+  await app.selectPlace(porto);
+  const body = deps.refs.panelBody;
+  expect(body.textContent).toContain('Здесь нет станций на английском');
+  (body.querySelector('button') as HTMLButtonElement).click();
+  await flush();
+  expect([...body.querySelectorAll('.station__name')].map((n) => n.textContent)).toEqual(['Radio p']);
+});
+
+test('"Следующая на …" only picks stations in the language (review focus 3)', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  app.learn('pt');
+  await app.next();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'p' }));
+});
+
+test('no next station in the language → language-specific notice', async () => {
+  const app = await startApp({ ...deps, blacklist: { add: vi.fn(), has: (id) => id === 'p' } });
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  app.learn('pt');
+  await app.next();
+  expect(deps.refs.stage.textContent).toContain('Рядом больше нет станций на португальском');
+});
+
+test('the card can switch the learn mode on; turning off restores the normal view', async () => {
+  const app = await startApp(deps);
+  const onLearn = (deps.card.setLearn as ReturnType<typeof vi.fn>).mock.calls.at(-1)![1] as (c: string) => void;
+  onLearn('pt');
+  expect(deps.refs.banner.hidden).toBe(false);
+  (deps.refs.banner.querySelector('button') as HTMLButtonElement).click();
+  expect(deps.refs.banner.hidden).toBe(true);
+  expect(deps.refs.learnButton.classList.contains('is-learning')).toBe(false);
+  app.learn(null);
+});
+
+test('learn language is restored from storage at start; unknown one is dropped', async () => {
+  deps.storage!.setItem('learnLang', 'pt');
+  await startApp(deps);
+  expect(deps.refs.banner.hidden).toBe(false);
+  deps.storage!.setItem('learnLang', 'tlh');
+  document.body.innerHTML = '<div id="app"></div>';
+  const refs = renderShell(document.getElementById('app')!, i18n);
+  await startApp({ ...deps, refs });
+  expect(refs.banner.hidden).toBe(true);
+});
+
+test('teal map items get language tooltips', async () => {
+  const app = await startApp(deps);
+  app.learn('pt');
+  const label = globe.cb().label;
+  expect(label({ type: 'place', key: 'c:1', place: lisbon, lat: 0, lon: 0, count: 1, pop: 1, tone: 'teal' })).toBe('Лиссабон · 1 станция на португальском');
+  expect(label({ type: 'cluster', key: 'cl:1', lat: 0, lon: 0, count: 12, pop: 1, zoomTo: 3, tone: 'teal' })).toBe('12 станций на португальском');
+  expect(label({ type: 'place', key: 'c:1', place: lisbon, lat: 0, lon: 0, count: 2, pop: 1, tone: 'muted' })).toBe('Лиссабон · 2 станции');
 });
