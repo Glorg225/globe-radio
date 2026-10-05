@@ -13,6 +13,7 @@ export interface ShellRefs {
   placeCard: HTMLElement; player: HTMLElement;
   banner: HTMLElement; learnButton: HTMLButtonElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
+  netBanner: HTMLElement; root: HTMLElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -35,6 +36,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       <button class="btn btn--outline btn--icon" data-action="install" aria-label="${t('header.install')}">${icons.download}</button>
     </header>
     <div class="learn-banner" hidden></div>
+    <div class="net-banner" hidden></div>
     <div class="shell__body">
       <aside class="shell__left">
         <div class="panel-top">
@@ -86,5 +88,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     tabs: [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')],
     searchInput: q<HTMLInputElement>('.search input'),
     surpriseButton: q<HTMLButtonElement>('[data-action="surprise"]'),
+    netBanner: q('.net-banner'),
+    root,
   };
 }

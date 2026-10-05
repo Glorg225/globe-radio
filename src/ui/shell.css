@@ -114,3 +114,6 @@ button:disabled { cursor: default; opacity: .55; }
 
 /* Dark scrollbars in long lists (station list, language picker, place card). */
 .panel-body, .learn-pop__list, .pc__content { scrollbar-width: thin; scrollbar-color: var(--border-control) transparent; }
+.net-banner { flex-shrink: 0; padding: 8px 16px; text-align: center; font-size: 14px; background: var(--surface-card); border-block-end: 1px solid var(--border-divider); color: var(--link); }
+.toast--action { display: flex; align-items: center; gap: 12px; }
+.toast__action { block-size: 32px; padding-inline: 12px; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent); font-weight: 600; }

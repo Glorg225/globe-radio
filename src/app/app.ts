@@ -21,6 +21,7 @@ import { toSaved, type Library, type SavedStation } from '../library/library';
 import { formatClock, isValidTimeZone } from '../place-card/time';
 import type { SleepTimer } from '../player/sleep-timer';
 import { pickSurprise } from '../player/surprise';
+import type { NetworkStatus } from '../pwa/network';
 import type { SearchResult } from '../search/search-index';
 import { buildShareUrl, parseShareParams, resolveShared, stripShareParams } from '../share/share-link';
 import { createSearchBox } from '../ui/search-box';
@@ -47,6 +48,7 @@ export interface AppDeps {
   flagUrl(cc: string): string | null;
   now(): Date;
   fetchFn?: typeof fetch;
+  network?: NetworkStatus;
 }
 export type PanelTab = 'here' | 'favorites' | 'history';
 export interface AppHandle {
@@ -182,6 +184,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   const RECENT_LIMIT = 30;
 
   async function playStation(s: StationLite, p: Place) {
+    if (d.network && !d.network.online()) { showToast(refs.stage, t('net.offlinePlay')); return; }
     recent.splice(0, recent.length, ...recent.filter((id) => id !== s.id), s.id);
     if (recent.length > RECENT_LIMIT) recent.shift();
     playingPlace = p;

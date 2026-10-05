@@ -73,3 +73,9 @@ test('tabs, search input and surprise button are exposed', () => {
   expect(refs.searchInput.type).toBe('search');
   expect(refs.surpriseButton.dataset.action).toBe('surprise');
 });
+
+test('offline banner slot and root are exposed', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.netBanner.hidden).toBe(true);
+  expect(refs.root).toBe(root);
+});

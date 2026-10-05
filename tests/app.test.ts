@@ -555,3 +555,28 @@ test('a malformed shared link is removed from the address and reported (review f
   expect(deps.replaceUrl).toHaveBeenCalledWith('https://u/globe-radio/?lang=ru');
   expect(deps.refs.stage.textContent).toContain('Станция из ссылки больше не вещает');
 });
+
+function fakeNet(on: boolean) {
+  const ls = new Set<(o: boolean) => void>();
+  return { on, online() { return this.on; }, subscribe(l: (o: boolean) => void) { ls.add(l); return () => { ls.delete(l); }; }, set(o: boolean) { this.on = o; ls.forEach((l) => l(o)); } };
+}
+
+test('offline: picking a station says the stream is unavailable at once, nothing connects (review focus 2)', async () => {
+  const net = fakeNet(false);
+  const app = await startApp({ ...deps, network: net });
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(player.play).not.toHaveBeenCalled();
+  expect(deps.refs.stage.textContent).toContain('Нет подключения — эфир недоступен');
+  net.set(true);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(player.play).toHaveBeenCalled();
+});
+
+test('offline start with no cached places: error status, no endless loading (review focus 2)', async () => {
+  await startApp({ ...deps, network: fakeNet(false), loadPlaces: async () => { throw new Error('offline'); } });
+  expect(deps.refs.status.textContent).not.toBe('Загружаем станции…');
+  expect(deps.refs.status.textContent).not.toBe('');
+});
