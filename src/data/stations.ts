@@ -1,5 +1,5 @@
 import { normalizeLanguages } from './languages';
-import type { Centroids, CompactStation, RawStation, Station } from './types';
+import type { Centroids, RawStation, Station } from './types';
 
 const MAX_TAGS = 5;
 
@@ -51,15 +51,3 @@ export function dedupe(list: Station[]): Station[] {
   return list.filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true)));
 }
 
-export function encode(s: Station): CompactStation {
-  return [s.id, s.name, s.url, s.lat, s.lon, s.approx ? 1 : 0, s.cc, s.state, s.langs.join(','), s.tags.join(','), s.votes, s.clicks, s.favicon, s.hls ? 1 : 0];
-}
-
-export function decode(c: CompactStation): Station {
-  const [id, name, url, lat, lon, approx, cc, state, langs, tags, votes, clicks, favicon, hls] = c;
-  return {
-    id, name, url, lat, lon, approx: approx === 1, cc, state,
-    langs: langs ? langs.split(',') : [], tags: tags ? tags.split(',') : [],
-    votes, clicks, favicon, hls: hls === 1,
-  };
-}

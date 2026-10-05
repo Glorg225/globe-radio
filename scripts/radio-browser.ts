@@ -1,8 +1,7 @@
 import { APP_ID } from '../src/app/config';
+import { MIRRORS as FALLBACK } from '../src/data/mirrors';
 
 const DISCOVERY = 'https://all.api.radio-browser.info/json/servers';
-// Discovery sometimes lists a single (flaky) host, so known mirrors are always appended.
-const FALLBACK = ['de1.api.radio-browser.info', 'de2.api.radio-browser.info', 'nl1.api.radio-browser.info', 'at1.api.radio-browser.info'];
 const ATTEMPTS_PER_HOST = 2;
 const DISCOVERY_TIMEOUT_MS = 10_000;
 const REQUEST_TIMEOUT_MS = 90_000;

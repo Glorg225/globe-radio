@@ -1,0 +1,13 @@
+.star { position: absolute; border-radius: 50%; background: var(--star); }
+.stage__map { z-index: 1; }
+.stage__map > div, .stage__map canvas { outline: none; }
+.map-tooltip { padding: 8px 12px; border-radius: 10px; background: rgba(13, 19, 38, .92); border: 1px solid var(--border-popover); color: var(--text); font: 13px var(--font-body); white-space: nowrap; pointer-events: none; }
+.scene-tooltip { background: none !important; padding: 0 !important; }
+.map-tooltip--floating { position: absolute; z-index: 3; transform: translate(-50%, calc(-100% - 12px)); }
+.pulse { position: absolute; inline-size: 14px; block-size: 14px; margin: -7px 0 0 -7px; pointer-events: none; z-index: 2; }
+.pulse__ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--accent); animation: rp-pulse 1.8s ease-out infinite; }
+.pulse__dot { position: absolute; inset: 2px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 16px var(--accent); }
+@keyframes rp-pulse { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(3.2); opacity: 0; } }
+.map2d { display: block; cursor: grab; touch-action: none; }
+.view-host { position: absolute; inset: 0; }
+.view-host--map { inset: 20px; }

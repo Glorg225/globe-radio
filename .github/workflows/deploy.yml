@@ -33,9 +33,7 @@ jobs:
         run: |
           if ! npm run snapshot; then
             echo "::warning::Radio Browser unavailable, reusing the last deployed snapshot"
-            mkdir -p public/data
-            curl -fsSL "${{ steps.pages.outputs.base_url }}/data/stations.json" -o public/data/stations.json
-            curl -fsSL "${{ steps.pages.outputs.base_url }}/data/meta.json" -o public/data/meta.json
+            npx tsx scripts/fetch-deployed-snapshot.ts "${{ steps.pages.outputs.base_url }}"
           fi
       - run: npm run build
         env:

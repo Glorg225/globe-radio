@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { decode, dedupe, encode, toStation } from '../src/data/stations';
+import { dedupe, toStation } from '../src/data/stations';
 import type { RawStation } from '../src/data/types';
 
 const centroids = { PT: [39.5, -8.0] as [number, number] };
@@ -37,10 +37,6 @@ test('dedupe keeps first by id', () => {
   const a = toStation(raw(), centroids)!;
   const b = { ...a, name: 'dup' };
   expect(dedupe([a, b])).toEqual([a]);
-});
-test('encode/decode roundtrip', () => {
-  const s = toStation(raw({ hls: 1 }), centroids)!;
-  expect(decode(encode(s))).toEqual(s);
 });
 
 test('null string fields from the API do not throw', () => {

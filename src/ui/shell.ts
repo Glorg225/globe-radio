@@ -5,12 +5,10 @@ import './tokens.css';
 import './shell.css';
 
 export interface ShellRefs {
-  header: HTMLElement;
-  left: HTMLElement;
-  stage: HTMLElement;
-  placeCard: HTMLElement;
-  player: HTMLElement;
-  status: HTMLElement;
+  header: HTMLElement; left: HTMLElement; panelBody: HTMLElement; closePanel: HTMLButtonElement;
+  stage: HTMLElement; stars: HTMLElement; map: HTMLElement; status: HTMLElement;
+  zoomIn: HTMLButtonElement; zoomOut: HTMLButtonElement; viewButtons: HTMLButtonElement[];
+  placeCard: HTMLElement; player: HTMLElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -34,18 +32,23 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     </header>
     <div class="shell__body">
       <aside class="shell__left">
-        <nav class="tabs">
-          <button class="tabs__tab is-active">${t('panel.tabs.here')}</button>
-          <button class="tabs__tab">${t('panel.tabs.favorites')}</button>
-          <button class="tabs__tab">${t('panel.tabs.history')}</button>
-        </nav>
-        <p class="panel-empty">${t('panel.empty')}</p>
+        <div class="panel-top">
+          <nav class="tabs">
+            <button class="tabs__tab is-active">${t('panel.tabs.here')}</button>
+            <button class="tabs__tab">${t('panel.tabs.favorites')}</button>
+            <button class="tabs__tab">${t('panel.tabs.history')}</button>
+          </nav>
+          <button class="btn--ghost panel-close" aria-label="${t('panel.close')}">${icons.x}</button>
+        </div>
+        <div class="panel-body"><p class="panel-empty">${t('panel.empty')}</p></div>
       </aside>
       <main class="shell__stage">
+        <div class="stage__stars" aria-hidden="true"></div>
+        <div class="stage__map"></div>
         <p class="stage__status" role="status"></p>
         <div class="stage__zoom">
-          <button aria-label="${t('map.zoomIn')}">+</button>
-          <button aria-label="${t('map.zoomOut')}">−</button>
+          <button data-zoom="in" aria-label="${t('map.zoomIn')}">+</button>
+          <button data-zoom="out" aria-label="${t('map.zoomOut')}">−</button>
         </div>
         <p class="stage__attribution">${t('footer.attribution')}</p>
       </main>
@@ -56,15 +59,22 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
         </div>
       </aside>
     </div>
-    <footer class="shell__player"><span class="player__idle">${t('player.idle')}</span></footer>
+    <footer class="shell__player"></footer>
   `;
-  const q = (s: string) => root.querySelector<HTMLElement>(s)!;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
   return {
     header: q('.shell__header'),
     left: q('.shell__left'),
+    panelBody: q('.panel-body'),
+    closePanel: q<HTMLButtonElement>('.panel-close'),
     stage: q('.shell__stage'),
+    stars: q('.stage__stars'),
+    map: q('.stage__map'),
+    status: q('.stage__status'),
+    zoomIn: q<HTMLButtonElement>('[data-zoom="in"]'),
+    zoomOut: q<HTMLButtonElement>('[data-zoom="out"]'),
+    viewButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-view]')],
     placeCard: q('.shell__place'),
     player: q('.shell__player'),
-    status: q('.stage__status'),
   };
 }

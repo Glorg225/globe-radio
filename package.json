@@ -8,15 +8,31 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "snapshot": "tsx scripts/snapshot.ts"
+    "snapshot": "tsx scripts/snapshot.ts",
+    "gazetteer": "tsx scripts/build-gazetteer.ts"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.1",
+    "@types/d3-selection": "^3.0.12",
+    "@types/d3-zoom": "^3.0.9",
     "@types/node": "^26.6.4",
+    "@types/supercluster": "^7.1.3",
+    "@types/topojson-client": "^3.1.5",
     "jsdom": "^30.1.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3",
     "world-countries": "^5.1.0"
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "d3-selection": "^3.0.0",
+    "d3-zoom": "^3.0.0",
+    "globe.gl": "^2.46.2",
+    "hls.js": "^1.7.3",
+    "supercluster": "^9.1.0",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   }
 }
