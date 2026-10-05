@@ -106,3 +106,12 @@ test('language counts survive encode/decode; old rows without them decode to {}'
   expect(decodePlace(['c:2', 0, 0, 0, 'ES', '', 'X', 1, 1]).langs).toEqual({});
   expect(decodeLangs('es:x,:3,ca:2')).toEqual({ ca: 2 });
 });
+
+test('search rows: every station as [name, placeId], most clicked first', async () => {
+  const { searchRows } = await import('../scripts/build-snapshot');
+  const shards = new Map([
+    ['DE', [{ ...decodeStation(['a', 'Alpha', 'https://x', 'c:1', '', '', 0, 5, '', 0], 'DE') }]],
+    ['FR', [{ ...decodeStation(['b', 'Beta', 'https://x', 'c:2', '', '', 0, 9, '', 0], 'FR') }]],
+  ]);
+  expect(searchRows(shards)).toEqual([['Beta', 'c:2'], ['Alpha', 'c:1']]);
+});

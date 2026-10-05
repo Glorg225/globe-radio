@@ -4,6 +4,7 @@ import { icons } from './icons';
 import './tokens.css';
 import './shell.css';
 import './learn.css';
+import './conveniences.css';
 
 export interface ShellRefs {
   header: HTMLElement; left: HTMLElement; panelBody: HTMLElement; closePanel: HTMLButtonElement;
@@ -11,6 +12,7 @@ export interface ShellRefs {
   zoomIn: HTMLButtonElement; zoomOut: HTMLButtonElement; viewButtons: HTMLButtonElement[];
   placeCard: HTMLElement; player: HTMLElement;
   banner: HTMLElement; learnButton: HTMLButtonElement;
+  tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -37,9 +39,9 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       <aside class="shell__left">
         <div class="panel-top">
           <nav class="tabs">
-            <button class="tabs__tab is-active">${t('panel.tabs.here')}</button>
-            <button class="tabs__tab">${t('panel.tabs.favorites')}</button>
-            <button class="tabs__tab">${t('panel.tabs.history')}</button>
+            <button class="tabs__tab is-active" data-tab="here">${t('panel.tabs.here')}</button>
+            <button class="tabs__tab" data-tab="favorites">${t('panel.tabs.favorites')}</button>
+            <button class="tabs__tab" data-tab="history">${t('panel.tabs.history')}</button>
           </nav>
           <button class="btn--ghost panel-close" aria-label="${t('panel.close')}">${icons.x}</button>
         </div>
@@ -81,5 +83,8 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     player: q('.shell__player'),
     banner: q('.learn-banner'),
     learnButton: q<HTMLButtonElement>('[data-action="learn"]'),
+    tabs: [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')],
+    searchInput: q<HTMLInputElement>('.search input'),
+    surpriseButton: q<HTMLButtonElement>('[data-action="surprise"]'),
   };
 }

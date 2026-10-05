@@ -23,6 +23,8 @@ export interface PlayerDeps {
 export interface Player {
   play(s: StationLite): Promise<void>; pause(): void; toggle(): void;
   setVolume(v: number): void; setMuted(m: boolean): void;
+  /** Extra 0..1 multiplier on the volume (the sleep timer fade). */
+  setGain(g: number): void;
   getState(): PlayerState; subscribe(l: (s: PlayerState) => void): () => void;
 }
 
@@ -33,6 +35,9 @@ export function createPlayer(deps: PlayerDeps): Player {
   const { audio } = deps;
   const timeoutMs = deps.timeoutMs ?? STREAM_TIMEOUT_MS;
   const listeners = new Set<(s: PlayerState) => void>();
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  let volume = 1;
+  let gain = 1;
   let state: PlayerState = { kind: 'idle' };
   let token = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -122,7 +127,8 @@ export function createPlayer(deps: PlayerDeps): Player {
       if (state.kind === 'loading' || state.kind === 'playing') pause();
       else if (state.kind === 'paused' || state.kind === 'error') void play(state.station);
     },
-    setVolume(v) { audio.volume = Math.min(1, Math.max(0, v)); },
+    setVolume(v) { volume = clamp(v); audio.volume = volume * gain; },
+    setGain(g) { gain = clamp(g); audio.volume = volume * gain; },
     setMuted(m) { audio.muted = m; },
     getState: () => state,
     subscribe(l) { listeners.add(l); return () => { listeners.delete(l); }; },

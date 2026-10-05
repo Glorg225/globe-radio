@@ -181,3 +181,14 @@ test('an outside pause (headphones unplugged, OS) is reflected as paused', async
   expect(p.getState().kind).toBe('paused');
   expect(failures).toEqual([]);
 });
+
+test('fade gain scales the volume; a volume change during the fade survives the fade (review: sleep vs slider)', () => {
+  const p = make();
+  p.setVolume(0.8);
+  p.setGain(0.5);
+  expect(audio.volume).toBeCloseTo(0.4);
+  p.setVolume(0.3);
+  expect(audio.volume).toBeCloseTo(0.15);
+  p.setGain(1);
+  expect(audio.volume).toBeCloseTo(0.3);
+});

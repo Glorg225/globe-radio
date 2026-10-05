@@ -1,11 +1,13 @@
 import type { StationLite } from '../data/shards';
 import type { I18n } from '../i18n/i18n';
 import { isTalk } from '../learn/talk';
+import type { SavedStation } from '../library/library';
 import { icons } from './icons';
 
 export interface StationListProps {
   title: string; subtitle: string; stations: StationLite[]; playingId: string | null; onPick(s: StationLite): void;
   learn?: { tip: string; talkLabel: string };
+  favorites?: { isFavorite(id: string): boolean; onToggle(s: StationLite): void };
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string) => {
@@ -15,7 +17,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: s
   return e;
 };
 
-function tile(s: StationLite): HTMLElement {
+function tile(s: Pick<StationLite, 'name' | 'favicon'>): HTMLElement {
   const box = el('div', 'station__tile', (s.name.trim()[0] ?? '?').toUpperCase());
   if (s.favicon) {
     const img = new Image();
@@ -30,13 +32,20 @@ function tile(s: StationLite): HTMLElement {
   return box;
 }
 
-export interface StationListHandle { setPlaying(id: string | null): void }
+export interface StationListHandle { setPlaying(id: string | null): void; refreshFavorites(): void }
+
+function paintStar(star: HTMLButtonElement, i18n: I18n, on: boolean) {
+  star.setAttribute('aria-pressed', String(on));
+  star.classList.toggle('is-fav', on);
+  star.setAttribute('aria-label', i18n.t(on ? 'station.unfavorite' : 'station.favorite'));
+}
 
 export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListProps): StationListHandle {
   const head = el('div', 'list-head');
   head.append(el('h2', 'list-title', p.title), el('p', 'list-sub', p.subtitle));
   const list = el('ul', p.learn ? 'stations stations--learn' : 'stations');
   const rows = new Map<string, { row: HTMLLIElement; pick: HTMLButtonElement }>();
+  const stars = new Map<string, HTMLButtonElement>();
   for (const s of p.stations) {
     const playing = s.id === p.playingId;
     const row = el('li', playing ? 'station is-playing' : 'station');
@@ -57,10 +66,17 @@ export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListP
     pick.addEventListener('click', () => p.onPick(s));
     const star = el('button', 'station__star');
     star.type = 'button';
-    star.disabled = true;
-    star.setAttribute('aria-label', i18n.t('station.favorite'));
-    star.title = i18n.t('common.soon');
     star.innerHTML = icons.star;
+    if (p.favorites) {
+      const fav = p.favorites;
+      paintStar(star, i18n, fav.isFavorite(s.id));
+      star.addEventListener('click', () => { fav.onToggle(s); paintStar(star, i18n, fav.isFavorite(s.id)); });
+    } else {
+      star.disabled = true;
+      star.setAttribute('aria-label', i18n.t('station.favorite'));
+      star.title = i18n.t('common.soon');
+    }
+    stars.set(s.id, star);
     row.append(pick, star);
     rows.set(s.id, { row, pick });
     list.append(row);
@@ -69,6 +85,7 @@ export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListP
   else host.replaceChildren(head, list);
   let current = p.playingId;
   return {
+    refreshFavorites() { if (p.favorites) for (const [id, star] of stars) paintStar(star, i18n, p.favorites.isFavorite(id)); },
     // Only moves the highlight, so a focused row keeps keyboard focus.
     setPlaying(id) {
       if (id === current) return;
@@ -90,4 +107,33 @@ export function renderListMessage(host: HTMLElement, text: string, action?: { la
   btn.type = 'button';
   btn.addEventListener('click', action.onClick);
   host.replaceChildren(msg, btn);
+}
+
+export interface SavedListProps {
+  items: SavedStation[]; playingId: string | null; empty: string;
+  sub(item: SavedStation): string; onPick(item: SavedStation): void;
+  isFavorite(id: string): boolean; onToggleFavorite(item: SavedStation): void;
+}
+
+export function renderSavedList(host: HTMLElement, i18n: I18n, p: SavedListProps): void {
+  if (!p.items.length) { renderListMessage(host, p.empty); return; }
+  const list = el('ul', 'stations');
+  for (const item of p.items) {
+    const row = el('li', item.id === p.playingId ? 'station is-playing' : 'station');
+    const pick = el('button', 'station__pick');
+    pick.type = 'button';
+    if (item.id === p.playingId) pick.setAttribute('aria-current', 'true');
+    const text = el('span', 'station__text');
+    text.append(el('span', 'station__name', item.name), el('span', 'station__tags', p.sub(item)));
+    pick.append(tile(item), text);
+    pick.addEventListener('click', () => p.onPick(item));
+    const star = el('button', 'station__star');
+    star.type = 'button';
+    star.innerHTML = icons.star;
+    paintStar(star, i18n, p.isFavorite(item.id));
+    star.addEventListener('click', () => p.onToggleFavorite(item));
+    row.append(pick, star);
+    list.append(row);
+  }
+  host.replaceChildren(list);
 }

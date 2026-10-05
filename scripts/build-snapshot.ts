@@ -93,3 +93,7 @@ export function placeInfoRows(places: Place[], cc: string): PlaceInfoRow[] {
       ? [p.id, p.tz ?? '', p.wikiRu || p.nameRu, p.wikiEn || p.name]
       : [p.id, p.tz ?? '', p.wikiRu ?? '', p.wikiEn ?? '']));
 }
+
+export function searchRows(shards: Map<string, StationLite[]>): [string, string][] {
+  return [...shards.values()].flat().sort((a, b) => b.clicks - a.clicks).map((s) => [s.name, s.placeId]);
+}

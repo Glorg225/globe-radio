@@ -7,6 +7,8 @@ import { createI18n } from '../src/i18n/i18n';
 import type { MapCallbacks, MapFactory, MapView } from '../src/map/map-view';
 import type { Player, PlayerState } from '../src/player/player';
 import { renderShell } from '../src/ui/shell';
+import { createLibrary } from '../src/library/library';
+import type { SearchResult } from '../src/search/search-index';
 
 const i18n = createI18n('ru', ru);
 const lisbon: Place = { id: 'c:1', lat: 38.7, lon: -9.1, kind: 'exact', cc: 'PT', nameRu: 'Лиссабон', name: 'Lisbon', count: 2, pop: 10, langs: { pt: 1, en: 1 } };
@@ -40,7 +42,7 @@ function fakePlayer() {
   const p: Player & { set: typeof set } = {
     set,
     play: vi.fn(async (s: StationLite) => set({ kind: 'loading', station: s })),
-    pause: vi.fn(), toggle: vi.fn(), setVolume: vi.fn(), setMuted: vi.fn(),
+    pause: vi.fn(), toggle: vi.fn(), setVolume: vi.fn(), setMuted: vi.fn(), setGain: vi.fn(),
     getState: () => state,
     subscribe: (l) => { ls.add(l); return () => { ls.delete(l); }; },
   };
@@ -72,6 +74,14 @@ beforeEach(() => {
     narrowTouch: false,
     measureFps: async () => 60,
     card: { show: vi.fn(), setLearn: vi.fn() },
+    library: createLibrary(null),
+    sleep: { start: vi.fn(), cancel: vi.fn(), minutesLeft: () => null, subscribe: () => () => {} },
+    share: vi.fn(async () => 'copied' as const),
+    createSearch: () => ({ search: vi.fn(async (): Promise<SearchResult> => ({ places: [porto], stations: [{ name: 'Radio a', place: lisbon }] })) }),
+    location: { href: 'https://u.github.io/globe-radio/', search: '' },
+    replaceUrl: vi.fn(),
+    flagUrl: () => null,
+    now: () => new Date(Date.UTC(2026, 0, 15, 14, 32)),
   };
 });
 
@@ -422,4 +432,126 @@ test('a station in two languages shows up in both modes and is found by "next" (
   app.learn('ca');
   await app.next();
   expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'm' }));
+});
+
+test('history and favorites tabs list saved stations; picking plays them', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  (deps.refs.panelBody.querySelector('.station__star') as HTMLButtonElement).click();
+  app.tab('history');
+  expect([...deps.refs.panelBody.querySelectorAll('.station__name')].map((n) => n.textContent)).toEqual(['Radio a']);
+  app.tab('favorites');
+  expect(deps.refs.panelBody.querySelector('.station__tags')!.textContent).toBe('Лиссабон, Португалия');
+  expect(deps.refs.tabs[1].classList.contains('is-active')).toBe(true);
+  player.set({ kind: 'idle' });
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a' }));
+});
+
+test('a favorite that left the data says so and can be unstarred (review focus 5)', async () => {
+  deps.library.toggleFavorite({ id: 'gone', name: 'Old FM', placeId: 'c:1', cc: 'PT', favicon: '' });
+  const app = await startApp(deps);
+  app.tab('favorites');
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.stage.textContent).toContain('Станция больше не вещает');
+  (deps.refs.panelBody.querySelector('.station__star') as HTMLButtonElement).click();
+  expect(deps.refs.panelBody.textContent).toContain('Здесь будут станции, отмеченные звёздочкой');
+});
+
+test('player star follows the playing station', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  (deps.refs.player.querySelector('.pb__star') as HTMLButtonElement).click();
+  expect(deps.library.isFavorite('a')).toBe(true);
+  expect(deps.refs.player.querySelector('.pb__star')!.getAttribute('aria-pressed')).toBe('true');
+  expect(deps.refs.panelBody.querySelector('.station__star')!.getAttribute('aria-pressed')).toBe('true');
+});
+
+test('surprise flies to a place, opens it and plays; in learn mode only the language', async () => {
+  const app = await startApp(deps);
+  app.learn('en');
+  await app.surprise();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'b' }));
+  expect(globe.views[0].flyTo).toHaveBeenCalledWith(lisbon.lat, lisbon.lon);
+  expect(deps.refs.panelBody.querySelector('.list-title')!.textContent).toBe('Лиссабон');
+});
+
+test('surprise with nothing to pick shows a notice', async () => {
+  const app = await startApp({ ...deps, blacklist: { add: vi.fn(), has: () => true } });
+  await app.surprise();
+  expect(deps.refs.stage.textContent).toContain('Не удалось найти станцию');
+});
+
+test('search: a place opens it, a station plays it', async () => {
+  await startApp(deps);
+  deps.refs.searchInput.value = 'ра';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  const items = [...document.querySelectorAll('.search-pop__item')] as HTMLButtonElement[];
+  items[0].click();
+  await flush();
+  expect(deps.refs.panelBody.querySelector('.list-title')!.textContent).toBe('Порту');
+  deps.refs.searchInput.value = 'ра';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  ([...document.querySelectorAll('.search-pop__item')][1] as HTMLButtonElement).click();
+  await flush();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a' }));
+});
+
+test('share button: link with station and country, copied notice', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  (deps.refs.player.querySelector('.pb__share') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.share).toHaveBeenCalledWith({ url: 'https://u.github.io/globe-radio/?station=a&c=PT', title: 'Radio a', text: 'Слушаю «Radio a» — Лиссабон, Португалия' });
+  expect(deps.refs.stage.textContent).toContain('Ссылка скопирована');
+});
+
+test('opening a shared link shows the card; "Слушать" plays the station', async () => {
+  const ID = '96062a7b-0601-11e8-ae97-52543be04c81';
+  shards.get.mockResolvedValue([{ ...st('x', 'c:1', 1, ['pt']), id: ID }]);
+  await startApp({ ...deps, location: { href: `https://u.github.io/globe-radio/?station=${ID}&c=PT`, search: `?station=${ID}&c=PT` } });
+  await flush();
+  expect(deps.replaceUrl).toHaveBeenCalledWith('https://u.github.io/globe-radio/');
+  const card = deps.refs.stage.querySelector('.share-card')!;
+  expect(card.textContent).toContain('Radio x');
+  expect(card.textContent).toContain('Лиссабон, Португалия · 14:32');
+  (card.querySelector('.share-card__listen') as HTMLButtonElement).click();
+  await flush();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: ID }));
+});
+
+test('a shared link to a missing station shows a notice (review focus 1)', async () => {
+  const ID = '96062a7b-0601-11e8-ae97-52543be04c81';
+  await startApp({ ...deps, location: { href: `https://u/?station=${ID}&c=PT`, search: `?station=${ID}&c=PT` } });
+  await flush();
+  expect(deps.refs.stage.querySelector('.share-card')).toBeNull();
+  expect(deps.refs.stage.textContent).toContain('Станция из ссылки больше не вещает');
+});
+
+test('sleep menu starts the timer and the button shows the minutes left', async () => {
+  let left: number | null = null;
+  const listeners: (() => void)[] = [];
+  const sleep = { start: vi.fn((m: number) => { left = m; listeners.forEach((l) => l()); }), cancel: vi.fn(), minutesLeft: () => left, subscribe: (l: () => void) => { listeners.push(l); return () => {}; } };
+  await startApp({ ...deps, sleep });
+  (deps.refs.player.querySelector('.pb__sleep') as HTMLButtonElement).click();
+  (document.querySelector('.sleep-menu button') as HTMLButtonElement).click();
+  expect(sleep.start).toHaveBeenCalledWith(15);
+  expect(deps.refs.player.querySelector('.pb__sleep')!.textContent).toContain('Сон · 15 мин');
+});
+
+test('a malformed shared link is removed from the address and reported (review focus 1)', async () => {
+  await startApp({ ...deps, location: { href: 'https://u/globe-radio/?station=abc&c=PT&lang=ru', search: '?station=abc&c=PT&lang=ru' } });
+  await flush();
+  expect(deps.replaceUrl).toHaveBeenCalledWith('https://u/globe-radio/?lang=ru');
+  expect(deps.refs.stage.textContent).toContain('Станция из ссылки больше не вещает');
 });

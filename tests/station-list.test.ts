@@ -78,3 +78,37 @@ test('learn variant: tip on top, teal list, "речь" chip only on talk/news st
   expect(rows[1].querySelector('.talk-chip')).toBeNull();
   expect(rows[0].querySelector('.station__tags')!.textContent).toContain('talk · spanish');
 });
+
+test('active stars when favorites are wired: pressed state, toggle, refresh', () => {
+  const favs = new Set(['b']);
+  const onToggle = vi.fn((s: StationLite) => { if (favs.has(s.id)) favs.delete(s.id); else favs.add(s.id); });
+  const list = renderStationList(el, i18n, {
+    title: 'X', subtitle: '', stations: [st('a', 'A'), st('b', 'B')], playingId: null, onPick() {},
+    favorites: { isFavorite: (id) => favs.has(id), onToggle },
+  });
+  const stars = [...el.querySelectorAll('.station__star')] as HTMLButtonElement[];
+  expect(stars[0].disabled).toBe(false);
+  expect(stars[1].getAttribute('aria-pressed')).toBe('true');
+  expect(stars[1].getAttribute('aria-label')).toBe('Убрать из избранного');
+  stars[0].click();
+  expect(onToggle).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }));
+  list.refreshFavorites();
+  expect(stars[0].getAttribute('aria-pressed')).toBe('true');
+});
+
+test('saved list: rows with place subtitle, empty message, pick and unstar', async () => {
+  const { renderSavedList } = await import('../src/ui/station-list');
+  const onPick = vi.fn();
+  const onToggleFavorite = vi.fn();
+  const item = { id: 'a', name: 'Fado', placeId: 'c:1', cc: 'PT', favicon: '' };
+  renderSavedList(el, i18n, { items: [item], playingId: 'a', empty: 'Пусто', sub: () => 'Лиссабон, Португалия', onPick, isFavorite: () => true, onToggleFavorite });
+  expect(el.querySelector('.station__name')!.textContent).toBe('Fado');
+  expect(el.querySelector('.station__tags')!.textContent).toBe('Лиссабон, Португалия');
+  expect(el.querySelector('.station.is-playing')).not.toBeNull();
+  (el.querySelector('.station__pick') as HTMLButtonElement).click();
+  (el.querySelector('.station__star') as HTMLButtonElement).click();
+  expect(onPick).toHaveBeenCalledWith(item);
+  expect(onToggleFavorite).toHaveBeenCalledWith(item);
+  renderSavedList(el, i18n, { items: [], playingId: null, empty: 'Пусто', sub: () => '', onPick, isFavorite: () => false, onToggleFavorite });
+  expect(el.textContent).toBe('Пусто');
+});
