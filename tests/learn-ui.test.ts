@@ -54,6 +54,7 @@ test('arrows + Enter pick; Esc closes and returns focus to the button (review fo
   input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   expect(onPick).toHaveBeenCalledWith('en');
   expect(pop()).toBeNull();
+  expect(document.activeElement).toBe(button);
   button.click();
   pop().querySelector('input')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   expect(pop()).toBeNull();

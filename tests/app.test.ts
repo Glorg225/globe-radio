@@ -389,3 +389,37 @@ test('"Следующая" moves on instead of bouncing between the two most pop
   await app.next();
   expect((player.play as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]).toMatchObject({ id: 'a' });
 });
+
+test('"Следующая на …" finds the language far away, beyond the 60 nearest places (review)', async () => {
+  const filler: Place[] = Array.from({ length: 70 }, (_, i) =>
+    ({ id: `f:${i}`, lat: 38 + i * 0.05, lon: -9, kind: 'exact', cc: 'PT', nameRu: '', name: `F${i}`, count: 1, pop: 1, langs: { pt: 1 } }));
+  const tokyo: Place = { id: 'c:jp', lat: 35.7, lon: 139.7, kind: 'exact', cc: 'JP', nameRu: 'Токио', name: 'Tokyo', count: 1, pop: 1, langs: { ja: 1 } };
+  shards.get.mockImplementation(async (cc: string) => (cc === 'JP' ? [{ ...st('j', 'c:jp', 1, ['ja']), cc: 'JP' }] : pt));
+  const app = await startApp({ ...deps, loadPlaces: async () => [lisbon, porto, ...filler, tokyo] });
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  app.learn('ja');
+  await app.next();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'j' }));
+});
+
+test('a station in two languages shows up in both modes and is found by "next" (review focus 3)', async () => {
+  const both = [st('a', 'c:1', 9, ['pt']), st('m', 'c:1', 5, ['es', 'ca']), st('p', 'c:2', 1, ['pt'])];
+  shards.get.mockResolvedValue(both);
+  const app = await startApp({ ...deps, loadPlaces: async () => [{ ...lisbon, langs: { pt: 1, es: 1, ca: 1 } }, porto] });
+  const names = () => [...deps.refs.panelBody.querySelectorAll('.station__name')].map((n) => n.textContent);
+  app.learn('es');
+  await app.selectPlace(lisbon);
+  expect(names()).toEqual(['Radio m']);
+  app.learn('ca');
+  await flush();
+  expect(names()).toEqual(['Radio m']);
+  app.learn(null);
+  await flush();
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  app.learn('ca');
+  await app.next();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'm' }));
+});

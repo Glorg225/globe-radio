@@ -49,9 +49,14 @@ export function createClusterer(all: Place[], weight?: (p: Place) => number): Cl
 export function layered(base: Clusterer, highlight: Clusterer | null): Clusterer {
   if (!highlight) return base;
   return {
-    items: (zoom) => [
-      ...base.items(zoom).map((i) => ({ ...i, tone: 'muted' as const })),
-      ...highlight.items(zoom).map((i) => ({ ...i, tone: 'teal' as const })),
-    ],
+    items: (zoom) => {
+      const top = highlight.items(zoom).map((i) => ({ ...i, tone: 'teal' as const }));
+      // A teal place is not drawn again underneath: otherwise the globe picks the muted twin for the tooltip.
+      const tealPlaces = new Set(top.filter((i) => i.type === 'place').map((i) => i.key));
+      const bottom = base.items(zoom)
+        .filter((i) => !(i.type === 'place' && tealPlaces.has(i.key)))
+        .map((i) => ({ ...i, tone: 'muted' as const }));
+      return [...bottom, ...top];
+    },
   };
 }

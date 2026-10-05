@@ -151,12 +151,15 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   async function next() {
     const state = player.getState();
     if (state.kind === 'idle' || !playingPlace) return;
+    const code = learnCode;
+    const current = playingPlace;
     const query = {
       currentId: state.station.id,
-      currentPlace: playingPlace,
-      places,
+      currentPlace: current,
+      // In learn mode search only places that have the language (the nearest 60 of any language may have none).
+      places: code ? places.filter((p) => (p.langs?.[code] ?? 0) > 0 || p.id === current.id) : places,
       stationsOf: (cc: string) => d.shards.get(cc),
-      filter: learnCode ? (s: StationLite) => s.langs.includes(learnCode!) : undefined,
+      filter: code ? (s: StationLite) => s.langs.includes(code) : undefined,
     };
     // Prefer stations not heard recently; when everything around was played, start a new round.
     const found = await findNextNearby({ ...query, isBlocked: (id) => d.blacklist.has(id) || recent.includes(id) })

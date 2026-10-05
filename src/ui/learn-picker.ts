@@ -54,8 +54,8 @@ export function createLearnPicker(i18n: I18n, button: HTMLButtonElement, p: Lear
     });
   }
 
-  function pick(code: string) {
-    close();
+  function pick(code: string, returnFocus = false) {
+    close(returnFocus);
     p.onPick(code);
   }
 
@@ -77,7 +77,7 @@ export function createLearnPicker(i18n: I18n, button: HTMLButtonElement, p: Lear
         list.querySelector('.is-active')?.scrollIntoView?.({ block: 'nearest' });
         return;
       }
-      if (e.key === 'Enter' && shown[active]) { e.preventDefault(); pick(shown[active].code); }
+      if (e.key === 'Enter' && shown[active]) { e.preventDefault(); pick(shown[active].code, true); }
     });
     button.insertAdjacentElement('afterend', pop);
     button.setAttribute('aria-expanded', 'true');

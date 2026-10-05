@@ -55,6 +55,8 @@ test('layered source: muted base first, teal highlight on top; no highlight = ba
   const hi = createClusterer([places[3]]);
   expect(layered(base, null).items(12)).toEqual(base.items(12));
   const items = layered(base, hi).items(12);
-  expect(items.filter((i) => i.tone === 'muted')).toHaveLength(4);
+  // A teal place is not duplicated underneath: one dot, one tooltip, on both views.
+  expect(items.filter((i) => i.tone === 'muted')).toHaveLength(3);
+  expect(items.filter((i) => i.key === 'far')).toHaveLength(1);
   expect(items.at(-1)).toMatchObject({ key: 'far', tone: 'teal' });
 });
