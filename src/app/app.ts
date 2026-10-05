@@ -49,6 +49,8 @@ export interface AppDeps {
   now(): Date;
   fetchFn?: typeof fetch;
   network?: NetworkStatus;
+  installUi?: { setContext(c: 'share' | 'normal'): void };
+  narrow?(): boolean;
 }
 export type PanelTab = 'here' | 'favorites' | 'history';
 export interface AppHandle {
@@ -328,13 +330,15 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     if (!found) { showToast(refs.stage, t('share.gone')); return; }
     view?.flyTo(found.place.lat, found.place.lon);
     void selectPlace(found.place);
+    if (d.narrow?.()) refs.left.classList.remove('is-open');
+    d.installUi?.setContext('share');
     let tz = '';
     try { tz = (await d.shards.info(found.place.cc)).get(found.place.id)?.tz ?? ''; } catch { tz = ''; }
     const where = placeLabel(found.place);
     const line = isValidTimeZone(tz) ? t('share.placeTime', { place: where, time: formatClock(tz, d.now(), i18n.locale) }) : where;
     showShareCard(refs.stage, i18n, { name: found.station.name, flag: d.flagUrl(found.place.cc), line }, {
-      onListen: () => { void playStation(found.station, found.place); },
-      onClose: () => {},
+      onListen: () => { d.installUi?.setContext('normal'); void playStation(found.station, found.place); },
+      onClose: () => { d.installUi?.setContext('normal'); },
     });
   }
 

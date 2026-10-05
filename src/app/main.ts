@@ -19,7 +19,9 @@ import { createSearchIndex } from '../search/search-index';
 import { shareStation } from '../share/share';
 import { registerSW } from 'virtual:pwa-register';
 import { createNetworkStatus } from '../pwa/network';
+import { createInstall } from '../pwa/install';
 import { setupUpdates } from '../pwa/update';
+import { createInstallUi } from '../ui/install-ui';
 import { bindNetBanner } from '../ui/net-banner';
 import { renderShell } from '../ui/shell';
 import { showActionToast } from '../ui/toast';
@@ -35,6 +37,14 @@ const refs = renderShell(document.getElementById('app')!, i18n);
 renderStarfield(refs.stars);
 const network = createNetworkStatus(window);
 bindNetBanner(refs.netBanner, i18n, network);
+const narrowQuery = matchMedia('(max-width: 760px)');
+const installUi = createInstallUi({
+  button: refs.installButton,
+  host: refs.root,
+  i18n,
+  state: createInstall({ win: window, storage, userAgent: navigator.userAgent, standalone: matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true }),
+  narrow: () => narrowQuery.matches,
+});
 setupUpdates({
   register: (o) => registerSW({ onNeedRefresh: o.onNeedRefresh }),
   show: (onUpdate) => { showActionToast(refs.stage, i18n.t('update.available'), { label: i18n.t('update.reload'), onClick: onUpdate }); },
@@ -84,4 +94,6 @@ void startApp({
   flagUrl,
   now: () => new Date(),
   network,
+  installUi,
+  narrow: () => narrowQuery.matches,
 });

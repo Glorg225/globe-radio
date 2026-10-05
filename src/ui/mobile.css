@@ -1,0 +1,5 @@
+/* Phone and tablet layout (Plan 6). Desktop styles live in shell.css. */
+.install-banner { position: fixed; z-index: 25; inset-inline: 16px; inset-block-end: 150px; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-card); background: var(--surface-card); border: 1px solid var(--border-control); font-size: 13px; color: var(--star); }
+.install-banner__text { flex: 1; }
+.install-banner__go { block-size: 36px; padding-inline: 12px; border-radius: 10px; border: 1px solid var(--border-popover); background: transparent; color: var(--text); font-size: 13px; }
+.install-banner__close { inline-size: 32px; block-size: 32px; border: 0; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; }

@@ -580,3 +580,15 @@ test('offline start with no cached places: error status, no endless loading (rev
   expect(deps.refs.status.textContent).not.toBe('Загружаем станции…');
   expect(deps.refs.status.textContent).not.toBe('');
 });
+
+test('shared link switches the install banner to the share context and back', async () => {
+  const ID = '96062a7b-0601-11e8-ae97-52543be04c81';
+  shards.get.mockResolvedValue([{ ...st('x', 'c:1', 1, ['pt']), id: ID }]);
+  const installUi = { setContext: vi.fn() };
+  await startApp({ ...deps, installUi, narrow: () => true, location: { href: `https://u/?station=${ID}&c=PT`, search: `?station=${ID}&c=PT` } });
+  await flush();
+  expect(installUi.setContext).toHaveBeenLastCalledWith('share');
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+  (deps.refs.stage.querySelector('.share-card__globe') as HTMLButtonElement).click();
+  expect(installUi.setContext).toHaveBeenLastCalledWith('normal');
+});

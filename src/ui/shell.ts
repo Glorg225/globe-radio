@@ -5,6 +5,7 @@ import './tokens.css';
 import './shell.css';
 import './learn.css';
 import './conveniences.css';
+import './mobile.css';
 
 export interface ShellRefs {
   header: HTMLElement; left: HTMLElement; panelBody: HTMLElement; closePanel: HTMLButtonElement;
@@ -13,7 +14,7 @@ export interface ShellRefs {
   placeCard: HTMLElement; player: HTMLElement;
   banner: HTMLElement; learnButton: HTMLButtonElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
-  netBanner: HTMLElement; root: HTMLElement;
+  netBanner: HTMLElement; root: HTMLElement; installButton: HTMLButtonElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -90,5 +91,6 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     surpriseButton: q<HTMLButtonElement>('[data-action="surprise"]'),
     netBanner: q('.net-banner'),
     root,
+    installButton: q<HTMLButtonElement>('[data-action="install"]'),
   };
 }
