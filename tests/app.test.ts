@@ -644,3 +644,19 @@ test('desktop: picking a station keeps the list open', async () => {
   await flush();
   expect(deps.refs.left.classList.contains('is-open')).toBe(true);
 });
+
+test('mini-player "more" menu: sleep, share and favorite', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  const more = deps.refs.player.querySelector('.pb__more') as HTMLButtonElement;
+  more.click();
+  const labels = [...document.querySelectorAll('.more-menu button')].map((b) => b.textContent);
+  expect(labels).toEqual(['Сон', 'Поделиться', 'В избранное']);
+  ([...document.querySelectorAll('.more-menu button')][2] as HTMLButtonElement).click();
+  expect(deps.library.isFavorite('a')).toBe(true);
+  more.click();
+  ([...document.querySelectorAll('.more-menu button')][0] as HTMLButtonElement).click();
+  expect(document.querySelector('.sleep-menu')).not.toBeNull();
+});

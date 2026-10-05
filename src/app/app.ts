@@ -28,6 +28,7 @@ import { createMobileNav } from '../ui/mobile-nav';
 import { createSearchBox } from '../ui/search-box';
 import { attachSheetDrag } from '../ui/sheet';
 import { showShareCard } from '../ui/share-card';
+import { openMoreMenu } from '../ui/more-menu';
 import { openSleepMenu } from '../ui/sleep-menu';
 import { renderListMessage, renderSavedList, renderStationList, type StationListHandle } from '../ui/station-list';
 import { showToast } from '../ui/toast';
@@ -110,6 +111,12 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   };
 
   let sleepChoice: number | null = null;
+  const openSleep = (anchor: HTMLElement) => {
+    openSleepMenu(anchor, i18n, sleepChoice, (m) => {
+      sleepChoice = m;
+      if (m) d.sleep.start(m); else d.sleep.cancel();
+    });
+  };
   const bar = createPlayerBar(refs.player, i18n, {
     onToggle: () => player.toggle(),
     onNext: () => { void next(); },
@@ -123,17 +130,23 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     onMute: () => { muted = !muted; player.setMuted(muted); write(MUTE_KEY, muted ? '1' : '0'); renderBar(); },
     onFavorite: () => { const s = player.getState(); if (s.kind !== 'idle') d.library.toggleFavorite(toSaved(s.station)); },
     onShare: () => { void shareCurrent(); },
-    onSleep: (anchor) => {
-      openSleepMenu(anchor, i18n, sleepChoice, (m) => {
-        sleepChoice = m;
-        if (m) d.sleep.start(m); else d.sleep.cancel();
-      });
+    onSleep: openSleep,
+    onMore: (anchor) => {
+      const s = player.getState();
+      if (s.kind === 'idle') return;
+      const fav = d.library.isFavorite(s.station.id);
+      openMoreMenu(anchor, t('player.more'), [
+        { label: t('player.sleep'), onClick: () => openSleep(anchor) },
+        { label: t('player.share'), onClick: () => { void shareCurrent(); } },
+        { label: t(fav ? 'station.unfavorite' : 'station.favorite'), onClick: () => { d.library.toggleFavorite(toSaved(s.station)); } },
+      ]);
     },
   });
   const renderBar = () => bar.render({
     state: player.getState(), place: placeLabel(playingPlace), volume, muted,
     nextLabel: learnCode ? t('learn.next', { langPrep }) : undefined,
     favorite: (() => { const s = player.getState(); return s.kind !== 'idle' && d.library.isFavorite(s.station.id); })(),
+    sleepMinutes: d.sleep.minutesLeft() ?? undefined,
     sleepLabel: (() => { const m = d.sleep.minutesLeft(); return m === null ? undefined : t('sleep.active', { m }); })(),
   });
   d.sleep.subscribe(() => {

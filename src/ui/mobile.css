@@ -38,3 +38,19 @@
   .pcs__handle { position: relative; touch-action: none; }
   .pcs__handle::before { content: ''; position: absolute; inset: -14px -40px; }
 }
+.pb__more { display: none; }
+.pb__sleepin { display: none; }
+@media (max-width: 760px) {
+  .shell__player { position: fixed; z-index: 11; inset-inline: 8px; inset-block-end: 74px; block-size: 68px; padding: 0 8px 0 10px; gap: 10px; border-radius: 16px; background: var(--surface-mini-player); border: 1px solid var(--border-popover); }
+  .pb__now { gap: 10px; }
+  .pb__tile { inline-size: 46px; block-size: 46px; border-radius: 10px; font-size: 18px; }
+  .pb__name { font-size: 15px; }
+  .pb__meta { font-size: 12px; margin-block-start: 2px; }
+  .pb__live, .pb__star, .pb__next, .pb__right { display: none; }
+  .pb__center { gap: 0; }
+  .pb__more { display: flex; inline-size: 44px; block-size: 44px; border: 0; background: transparent; color: var(--text); align-items: center; justify-content: center; }
+  .pb__play { inline-size: 48px; block-size: 48px; }
+  .shell__player.has-sleep .pb__status { display: none; }
+  .shell__player.has-sleep .pb__sleepin { display: inline; }
+  .more-menu, .sleep-menu { position: fixed; inset-block-end: 150px; inset-inline-end: 8px; }
+}

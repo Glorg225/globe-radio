@@ -5,9 +5,9 @@ import { icons } from './icons';
 
 export interface PlayerBarHandlers {
   onToggle(): void; onNext(): void; onVolume(v: number): void; onMute(): void;
-  onFavorite?(): void; onShare?(): void; onSleep?(anchor: HTMLElement): void;
+  onFavorite?(): void; onShare?(): void; onSleep?(anchor: HTMLElement): void; onMore?(anchor: HTMLElement): void;
 }
-export interface PlayerBarView { state: PlayerState; place: string; volume: number; muted: boolean; nextLabel?: string; favorite?: boolean; sleepLabel?: string }
+export interface PlayerBarView { state: PlayerState; place: string; volume: number; muted: boolean; nextLabel?: string; favorite?: boolean; sleepLabel?: string; sleepMinutes?: number }
 
 export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandlers): { render(v: PlayerBarView): void } {
   const t = (k: string) => escapeHtml(i18n.t(k));
@@ -16,11 +16,12 @@ export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandl
       <div class="pb__tile"></div>
       <div class="pb__text">
         <div class="pb__name"></div>
-        <div class="pb__meta"><span class="pb__live"></span><span class="pb__status"></span></div>
+        <div class="pb__meta"><span class="pb__live"></span><span class="pb__status"></span><span class="pb__sleepin"></span></div>
       </div>
       <button class="pb__star" aria-label="${t('station.favorite')}">${icons.star}</button>
     </div>
     <div class="pb__center">
+      <button class="pb__more" type="button" aria-label="${t('player.more')}">${icons.more}</button>
       <button class="pb__play"></button>
       <button class="btn btn--outline pb__next">${icons.skipForward}<span></span></button>
     </div>
@@ -46,6 +47,9 @@ export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandl
   const sleep = q<HTMLButtonElement>('.pb__sleep');
   const sleepLabel = sleep.querySelector('span')!;
   const share = q<HTMLButtonElement>('.pb__share');
+  const more = q<HTMLButtonElement>('.pb__more');
+  const sleepIn = q<HTMLSpanElement>('.pb__sleepin');
+  more.addEventListener('click', () => h.onMore?.(more));
   star.addEventListener('click', () => h.onFavorite?.());
   share.addEventListener('click', () => h.onShare?.());
   sleep.addEventListener('click', () => h.onSleep?.(sleep));
@@ -60,7 +64,7 @@ export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandl
   range.addEventListener('input', () => h.onVolume(Number(range.value) / 100));
 
   return {
-    render({ state, place, volume, muted, nextLabel: custom, favorite, sleepLabel: sleepText }) {
+    render({ state, place, volume, muted, nextLabel: custom, favorite, sleepLabel: sleepText, sleepMinutes }) {
       const station = state.kind === 'idle' ? null : state.station;
       name.textContent = station ? station.name : i18n.t('player.idle');
       tileEl.textContent = station ? (station.name.trim()[0] ?? '?').toUpperCase() : '';
@@ -91,6 +95,10 @@ export function createPlayerBar(host: HTMLElement, i18n: I18n, h: PlayerBarHandl
       soon(share, !!h.onShare && !!station);
       soon(sleep, !!h.onSleep);
       sleepLabel.textContent = sleepText ?? i18n.t('player.sleep');
+      more.disabled = !h.onMore || !station;
+      const sleeping = state.kind === 'playing' && sleepMinutes !== undefined;
+      host.classList.toggle('has-sleep', sleeping);
+      sleepIn.textContent = sleeping ? i18n.t('player.sleepIn', { m: sleepMinutes }) : '';
     },
   };
 }

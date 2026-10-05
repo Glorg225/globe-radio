@@ -91,3 +91,18 @@ test('sleep button toggles the menu; mousedown on the button icon does not close
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
   expect(focus).not.toHaveBeenCalled();
 });
+
+test('mini-player: "more" button opens with a station; sleep line replaces the place line', () => {
+  const onMore = vi.fn();
+  const bar = createPlayerBar(el, i18n, { onToggle() {}, onNext() {}, onVolume() {}, onMute() {}, onMore });
+  bar.render({ state: { kind: 'idle' }, place: '', volume: 1, muted: false });
+  expect(q('.pb__more').disabled).toBe(true);
+  expect(q('.pb__more').getAttribute('aria-label')).toBe('Ещё: таймер сна, поделиться');
+  bar.render({ state: { kind: 'playing', station }, place: 'Лиссабон, Португалия', volume: 1, muted: false, sleepMinutes: 30 });
+  q('.pb__more').click();
+  expect(onMore).toHaveBeenCalledWith(q('.pb__more'));
+  expect(el.classList.contains('has-sleep')).toBe(true);
+  expect(el.querySelector('.pb__sleepin')!.textContent).toBe('В эфире · сон через 30 мин');
+  bar.render({ state: { kind: 'paused', station }, place: 'X', volume: 1, muted: false, sleepMinutes: 30 });
+  expect(el.classList.contains('has-sleep')).toBe(false);
+});
