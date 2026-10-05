@@ -1,0 +1,8 @@
+.shell__header label.search { position: relative; }
+.search-pop { position: absolute; z-index: 20; inset-block-start: 60px; inline-size: min(520px, calc(100vw - 32px)); max-block-size: 70vh; overflow-y: auto; padding: 8px; border-radius: var(--r-card); background: var(--surface-raised); border: 1px solid var(--border-popover); scrollbar-width: thin; scrollbar-color: var(--border-control) transparent; }
+.search-pop__title { margin: 8px 10px 4px; font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
+.search-pop__item { display: flex; flex-direction: column; inline-size: 100%; gap: 2px; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text); text-align: start; }
+.search-pop__item:hover, .search-pop__item.is-active { background: var(--item-selected); }
+.search-pop__name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-pop__sub { font-size: 13px; color: var(--text-muted); }
+.search-pop__msg { margin: 10px; color: var(--text-muted); font-size: 14px; }

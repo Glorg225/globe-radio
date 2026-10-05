@@ -4,6 +4,7 @@ import { icons } from './icons';
 import './tokens.css';
 import './shell.css';
 import './learn.css';
+import './conveniences.css';
 
 export interface ShellRefs {
   header: HTMLElement; left: HTMLElement; panelBody: HTMLElement; closePanel: HTMLButtonElement;
