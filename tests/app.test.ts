@@ -622,3 +622,25 @@ test('phone nav: favorites opens the saved list, globe closes it, learn opens th
   app.learn('en');
   expect(navBtn('learn').classList.contains('is-learning')).toBe(true);
 });
+
+test('phone: picking a station closes the list sheet so the place card shows; the handle can close it', async () => {
+  const app = await startApp({ ...deps, narrow: () => true });
+  await app.selectPlace(lisbon);
+  expect(deps.refs.left.classList.contains('is-open')).toBe(true);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+  expect(player.play).toHaveBeenCalled();
+  await app.selectPlace(lisbon);
+  deps.refs.sheetHandle.dispatchEvent(new MouseEvent('pointerdown', { clientY: 300, bubbles: true }));
+  document.dispatchEvent(new MouseEvent('pointerup', { clientY: 400, bubbles: true }));
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+});
+
+test('desktop: picking a station keeps the list open', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(true);
+});

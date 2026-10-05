@@ -26,6 +26,7 @@ import type { SearchResult } from '../search/search-index';
 import { buildShareUrl, parseShareParams, resolveShared, stripShareParams } from '../share/share-link';
 import { createMobileNav } from '../ui/mobile-nav';
 import { createSearchBox } from '../ui/search-box';
+import { attachSheetDrag } from '../ui/sheet';
 import { showShareCard } from '../ui/share-card';
 import { openSleepMenu } from '../ui/sleep-menu';
 import { renderListMessage, renderSavedList, renderStationList, type StationListHandle } from '../ui/station-list';
@@ -164,7 +165,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
         subtitle,
         stations,
         playingId: state.kind === 'idle' ? null : state.station.id,
-        onPick: (s) => { void playStation(s, place); },
+        onPick: (s) => { if (d.narrow?.()) { closeSheet(); nav.set('globe'); } void playStation(s, place); },
         learn: lang ? { tip: t('learn.tip'), talkLabel: t('learn.talk') } : undefined,
         favorites: { isFavorite: (id) => d.library.isFavorite(id), onToggle: (s) => { d.library.toggleFavorite(toSaved(s)); } },
       });
@@ -267,7 +268,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       playingId: st.kind === 'idle' ? null : st.station.id,
       empty: t(tab === 'favorites' ? 'library.emptyFavorites' : 'library.emptyHistory'),
       sub: savedSub,
-      onPick: (item) => { void playSaved(item); },
+      onPick: (item) => { if (d.narrow?.()) { closeSheet(); nav.set('globe'); } void playSaved(item); },
       isFavorite: (id) => d.library.isFavorite(id),
       onToggleFavorite: (item) => { d.library.toggleFavorite(item); },
     });
@@ -288,6 +289,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     onLearn: () => { closeSearch(); refs.learnButton.click(); },
   });
   refs.closePanel.addEventListener('click', () => nav.set('globe'));
+  attachSheetDrag(refs.left, refs.sheetHandle, { expandable: true, onClose: () => { closeSheet(); nav.set('globe'); } });
   d.library.subscribe(() => {
     if (tab !== 'here') renderTab();
     list?.handle.refreshFavorites();

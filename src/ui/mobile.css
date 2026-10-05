@@ -27,3 +27,14 @@
   .shell.is-searching .search-pop { position: fixed; inset-block: 60px 66px; inset-inline: 0; inline-size: auto; max-block-size: none; border-radius: 0; border-width: 0; }
   .learn-pop { position: fixed; z-index: 20; inset-block: 68px 74px; inset-inline: 8px; }
 }
+.sheet__handle { display: none; }
+@media (max-width: 760px) {
+  .sheet__handle { display: block; position: relative; flex-shrink: 0; inline-size: 40px; block-size: 4px; border-radius: 2px; background: var(--border-popover); margin: 10px auto 2px; touch-action: none; }
+  .sheet__handle::before { content: ''; position: absolute; inset: -14px -40px; }
+  .shell__left { display: flex; position: fixed; z-index: 10; inset-inline: 0; inset-block-end: 66px; block-size: 50dvh; inline-size: auto; border-radius: 22px 22px 0 0; border: 1px solid var(--border-card); background: var(--surface-raised); transform: translateY(calc(100% + 66px)); transition: transform .25s ease-out, block-size .25s ease-out; }
+  .shell__left.is-open { transform: none; }
+  .shell__left.is-full { block-size: calc(100dvh - 60px - 66px); }
+  .panel-close { display: inline-flex; }
+  .pcs__handle { position: relative; touch-action: none; }
+  .pcs__handle::before { content: ''; position: absolute; inset: -14px -40px; }
+}

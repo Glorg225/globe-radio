@@ -15,7 +15,7 @@ export interface ShellRefs {
   banner: HTMLElement; learnButton: HTMLButtonElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
   netBanner: HTMLElement; root: HTMLElement; installButton: HTMLButtonElement;
-  navButtons: HTMLButtonElement[];
+  navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -41,6 +41,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     <div class="net-banner" hidden></div>
     <div class="shell__body">
       <aside class="shell__left">
+        <div class="sheet__handle" role="button" tabindex="0" aria-label="${t('sheet.handle')}"></div>
         <div class="panel-top">
           <nav class="tabs">
             <button class="tabs__tab is-active" data-tab="here">${t('panel.tabs.here')}</button>
@@ -100,5 +101,6 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     root,
     installButton: q<HTMLButtonElement>('[data-action="install"]'),
     navButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-nav]')],
+    sheetHandle: q('.sheet__handle'),
   };
 }
