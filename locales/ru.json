@@ -1,0 +1,23 @@
+{
+  "app.name": "Радио планеты",
+  "header.search.placeholder": "Станция, город или страна",
+  "header.surprise": "Удиви меня",
+  "header.learn": "Учу язык",
+  "header.view.label": "Вид карты",
+  "header.view.globe": "3D",
+  "header.view.map": "Карта",
+  "header.install": "Установить на устройство",
+  "panel.tabs.here": "Здесь",
+  "panel.tabs.favorites": "Избранное",
+  "panel.tabs.history": "История",
+  "panel.empty": "Выберите точку на глобусе",
+  "stations.count": { "one": "{count} станция", "few": "{count} станции", "many": "{count} станций", "other": "{count} станции" },
+  "map.zoomIn": "Приблизить",
+  "map.zoomOut": "Отдалить",
+  "place.title": "Карточка места",
+  "place.collapse": "Свернуть",
+  "player.idle": "Ничего не играет",
+  "footer.attribution": "Данные о станциях — Radio Browser · Тексты — Википедия (CC BY-SA) · Мы не храним и не ретранслируем эфир, станции вещают со своих серверов",
+  "data.loading": "Загружаем станции…",
+  "data.error": "Не удалось загрузить станции. Проверьте подключение и обновите страницу."
+}
