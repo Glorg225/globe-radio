@@ -39,15 +39,21 @@ export function createSearchIndex(baseUrl: string, places: Place[], locale: stri
       .filter((r) => r.place);
   }
 
+  function ensure() {
+    if (!rows) {
+      rows = load();
+      rows.catch(() => { rows = null; });
+    }
+    return rows;
+  }
+
   return {
+    // Starts loading in the background (first click in the field); errors are retried by search().
+    prefetch() { ensure().catch(() => {}); },
     async search(query: string): Promise<SearchResult> {
       const q = normalizeText(query.trim());
       if (q.length < 2) return EMPTY;
-      if (!rows) {
-        rows = load();
-        rows.catch(() => { rows = null; });
-      }
-      const list = await rows;
+      const list = await ensure();
       const foundPlaces = placeNames
         .map(({ p, names }) => ({ p, s: Math.min(...names.map((n) => { const v = score(n, q); return v < 0 ? 9 : v; })) }))
         .filter((x) => x.s < 9)

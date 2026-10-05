@@ -44,7 +44,7 @@ const blacklist = createBlacklist(storage);
 const audio = new Audio();
 audio.preload = 'none';
 const player = createPlayer({ audio, resolveUrl: (s) => resolveStreamUrl(s), loadHls, onFailure: (s) => blacklist.add(s.id) });
-const sleep = createSleepTimer({ getVolume: () => audio.volume, setVolume: (v) => player.setVolume(v), stop: () => player.pause() });
+const sleep = createSleepTimer({ setGain: (g) => player.setGain(g), stop: () => player.pause() });
 const coarse = matchMedia('(pointer: coarse)').matches;
 
 void startApp({

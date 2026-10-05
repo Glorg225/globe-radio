@@ -55,3 +55,15 @@ test('a failed index load can be retried', async () => {
   await expect(idx.search('radio')).rejects.toThrow();
   await expect(idx.search('radio')).resolves.toMatchObject({ stations: [{ name: 'Radio Lisboa' }] });
 });
+
+test('prefetch loads the index once in the background; a failed prefetch is retried by the next search', async () => {
+  let n = 0;
+  const f = vi.fn(async () => (n++ === 0 ? new Response('', { status: 503 }) : ok(file)));
+  const idx = createSearchIndex('/', places, 'ru', f as unknown as typeof fetch);
+  idx.prefetch();
+  idx.prefetch();
+  await new Promise((r) => setTimeout(r, 0));
+  expect(f).toHaveBeenCalledTimes(1);
+  await expect(idx.search('radio')).resolves.toMatchObject({ stations: [{ name: 'Radio Lisboa' }] });
+  expect(f).toHaveBeenCalledTimes(2);
+});

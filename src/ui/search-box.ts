@@ -3,7 +3,7 @@ import type { I18n } from '../i18n/i18n';
 import type { SearchHit, SearchResult } from '../search/search-index';
 
 export const SEARCH_DEBOUNCE_MS = 150;
-export interface SearchBoxDeps { search(q: string): Promise<SearchResult>; placeLabel(p: Place): string; onPlace(p: Place): void; onStation(h: SearchHit): void }
+export interface SearchBoxDeps { search(q: string): Promise<SearchResult>; placeLabel(p: Place): string; onPlace(p: Place): void; onStation(h: SearchHit): void; prefetch?(): void }
 
 export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBoxDeps): { close(): void } {
   const anchor = input.closest('label') ?? input;
@@ -80,6 +80,7 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
     pop?.querySelectorAll('.search-pop__item').forEach((el, i) => el.classList.toggle('is-active', i === active));
   }
 
+  input.addEventListener('focus', () => d.prefetch?.());
   input.addEventListener('input', () => {
     clearTimeout(timer);
     const q = input.value.trim();

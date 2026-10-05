@@ -41,7 +41,7 @@ export interface AppDeps {
   library: Library;
   sleep: SleepTimer;
   share(o: { url: string; title: string; text: string }): Promise<'shared' | 'copied' | 'cancelled' | 'failed'>;
-  createSearch(places: Place[]): { search(q: string): Promise<SearchResult> };
+  createSearch(places: Place[]): { search(q: string): Promise<SearchResult>; prefetch?(): void };
   location: { href: string; search: string };
   replaceUrl(url: string): void;
   flagUrl(cc: string): string | null;
@@ -317,9 +317,10 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
 
   // A shared link (?station=...) opens a card; sound starts only after the "Listen" tap.
   async function openShared() {
-    const params = parseShareParams(d.location.search);
-    if (!params) return;
+    if (!new URLSearchParams(d.location.search).has('station')) return;
     d.replaceUrl(stripShareParams(d.location.href));
+    const params = parseShareParams(d.location.search);
+    if (!params) { showToast(refs.stage, t('share.gone')); return; }
     const found = await resolveShared(params, { places, shards: d.shards, fetchFn: d.fetchFn });
     if (!found) { showToast(refs.stage, t('share.gone')); return; }
     view?.flyTo(found.place.lat, found.place.lon);
@@ -426,6 +427,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   const searchIndex = d.createSearch(places);
   createSearchBox(refs.searchInput, i18n, {
     search: (q) => searchIndex.search(q),
+    prefetch: () => searchIndex.prefetch?.(),
     placeLabel: (p) => placeLabel(p),
     onPlace: (p) => { view?.flyTo(p.lat, p.lon); void selectPlace(p); },
     onStation: async (h) => {

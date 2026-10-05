@@ -91,3 +91,10 @@ test('a region is marked so it differs from the city of the same name', async ()
   const subs = [...pop()!.querySelectorAll('.search-pop__sub')].map((s) => s.textContent);
   expect(subs).toEqual(['1 станция', 'Регион · 23 станции']);
 });
+
+test('focusing the field starts loading the index (spec: first click)', () => {
+  const prefetch = vi.fn();
+  createSearchBox(input, i18n, { ...d, prefetch });
+  input.dispatchEvent(new FocusEvent('focus'));
+  expect(prefetch).toHaveBeenCalled();
+});

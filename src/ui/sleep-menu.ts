@@ -1,8 +1,13 @@
 import type { I18n } from '../i18n/i18n';
 import { SLEEP_OPTIONS } from '../player/sleep-timer';
 
+let open: { anchor: HTMLElement; close(): void } | null = null;
+
+// Pressing the sleep button again closes the menu (toggle).
 export function openSleepMenu(anchor: HTMLElement, i18n: I18n, current: number | null, onPick: (minutes: number | null) => void): { close(): void } {
-  document.querySelector('.sleep-menu')?.remove();
+  const wasOpen = open;
+  wasOpen?.close();
+  if (wasOpen?.anchor === anchor) return { close() {} };
   const menu = document.createElement('div');
   menu.className = 'sleep-menu';
   menu.setAttribute('role', 'menu');
@@ -18,12 +23,14 @@ export function openSleepMenu(anchor: HTMLElement, i18n: I18n, current: number |
     menu.append(b);
   }
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { close(); anchor.focus(); } };
-  const onOutside = (e: MouseEvent) => { if (!menu.contains(e.target as Node) && e.target !== anchor) close(); };
+  const onOutside = (e: MouseEvent) => { if (!menu.contains(e.target as Node) && !anchor.contains(e.target as Node)) close(); };
   function close() {
+    if (open?.close === close) open = null;
     menu.remove();
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('mousedown', onOutside);
   }
+  open = { anchor, close };
   anchor.insertAdjacentElement('afterend', menu);
   document.addEventListener('keydown', onKey);
   document.addEventListener('mousedown', onOutside);

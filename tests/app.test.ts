@@ -42,7 +42,7 @@ function fakePlayer() {
   const p: Player & { set: typeof set } = {
     set,
     play: vi.fn(async (s: StationLite) => set({ kind: 'loading', station: s })),
-    pause: vi.fn(), toggle: vi.fn(), setVolume: vi.fn(), setMuted: vi.fn(),
+    pause: vi.fn(), toggle: vi.fn(), setVolume: vi.fn(), setMuted: vi.fn(), setGain: vi.fn(),
     getState: () => state,
     subscribe: (l) => { ls.add(l); return () => { ls.delete(l); }; },
   };
@@ -547,4 +547,11 @@ test('sleep menu starts the timer and the button shows the minutes left', async 
   (document.querySelector('.sleep-menu button') as HTMLButtonElement).click();
   expect(sleep.start).toHaveBeenCalledWith(15);
   expect(deps.refs.player.querySelector('.pb__sleep')!.textContent).toContain('Сон · 15 мин');
+});
+
+test('a malformed shared link is removed from the address and reported (review focus 1)', async () => {
+  await startApp({ ...deps, location: { href: 'https://u/globe-radio/?station=abc&c=PT&lang=ru', search: '?station=abc&c=PT&lang=ru' } });
+  await flush();
+  expect(deps.replaceUrl).toHaveBeenCalledWith('https://u/globe-radio/?lang=ru');
+  expect(deps.refs.stage.textContent).toContain('Станция из ссылки больше не вещает');
 });

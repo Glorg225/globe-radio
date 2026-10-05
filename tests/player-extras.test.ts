@@ -75,3 +75,19 @@ test('share card per mockup: title, name, line, listen and open-globe', () => {
   expect(h.onClose).toHaveBeenCalled();
   expect(host.querySelector('.share-card')).toBeNull();
 });
+
+test('sleep button toggles the menu; mousedown on the button icon does not close it first; old listeners go away', () => {
+  const anchor = document.createElement('button');
+  const icon = document.createElement('span');
+  anchor.append(icon);
+  el.append(anchor);
+  const onPick = vi.fn();
+  openSleepMenu(anchor, i18n, null, onPick);
+  icon.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+  expect(document.querySelector('.sleep-menu')).not.toBeNull();
+  openSleepMenu(anchor, i18n, null, onPick);
+  expect(document.querySelector('.sleep-menu')).toBeNull();
+  const focus = vi.spyOn(anchor, 'focus');
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(focus).not.toHaveBeenCalled();
+});
