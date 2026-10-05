@@ -3,3 +3,27 @@
 .install-banner__text { flex: 1; }
 .install-banner__go { block-size: 36px; padding-inline: 12px; border-radius: 10px; border: 1px solid var(--border-popover); background: transparent; color: var(--text); font-size: 13px; }
 .install-banner__close { inline-size: 32px; block-size: 32px; border: 0; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
+.mobile-nav { display: none; }
+@media (max-width: 760px) {
+  .shell { block-size: 100dvh; }
+  .shell__header { block-size: 60px; gap: 8px; padding-inline: 16px 12px; }
+  .logo { inline-size: auto; flex: 1; gap: 8px; }
+  .logo svg { inline-size: 26px; block-size: 26px; }
+  .logo__text { font-size: 16px; }
+  .shell__header .search, .shell__header .spacer, .shell__header [data-action="learn"], .shell__header [data-action="install"] { display: none; }
+  .shell__header [data-action="surprise"] { inline-size: 44px; block-size: 44px; padding: 0; justify-content: center; border-radius: 12px; }
+  .shell__header [data-action="surprise"] span { display: none; }
+  .shell__header .segment { position: fixed; z-index: 6; inset-block-start: 68px; inset-inline-start: 50%; transform: translateX(-50%); padding: 3px; border-radius: 10px; }
+  .shell__header .segment button { block-size: 30px; padding-inline: 14px; border-radius: 8px; font-size: 13px; }
+  .stage__zoom { display: none; }
+  .stage__attribution { inset-block-start: 108px; inset-block-end: auto; inset-inline: 16px; max-inline-size: none; text-align: center; font-size: 11px; }
+  .mobile-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: fixed; z-index: 12; inset-inline: 0; inset-block-end: 0; block-size: 66px; background: var(--surface); border-block-start: 1px solid var(--border-divider); }
+  .mobile-nav button { border: 0; background: transparent; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; }
+  .mobile-nav__bar { inline-size: 22px; block-size: 3px; border-radius: 2px; background: transparent; }
+  .mobile-nav button.is-active { color: var(--text); }
+  .mobile-nav button.is-active .mobile-nav__bar { background: var(--accent); }
+  .mobile-nav button.is-learning .mobile-nav__bar { background: var(--teal); }
+  .shell.is-searching .shell__header .search { display: flex; position: fixed; z-index: 20; inset-block-start: 0; inset-inline: 0; block-size: 60px; max-inline-size: none; border-radius: 0; border-width: 0 0 1px; background: var(--surface); padding-inline: 16px; }
+  .shell.is-searching .search-pop { position: fixed; inset-block: 60px 66px; inset-inline: 0; inline-size: auto; max-block-size: none; border-radius: 0; border-width: 0; }
+  .learn-pop { position: fixed; z-index: 20; inset-block: 68px 74px; inset-inline: 8px; }
+}

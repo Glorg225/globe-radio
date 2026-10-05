@@ -592,3 +592,33 @@ test('shared link switches the install banner to the share context and back', as
   (deps.refs.stage.querySelector('.share-card__globe') as HTMLButtonElement).click();
   expect(installUi.setContext).toHaveBeenLastCalledWith('normal');
 });
+
+const navBtn = (n: string) => deps.refs.navButtons.find((b) => b.dataset.nav === n)!;
+
+test('phone nav: search opens the search screen; a picked place returns to the globe', async () => {
+  await startApp(deps);
+  navBtn('search').click();
+  expect(deps.refs.root.classList.contains('is-searching')).toBe(true);
+  expect(document.activeElement).toBe(deps.refs.searchInput);
+  expect(navBtn('search').getAttribute('aria-current')).toBe('page');
+  deps.refs.searchInput.value = 'ра';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  (document.querySelector('.search-pop__item') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.root.classList.contains('is-searching')).toBe(false);
+  expect(navBtn('globe').getAttribute('aria-current')).toBe('page');
+});
+
+test('phone nav: favorites opens the saved list, globe closes it, learn opens the picker and marks learning', async () => {
+  const app = await startApp(deps);
+  navBtn('favorites').click();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(true);
+  expect(deps.refs.tabs[1].classList.contains('is-active')).toBe(true);
+  navBtn('globe').click();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+  navBtn('learn').click();
+  expect(document.querySelector('.learn-pop')).not.toBeNull();
+  app.learn('en');
+  expect(navBtn('learn').classList.contains('is-learning')).toBe(true);
+});

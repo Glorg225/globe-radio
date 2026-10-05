@@ -24,6 +24,7 @@ import { pickSurprise } from '../player/surprise';
 import type { NetworkStatus } from '../pwa/network';
 import type { SearchResult } from '../search/search-index';
 import { buildShareUrl, parseShareParams, resolveShared, stripShareParams } from '../share/share-link';
+import { createMobileNav } from '../ui/mobile-nav';
 import { createSearchBox } from '../ui/search-box';
 import { showShareCard } from '../ui/share-card';
 import { openSleepMenu } from '../ui/sleep-menu';
@@ -177,6 +178,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   async function selectPlace(p: Place) {
     selected = p;
     showTab('here');
+    nav.set('globe');
     refs.left.classList.add('is-open');
     await renderList(p);
   }
@@ -276,6 +278,16 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     renderTab();
   }
   for (const b of refs.tabs) b.addEventListener('click', () => setTab(b.dataset.tab as PanelTab));
+  // Phone: bottom menu, search screen and the list sheet.
+  const closeSearch = () => refs.root.classList.remove('is-searching');
+  const closeSheet = () => refs.left.classList.remove('is-open', 'is-full');
+  const nav = createMobileNav(refs.navButtons, {
+    onGlobe: () => { closeSearch(); closeSheet(); nav.set('globe'); },
+    onSearch: () => { closeSheet(); refs.root.classList.add('is-searching'); refs.searchInput.focus(); nav.set('search'); },
+    onFavorites: () => { closeSearch(); setTab('favorites'); nav.set('favorites'); },
+    onLearn: () => { closeSearch(); refs.learnButton.click(); },
+  });
+  refs.closePanel.addEventListener('click', () => nav.set('globe'));
   d.library.subscribe(() => {
     if (tab !== 'here') renderTab();
     list?.handle.refreshFavorites();
@@ -399,6 +411,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     if (base) layer = layered(base, code ? createClusterer(places, (p) => p.langs?.[code] ?? 0) : null);
     view?.refresh();
     picker?.update();
+    nav.setLearning(!!entry);
     banner.show(entry);
     d.card.setLearn(code, (c) => learnState?.set(c));
     renderBar();
@@ -436,8 +449,10 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     search: (q) => searchIndex.search(q),
     prefetch: () => searchIndex.prefetch?.(),
     placeLabel: (p) => placeLabel(p),
-    onPlace: (p) => { view?.flyTo(p.lat, p.lon); void selectPlace(p); },
+    onPlace: (p) => { closeSearch(); nav.set('globe'); view?.flyTo(p.lat, p.lon); void selectPlace(p); },
     onStation: async (h) => {
+      closeSearch();
+      nav.set('globe');
       view?.flyTo(h.place.lat, h.place.lon);
       void selectPlace(h.place);
       try {

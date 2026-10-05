@@ -15,6 +15,7 @@ export interface ShellRefs {
   banner: HTMLElement; learnButton: HTMLButtonElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
   netBanner: HTMLElement; root: HTMLElement; installButton: HTMLButtonElement;
+  navButtons: HTMLButtonElement[];
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -68,6 +69,12 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       </aside>
     </div>
     <footer class="shell__player"></footer>
+    <nav class="mobile-nav" aria-label="${t('nav.label')}">
+      <button type="button" data-nav="globe"><span class="mobile-nav__bar"></span><span>${t('nav.globe')}</span></button>
+      <button type="button" data-nav="search"><span class="mobile-nav__bar"></span><span>${t('nav.search')}</span></button>
+      <button type="button" data-nav="favorites"><span class="mobile-nav__bar"></span><span>${t('nav.favorites')}</span></button>
+      <button type="button" data-nav="learn"><span class="mobile-nav__bar"></span><span>${t('nav.learn')}</span></button>
+    </nav>
   `;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
   return {
@@ -92,5 +99,6 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     netBanner: q('.net-banner'),
     root,
     installButton: q<HTMLButtonElement>('[data-action="install"]'),
+    navButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-nav]')],
   };
 }

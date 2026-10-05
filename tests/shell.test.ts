@@ -79,3 +79,10 @@ test('offline banner slot and root are exposed', () => {
   expect(refs.netBanner.hidden).toBe(true);
   expect(refs.root).toBe(root);
 });
+
+test('phone nav has four sections in mockup order', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.navButtons.map((b) => b.dataset.nav)).toEqual(['globe', 'search', 'favorites', 'learn']);
+  expect(refs.navButtons.map((b) => b.textContent)).toEqual(['Глобус', 'Поиск', 'Избранное', 'Учу язык']);
+  expect(root.querySelector('.mobile-nav')!.getAttribute('aria-label')).toBe('Разделы');
+});
