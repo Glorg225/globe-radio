@@ -49,3 +49,14 @@ test('country places and country names come from Intl in the UI language', () =>
   expect(countryName('FR', 'ru')).toBe('Франция');
   expect(countryName('QQ', 'ru')).toBe('QQ');
 });
+
+test('shard store exposes place info from the same file; old files have none', async () => {
+  const f = vi.fn(async (u: string) => ok(u.includes('DE')
+    ? { v: 2, cc: 'DE', stations: [], places: [['c:1', 'Europe/Berlin', 'Мюнхен', 'Munich']] }
+    : { v: 2, cc: 'FR', stations: [] }));
+  const store = createShardStore('/', f as unknown as typeof fetch);
+  expect((await store.info('DE')).get('c:1')).toEqual({ tz: 'Europe/Berlin', wikiRu: 'Мюнхен', wikiEn: 'Munich' });
+  await store.get('DE');
+  expect(f).toHaveBeenCalledTimes(1);
+  expect((await store.info('FR')).size).toBe(0);
+});

@@ -6,17 +6,17 @@ import type { Station } from '../src/data/types';
 
 const gz: Gazetteer = {
   cities: [
-    { id: 1, nameRu: 'Мюнхен', name: 'Munich', lat: 48.137, lon: 11.575, cc: 'DE', admin1: '02', pop: 1_260_000, aliases: ['munich', 'munchen', 'мюнхен'] },
-    { id: 2, nameRu: 'Нюрнберг', name: 'Nuremberg', lat: 49.45, lon: 11.08, cc: 'DE', admin1: '02', pop: 500_000, aliases: ['nuremberg'] },
-    { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow', 'москва'] },
-    { id: 4, nameRu: 'Париж', name: 'Paris', lat: 48.85, lon: 2.35, cc: 'FR', admin1: '11', pop: 2_100_000, aliases: ['paris'] },
-    { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'] },
+    { id: 1, nameRu: 'Мюнхен', name: 'Munich', lat: 48.137, lon: 11.575, cc: 'DE', admin1: '02', pop: 1_260_000, aliases: ['munich', 'munchen', 'мюнхен'], tz: 'Europe/Berlin', wikiRu: 'Мюнхен', wikiEn: 'Munich' },
+    { id: 2, nameRu: 'Нюрнберг', name: 'Nuremberg', lat: 49.45, lon: 11.08, cc: 'DE', admin1: '02', pop: 500_000, aliases: ['nuremberg'], tz: 'Europe/Berlin', wikiRu: '', wikiEn: 'Nuremberg' },
+    { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow', 'москва'], tz: 'Europe/Moscow', wikiRu: '', wikiEn: '' },
+    { id: 4, nameRu: 'Париж', name: 'Paris', lat: 48.85, lon: 2.35, cc: 'FR', admin1: '11', pop: 2_100_000, aliases: ['paris'], tz: 'Europe/Paris', wikiRu: '', wikiEn: '' },
+    { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'], tz: 'Europe/Moscow', wikiRu: '', wikiEn: '' },
   ],
   admin1: [
-    { cc: 'DE', code: '02', nameRu: 'Бавария', name: 'Bavaria', aliases: ['bavaria', 'bayern', 'бавария'] },
-    { cc: 'FR', code: '11', nameRu: 'Иль-де-Франс', name: 'Île-de-France', aliases: ['ile de france'] },
-    { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'] },
-    { cc: 'DE', code: '99', nameRu: '', name: 'Empty Land', aliases: ['empty land'] },
+    { cc: 'DE', code: '02', nameRu: 'Бавария', name: 'Bavaria', aliases: ['bavaria', 'bayern', 'бавария'], wikiRu: 'Бавария', wikiEn: 'Bavaria' },
+    { cc: 'FR', code: '11', nameRu: 'Иль-де-Франс', name: 'Île-de-France', aliases: ['ile de france'], wikiRu: '', wikiEn: '' },
+    { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'], wikiRu: '', wikiEn: '' },
+    { cc: 'DE', code: '99', nameRu: '', name: 'Empty Land', aliases: ['empty land'], wikiRu: '', wikiEn: '' },
   ],
 };
 const centroids = { DE: [51, 9] as [number, number], RU: [60, 100] as [number, number], FR: [46, 2] as [number, number] };
@@ -36,6 +36,7 @@ test('haversine Munich–Nuremberg ≈ 150 km', () => {
 test('exact coords within 30 km snap to the city', () =>
   expect(m.match(st({ approx: false, lat: 48.2, lon: 11.6 }))).toEqual({
     id: 'c:1', lat: 48.137, lon: 11.575, kind: 'exact', cc: 'DE', nameRu: 'Мюнхен', name: 'Munich',
+    tz: 'Europe/Berlin', wikiRu: 'Мюнхен', wikiEn: 'Munich',
   }));
 
 test('exact coords far from cities keep their own point, named after the nearest city', () => {
@@ -46,6 +47,7 @@ test('exact coords far from cities keep their own point, named after the nearest
 test('region field matches admin1 and uses its most populous city', () =>
   expect(m.match(st({ state: 'Bayern' }))).toEqual({
     id: 'a:DE.02', lat: 48.137, lon: 11.575, kind: 'region', cc: 'DE', nameRu: 'Бавария', name: 'Bavaria',
+    tz: 'Europe/Berlin', wikiRu: 'Бавария', wikiEn: 'Bavaria',
   }));
 
 test('region matching ignores case, diacritics and generic words (review focus 5)', () => {
@@ -72,7 +74,7 @@ test('admin1 without cities falls through to country', () =>
 
 test('unknown region → country centroid', () =>
   expect(m.match(st({ state: 'Atlantis' }))).toEqual({
-    id: 'k:DE', lat: 51, lon: 9, kind: 'country', cc: 'DE', nameRu: 'Германия', name: 'Germany',
+    id: 'k:DE', lat: 51, lon: 9, kind: 'country', cc: 'DE', nameRu: 'Германия', name: 'Germany', tz: 'Europe/Berlin',
   }));
 
 test('region is matched only within the station country', () =>
@@ -83,7 +85,7 @@ test('no centroid and no coords → null', () =>
 
 test('a station is never snapped to a city of another country (review: places must be country-scoped)', () => {
   const border = createPlaceMatcher({
-    cities: [{ id: 50, nameRu: 'Зальцбург', name: 'Salzburg', lat: 47.8, lon: 13.04, cc: 'AT', admin1: '05', pop: 150_000, aliases: ['salzburg'] }],
+    cities: [{ id: 50, nameRu: 'Зальцбург', name: 'Salzburg', lat: 47.8, lon: 13.04, cc: 'AT', admin1: '05', pop: 150_000, aliases: ['salzburg'], tz: 'Europe/Vienna', wikiRu: '', wikiEn: '' }],
     admin1: [],
   }, centroids, (cc, l) => names[l][cc] ?? cc);
   const p = border.match(st({ approx: false, cc: 'DE', lat: 47.75, lon: 12.95 }))!;
@@ -94,14 +96,44 @@ test('a station is never snapped to a city of another country (review: places mu
 test('a region primary name beats a translated alias of another region', () => {
   const ru = createPlaceMatcher({
     cities: [
-      { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow'] },
-      { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'] },
+      { id: 3, nameRu: 'Москва', name: 'Moscow', lat: 55.75, lon: 37.62, cc: 'RU', admin1: '48', pop: 10_000_000, aliases: ['moscow'], tz: '', wikiRu: '', wikiEn: '' },
+      { id: 5, nameRu: '', name: 'Krasnogorsk', lat: 55.82, lon: 37.33, cc: 'RU', admin1: '47', pop: 170_000, aliases: ['krasnogorsk'], tz: '', wikiRu: '', wikiEn: '' },
     ],
     admin1: [
-      { cc: 'RU', code: '48', nameRu: 'Москва', name: 'Moscow', aliases: ['moscow', 'москва'] },
-      { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'] },
+      { cc: 'RU', code: '48', nameRu: 'Москва', name: 'Moscow', aliases: ['moscow', 'москва'], wikiRu: '', wikiEn: '' },
+      { cc: 'RU', code: '47', nameRu: 'Московская область', name: 'Moscow Oblast', aliases: ['moscow', 'московская'], wikiRu: '', wikiEn: '' },
     ],
   }, centroids, (cc, l) => names[l][cc]);
   expect(ru.match(st({ cc: 'RU', state: 'Moscow' }))!.id).toBe('a:RU.48');
   expect(ru.match(st({ cc: 'RU', state: 'Московская область' }))!.id).toBe('a:RU.47');
+});
+
+test('far exact point takes the nearest same-country city timezone and article', () =>
+  expect(m.match(st({ approx: false, lat: 48.9, lon: 11.3 }))).toMatchObject({ tz: 'Europe/Berlin', wikiEn: 'Nuremberg' }));
+
+test('country timezone is set only when every city of the country shares one', () => {
+  const multi = createPlaceMatcher({
+    cities: [
+      { id: 7, nameRu: '', name: 'A', lat: 40, lon: -74, cc: 'US', admin1: 'NY', pop: 1, aliases: ['a'], tz: 'America/New_York', wikiRu: '', wikiEn: '' },
+      { id: 8, nameRu: '', name: 'B', lat: 34, lon: -118, cc: 'US', admin1: 'CA', pop: 1, aliases: ['b'], tz: 'America/Los_Angeles', wikiRu: '', wikiEn: '' },
+    ],
+    admin1: [],
+  }, { US: [39, -98] }, (cc) => cc);
+  expect(multi.match(st({ cc: 'US' }))!.tz).toBeUndefined();
+});
+
+test('country places carry the country Wikipedia titles from the gazetteer', () => {
+  const withCountry = createPlaceMatcher({ ...gz, countries: [{ cc: 'DE', wikiRu: 'Германия', wikiEn: 'Germany' }] }, centroids, (cc, l) => names[l][cc]);
+  expect(withCountry.match(st({ state: 'Atlantis' }))).toMatchObject({ id: 'k:DE', wikiRu: 'Германия', wikiEn: 'Germany' });
+});
+
+test('a country whose zones all keep the same clock gets a timezone (e.g. Argentina)', () => {
+  const ar = createPlaceMatcher({
+    cities: [
+      { id: 1, nameRu: '', name: 'BA', lat: -34.6, lon: -58.4, cc: 'AR', admin1: '07', pop: 3, aliases: ['ba'], tz: 'America/Argentina/Buenos_Aires', wikiRu: '', wikiEn: '' },
+      { id: 2, nameRu: '', name: 'Cba', lat: -31.4, lon: -64.2, cc: 'AR', admin1: '05', pop: 1, aliases: ['cba'], tz: 'America/Argentina/Cordoba', wikiRu: '', wikiEn: '' },
+    ],
+    admin1: [],
+  }, { AR: [-34, -64] }, (cc) => cc);
+  expect(ar.match(st({ cc: 'AR' }))!.tz).toBe('America/Argentina/Buenos_Aires');
 });

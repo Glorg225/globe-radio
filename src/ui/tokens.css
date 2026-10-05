@@ -60,3 +60,6 @@
   --w-right: 360px;
   --pad-panel: 20px;
 }
+
+/* Component rules set display: flex/grid; make the hidden attribute always win. */
+[hidden] { display: none !important; }

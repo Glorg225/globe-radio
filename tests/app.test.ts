@@ -2,7 +2,7 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import ru from '../locales/ru.json';
 import { startApp, type AppDeps } from '../src/app/app';
 import type { Place } from '../src/data/places';
-import type { ShardStore, StationLite } from '../src/data/shards';
+import type { PlaceInfo, ShardStore, StationLite } from '../src/data/shards';
 import { createI18n } from '../src/i18n/i18n';
 import type { MapCallbacks, MapFactory, MapView } from '../src/map/map-view';
 import type { Player, PlayerState } from '../src/player/player';
@@ -51,14 +51,14 @@ let deps: AppDeps;
 let globe: ReturnType<typeof fakeFactory>;
 let map: ReturnType<typeof fakeFactory>;
 let player: ReturnType<typeof fakePlayer>;
-let shards: ShardStore & { get: ReturnType<typeof vi.fn> };
+let shards: ShardStore & { get: ReturnType<typeof vi.fn>; info: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
   document.body.innerHTML = '<div id="app"></div>';
   globe = fakeFactory();
   map = fakeFactory();
   player = fakePlayer();
-  shards = { get: vi.fn(async () => pt) };
+  shards = { get: vi.fn(async () => pt), info: vi.fn(async () => new Map([['c:1', { tz: 'Europe/Lisbon', wikiRu: 'Лиссабон', wikiEn: 'Lisbon' }]])) };
   deps = {
     refs: renderShell(document.getElementById('app')!, i18n),
     i18n,
@@ -71,6 +71,7 @@ beforeEach(() => {
     hasWebGL: true,
     narrowTouch: false,
     measureFps: async () => 60,
+    card: { show: vi.fn() },
   };
 });
 
@@ -247,4 +248,41 @@ test('keyboard focus stays on the picked row while the player changes state', as
   await flush();
   expect(document.activeElement).toBe(pick);
   expect(deps.refs.panelBody.querySelector('.station.is-playing .station__name')!.textContent).toBe('Radio a');
+});
+
+test('the place card follows the playing station, not the browsed list', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.card.show).toHaveBeenLastCalledWith({ place: lisbon, station: expect.objectContaining({ id: 'a' }), info: { tz: 'Europe/Lisbon', wikiRu: 'Лиссабон', wikiEn: 'Lisbon' } });
+  const calls = (deps.card.show as ReturnType<typeof vi.fn>).mock.calls.length;
+  await app.selectPlace(porto);
+  await flush();
+  expect((deps.card.show as ReturnType<typeof vi.fn>).mock.calls.length).toBe(calls);
+});
+
+test('card shows nothing while idle and gets null info when the country file has none (review focus 5)', async () => {
+  shards.info.mockResolvedValue(new Map());
+  const app = await startApp(deps);
+  expect(deps.card.show).toHaveBeenLastCalledWith(null);
+  await app.selectPlace(porto);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.card.show).toHaveBeenLastCalledWith(expect.objectContaining({ place: porto, info: null }));
+});
+
+test('a slow place-info answer for a previous station never overwrites the current card (review focus 1)', async () => {
+  let releaseFirst!: (m: Map<string, PlaceInfo>) => void;
+  shards.info.mockImplementationOnce(() => new Promise((r) => { releaseFirst = r; }));
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  await app.selectPlace(porto);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  releaseFirst(new Map());
+  await flush();
+  expect(deps.card.show).toHaveBeenLastCalledWith(expect.objectContaining({ place: porto }));
 });
