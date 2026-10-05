@@ -6,3 +6,5 @@
 .search-pop__name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .search-pop__sub { font-size: 13px; color: var(--text-muted); }
 .search-pop__msg { margin: 10px; color: var(--text-muted); font-size: 14px; }
+.station__star.is-fav, .pb__star.is-fav { color: var(--accent); }
+.station__star.is-fav svg, .pb__star.is-fav svg { fill: currentColor; }

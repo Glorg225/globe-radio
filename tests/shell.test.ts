@@ -66,3 +66,10 @@ test('exposes the learn button and an empty banner slot under the header', () =>
   expect(refs.banner.hidden).toBe(true);
   expect(refs.banner.previousElementSibling).toBe(refs.header);
 });
+
+test('tabs, search input and surprise button are exposed', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.tabs.map((b) => b.dataset.tab)).toEqual(['here', 'favorites', 'history']);
+  expect(refs.searchInput.type).toBe('search');
+  expect(refs.surpriseButton.dataset.action).toBe('surprise');
+});
