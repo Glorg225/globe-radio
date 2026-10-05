@@ -10,7 +10,7 @@ function files(dir: string): string[] {
 }
 
 // Data dictionaries (native language names) are not UI strings.
-const ALLOWED = new Set([join('src', 'data', 'languages.ts'), join('src', 'data', 'gazetteer.ts')]);
+const ALLOWED = new Set([join('src', 'data', 'languages.ts'), join('src', 'data', 'gazetteer.ts'), join('src', 'i18n', 'ru-grammar.ts')]);
 
 test('no Cyrillic UI strings in src/', () => {
   const offenders = files('src')
