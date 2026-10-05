@@ -136,7 +136,13 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     await renderList(p);
   }
 
+  // Recently played stations are skipped by "next", so it moves on instead of bouncing between two favourites.
+  const recent: string[] = [];
+  const RECENT_LIMIT = 30;
+
   async function playStation(s: StationLite, p: Place) {
+    recent.splice(0, recent.length, ...recent.filter((id) => id !== s.id), s.id);
+    if (recent.length > RECENT_LIMIT) recent.shift();
     playingPlace = p;
     view?.setPlaying(p);
     await player.play(s);
@@ -145,14 +151,16 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   async function next() {
     const state = player.getState();
     if (state.kind === 'idle' || !playingPlace) return;
-    const found = await findNextNearby({
+    const query = {
       currentId: state.station.id,
       currentPlace: playingPlace,
       places,
-      stationsOf: (cc) => d.shards.get(cc),
-      isBlocked: (id) => d.blacklist.has(id),
-      filter: learnCode ? (s) => s.langs.includes(learnCode!) : undefined,
-    });
+      stationsOf: (cc: string) => d.shards.get(cc),
+      filter: learnCode ? (s: StationLite) => s.langs.includes(learnCode!) : undefined,
+    };
+    // Prefer stations not heard recently; when everything around was played, start a new round.
+    const found = await findNextNearby({ ...query, isBlocked: (id) => d.blacklist.has(id) || recent.includes(id) })
+      ?? await findNextNearby({ ...query, isBlocked: (id) => d.blacklist.has(id) });
     if (!found) { showToast(refs.stage, learnCode ? t('learn.noNext', { langPrep }) : t('player.noNext')); return; }
     if (found.place.id !== playingPlace.id) view?.flyTo(found.place.lat, found.place.lon);
     selected = found.place;

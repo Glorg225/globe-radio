@@ -376,3 +376,16 @@ test('teal map items get language tooltips', async () => {
   expect(label({ type: 'cluster', key: 'cl:1', lat: 0, lon: 0, count: 12, pop: 1, zoomTo: 3, tone: 'teal' })).toBe('12 станций на португальском');
   expect(label({ type: 'place', key: 'c:1', place: lisbon, lat: 0, lon: 0, count: 2, pop: 1, tone: 'muted' })).toBe('Лиссабон · 2 станции');
 });
+
+test('"Следующая" moves on instead of bouncing between the two most popular stations', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  await app.next();
+  await app.next();
+  const ids = (player.play as ReturnType<typeof vi.fn>).mock.calls.map((c) => (c[0] as StationLite).id);
+  expect(ids).toEqual(['a', 'b', 'p']);
+  await app.next();
+  expect((player.play as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]).toMatchObject({ id: 'a' });
+});
