@@ -17,7 +17,7 @@ export interface PlaceCardDeps {
   findArticle(info: PlaceInfo): Promise<WikiResult>;
   now(): Date; userOffset(): number;
 }
-export interface PlaceCard { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void; destroy(): void }
+export interface PlaceCard { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void; reveal(): void; destroy(): void }
 export const COLLAPSE_KEY = 'placeCardCollapsed';
 
 export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps: PlaceCardDeps): PlaceCard {
@@ -191,6 +191,8 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
       onLearn = cb;
       renderLearn();
     },
+    // Phone: bring back the sheet the listener swiped away (same station or place picked again).
+    reveal() { if (currentPlaceId) sheet.hidden = false; },
     destroy() {
       token++;
       if (timer !== undefined) clearTimeout(timer);

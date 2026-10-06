@@ -40,7 +40,7 @@ export interface AppDeps {
   player: Player; blacklist: Blacklist;
   hasWebGL: boolean; narrowTouch: boolean;
   measureFps(): Promise<number>;
-  card: { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void };
+  card: { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void; reveal?(): void };
   mediaSession?: MediaSession;
   library: Library;
   sleep: SleepTimer;
@@ -114,6 +114,17 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   };
 
   let sleepChoice: number | null = null;
+  // Offline: say so at once instead of letting the player wait for the 8-second stream timeout.
+  const offlineBlocked = () => {
+    if (!d.network || d.network.online()) return false;
+    showToast(refs.stage, t('net.offlinePlay'));
+    return true;
+  };
+  const togglePlay = () => {
+    const kind = player.getState().kind;
+    if (kind !== 'loading' && kind !== 'playing' && offlineBlocked()) return;
+    player.toggle();
+  };
   const openSleep = (anchor: HTMLElement) => {
     openSleepMenu(anchor, i18n, sleepChoice, (m) => {
       sleepChoice = m;
@@ -121,7 +132,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     });
   };
   const bar = createPlayerBar(refs.player, i18n, {
-    onToggle: () => player.toggle(),
+    onToggle: togglePlay,
     onNext: () => { void next(); },
     onVolume: (v) => {
       volume = v;
@@ -196,6 +207,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     selected = p;
     showTab('here');
     nav.set('globe');
+    if (playingPlace && p.id === playingPlace.id) d.card.reveal?.();
     refs.left.classList.add('is-open');
     await renderList(p);
   }
@@ -206,7 +218,8 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
 
   async function playStation(s: StationLite, p: Place) {
     pickToken++;
-    if (d.network && !d.network.online()) { showToast(refs.stage, t('net.offlinePlay')); return; }
+    if (offlineBlocked()) return;
+    d.card.reveal?.();
     recent.splice(0, recent.length, ...recent.filter((id) => id !== s.id), s.id);
     if (recent.length > RECENT_LIMIT) recent.shift();
     playingPlace = p;
@@ -260,7 +273,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       d.mediaSession,
       station ? { title: station.name, artist: placeLabel(playingPlace), artwork: station.favicon } : null,
       s.kind === 'playing' || s.kind === 'loading' ? 'playing' : s.kind === 'idle' ? 'none' : 'paused',
-      { play: () => player.toggle(), pause: () => player.pause(), next: () => { void next(); } },
+      { play: togglePlay, pause: () => player.pause(), next: () => { void next(); } },
     );
     if (tab === 'here' && list && selected && list.placeId === selected.id) list.handle.setPlaying(station?.id ?? null);
     if (tab !== 'here') saved?.setPlaying(station?.id ?? null);
@@ -329,6 +342,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   });
 
   async function playSaved(item: SavedStation) {
+    if (offlineBlocked()) return;
     const my = ++pickToken;
     const place = byId.get(item.placeId);
     let station: StationLite | undefined;
@@ -438,11 +452,11 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   refs.zoomOut.addEventListener('click', () => view?.zoomBy(0.5));
   refs.closePanel.addEventListener('click', () => refs.left.classList.remove('is-open'));
   document.addEventListener('keydown', (e) => {
-    if (e.code !== 'Space') return;
+    if (e.code !== 'Space' || e.defaultPrevented) return;
     const target = e.target as HTMLElement | null;
-    if (target?.closest?.('input, textarea, select, button, [contenteditable]')) return;
+    if (target?.closest?.('input, textarea, select, button, [contenteditable], [role="button"]')) return;
     e.preventDefault();
-    player.toggle();
+    togglePlay();
   });
 
   let picker: { update(): void } | null = null;
@@ -496,12 +510,16 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     onStation: async (h) => {
       closeSearch();
       nav.set('globe');
+      if (offlineBlocked()) return;
       const my = ++pickToken;
       view?.flyTo(h.place.lat, h.place.lon);
       void selectPlace(h.place);
       if (d.narrow?.()) closeSheet();
       let station: StationLite | undefined;
-      try { station = (await d.shards.get(h.place.cc)).find((s) => s.placeId === h.place.id && s.name === h.name); } catch { return; }
+      try { station = (await d.shards.get(h.place.cc)).find((s) => s.placeId === h.place.id && s.name === h.name); } catch {
+        if (my === pickToken) showToast(refs.stage, t('list.loadError'));
+        return;
+      }
       if (my !== pickToken) return;
       if (!station) { showToast(refs.stage, t('library.gone')); return; }
       await playStation(station, h.place);

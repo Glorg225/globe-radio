@@ -216,3 +216,15 @@ test('phone sheet: swipe down hides it; the next station shows it again', async 
   card.show({ place: lisbon, station: { ...st(), id: 's2' }, info });
   expect(sheet.hidden).toBe(false);
 });
+
+test('review: reveal brings the swiped-away phone sheet back', async () => {
+  const card = createPlaceCard(panel, stage, deps);
+  card.show({ place: lisbon, station: st(), info });
+  const sheet = stage.querySelector('.pc-sheet') as HTMLElement;
+  sheet.hidden = true;
+  card.reveal();
+  expect(sheet.hidden).toBe(false);
+  card.show(null);
+  card.reveal();
+  expect(sheet.hidden).toBe(true);
+});

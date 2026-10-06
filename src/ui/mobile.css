@@ -25,8 +25,8 @@
   .mobile-nav button.is-active .mobile-nav__bar { background: var(--accent); }
   .mobile-nav button.is-learning .mobile-nav__bar { background: var(--teal); }
   .shell.is-searching .shell__header .search { display: flex; position: fixed; z-index: 20; inset-block-start: 0; inset-inline: 0; block-size: 60px; max-inline-size: none; border-radius: 0; border-width: 0 0 1px; background: var(--surface); padding-inline: 16px; }
-  .shell.is-searching .search-pop { position: fixed; inset-block: 60px 66px; inset-inline: 0; inline-size: auto; max-block-size: none; border-radius: 0; border-width: 0; }
-  .learn-pop { position: fixed; z-index: 20; inset-block: 68px 74px; inset-inline: 8px; }
+  .shell.is-searching .search-pop { position: fixed; inset-block: 60px max(66px, var(--kb, 0px)); inset-inline: 0; inline-size: auto; max-block-size: none; border-radius: 0; border-width: 0; }
+  .learn-pop { position: fixed; z-index: 20; inset-block: 68px max(74px, var(--kb, 0px)); inset-inline: 8px; }
 }
 .sheet__handle { display: none; }
 @media (max-width: 760px) {
@@ -73,3 +73,12 @@
   .shell__player { gap: 14px; padding-inline: 16px; }
 }
 @media (max-width: 760px) { .shell__place { display: none; } }
+
+/* Phone: banners and toasts sit below the fixed "3D | Map" switch; the install banner never covers a sheet or the share card. */
+@media (max-width: 760px) {
+  .net-banner, .learn-banner { margin-block-start: 50px; }
+  .toast { inset-block-start: 56px; z-index: 13; }
+  .shell:has(.shell__left.is-open) .install-banner, .shell:has(.pc-sheet:not([hidden])) .install-banner { display: none; }
+  .shell:has(.share-card) .install-banner { z-index: 35; inset-block-end: 74px; }
+  .share-card { inset-block-start: 44%; }
+}

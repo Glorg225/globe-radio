@@ -22,6 +22,7 @@ import { createNetworkStatus } from '../pwa/network';
 import { createInstall } from '../pwa/install';
 import { setupUpdates } from '../pwa/update';
 import { createInstallUi } from '../ui/install-ui';
+import { bindKeyboardInset } from '../ui/keyboard-inset';
 import { bindNetBanner } from '../ui/net-banner';
 import { renderShell } from '../ui/shell';
 import { showActionToast } from '../ui/toast';
@@ -37,6 +38,7 @@ const refs = renderShell(document.getElementById('app')!, i18n);
 renderStarfield(refs.stars);
 const network = createNetworkStatus(window);
 bindNetBanner(refs.netBanner, i18n, network);
+bindKeyboardInset(window, refs.root);
 const narrowQuery = matchMedia('(max-width: 760px)');
 const installUi = createInstallUi({
   button: refs.installButton,
