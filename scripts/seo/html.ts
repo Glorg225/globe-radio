@@ -159,7 +159,7 @@ export function indexPage(site: Site, countries: CountryPage[]): string {
 }
 
 export function countryPage(site: Site, c: CountryPage): string {
-  const exclude = [c.name];
+  const exclude = c.placeNames;
   const n = c.stations.length;
   const cities = c.cities.length ? ` in ${plural(c.cities.length, 'city', 'cities')}` : '';
   return layout(site, {
@@ -181,7 +181,7 @@ export function countryPage(site: Site, c: CountryPage): string {
 
 export function cityPage(site: Site, ref: CityRef, nearby: CityRef[]): string {
   const { country, city } = ref;
-  const exclude = [country.name, city.name];
+  const exclude = country.placeNames;
   const n = city.stations.length;
   const where = `${city.name}, ${country.name}`;
   const nearbyItems = nearby.map((r) => ({

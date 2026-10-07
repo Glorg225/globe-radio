@@ -6,14 +6,14 @@ import { cityPage, countryPage, indexPage, notFoundPage, type Site } from '../sc
 const site: Site = { url: 'https://example.com/gr', base: '/gr/' };
 const EVIL = '</script><script>alert(1)</script>';
 const st = (id: string, o: Partial<StationLite> = {}): StationLite => ({
-  id, name: `Station ${id}`, url: '', placeId: 'c:1', cc: 'PT', langs: ['pt'], tags: ['news', 'talk', '64kbps'], votes: 0, clicks: 0, favicon: '', hls: false, ...o,
+  id, name: `Station ${id}`, url: '', placeId: 'c:1', cc: 'PT', langs: ['pt'], tags: ['news', 'talk', '64kbps', 'viseu'], votes: 0, clicks: 0, favicon: '', hls: false, ...o,
 });
 
 function fixture() {
   const lisbon: CityPage = { cc: 'PT', name: 'Lisbon', slug: 'lisbon', lat: 38.7, lon: -9.1, tz: 'Europe/Lisbon', stations: [st('s1', { name: EVIL }), st('s2'), st('s3')] };
   const porto: CityPage = { cc: 'PT', name: 'Porto', slug: 'porto', lat: 41.1, lon: -8.6, tz: 'Europe/Lisbon', stations: [st('s4'), st('s5'), st('s6')] };
   const extra = Array.from({ length: 60 }, (_, i) => st(`x${i}`));
-  const pt: CountryPage = { cc: 'PT', name: 'Portugal', slug: 'portugal', stations: [...lisbon.stations, ...porto.stations, ...extra], cities: [lisbon, porto] };
+  const pt: CountryPage = { cc: 'PT', name: 'Portugal', slug: 'portugal', placeNames: ['portugal', 'lisbon', 'porto', 'viseu'], stations: [...lisbon.stations, ...porto.stations, ...extra], cities: [lisbon, porto] };
   return { pt, lisbon, porto };
 }
 
@@ -91,6 +91,7 @@ test('country page: top 50 stations, links to its cities, JSON-LD capped at 50',
   expect([...doc.querySelectorAll('.cities a')].map((a) => a.getAttribute('href'))).toEqual(['/gr/radio/portugal/lisbon/', '/gr/radio/portugal/porto/']);
   expect(ld(doc).find((d) => d['@type'] === 'ItemList').itemListElement).toHaveLength(50);
   expect(doc.querySelector('.intro')!.textContent).toContain('2 cities');
+  expect(doc.querySelector('.intro')!.textContent).toContain('Popular genres: news and talk.');
 });
 
 test('index page lists every country', () => {

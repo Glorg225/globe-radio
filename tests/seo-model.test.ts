@@ -44,6 +44,8 @@ test('country page: slug from the name, all stations sorted by popularity', () =
   const [pt] = fixture();
   expect(pt).toMatchObject({ name: 'Portugal', slug: 'portugal' });
   expect(pt.stations.map((s) => s.id)).toEqual(['6', '2', '3', '1', '4', '5']);
+  // Place names are not genres: tags like "viseu" or "lisbon" must not show up as one.
+  expect(pt.placeNames).toEqual(['portugal', 'lisbon', 'porto']);
 });
 
 test('cities with the same slug in one country get distinct slugs, the bigger city keeps the plain one', () => {

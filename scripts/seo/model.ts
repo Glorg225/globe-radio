@@ -7,7 +7,8 @@ import { assignSlugs } from './slug';
 export const MIN_STATIONS = 3;
 
 export interface CityPage { cc: string; name: string; slug: string; lat: number; lon: number; tz: string; stations: StationLite[] }
-export interface CountryPage { cc: string; name: string; slug: string; stations: StationLite[]; cities: CityPage[] }
+// placeNames: the country and all its places, lowercased - station tags with these names are not genres.
+export interface CountryPage { cc: string; name: string; slug: string; placeNames: string[]; stations: StationLite[]; cities: CityPage[] }
 export interface CountryData { stations: StationLite[]; info: Map<string, PlaceInfo> }
 export interface CityRef { country: CountryPage; city: CityPage }
 
@@ -52,7 +53,9 @@ export function buildModel(places: Place[], data: Map<string, CountryData>, coun
       .map((c) => ({ cc, name: c.name, slug: slugs.get(c)!, lat: c.lat, lon: c.lon, tz: c.tz, stations: c.stations }))
       .sort(byName);
 
-    countries.push({ cc, name: countryName(cc), slug: '', stations: [...stations].sort(byClicks), cities });
+    const name = countryName(cc);
+    const placeNames = [...new Set([name, ...(placesByCc.get(cc) ?? []).map((p) => p.name)].map((n) => n.trim().toLowerCase()))];
+    countries.push({ cc, name, slug: '', placeNames, stations: [...stations].sort(byClicks), cities });
   }
 
   const bySize = [...countries].sort((a, b) => b.stations.length - a.stations.length);

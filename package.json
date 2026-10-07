@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && tsx scripts/build-seo-pages.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "snapshot": "tsx scripts/snapshot.ts",
