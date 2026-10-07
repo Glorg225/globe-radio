@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { decodePlace, type PlacesFile } from '../src/data/places';
 import { decodeStation, type PlaceInfo, type ShardFile } from '../src/data/shards';
+import { seoCountryName } from '../src/seo/country';
 import { cityPage, cityPath, countryPage, countryPath, indexPage, notFoundPage, radioPath, type Site } from './seo/html';
 import { allCities, buildModel, nearbyCities, type CountryData } from './seo/model';
 import { robotsTxt, sitemapXml } from './seo/sitemap';
@@ -18,16 +19,6 @@ export function siteFromEnv(env: Record<string, string | undefined>): Site {
 }
 
 export interface BuildOptions { dataDir: string; outDir: string; site: Site; css: string }
-
-const REGIONS = new Intl.DisplayNames('en', { type: 'region' });
-function regionName(cc: string): string | undefined {
-  try {
-    const name = REGIONS.of(cc);
-    return name && name !== cc ? name : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 function readJson<T>(file: string): T | null {
   return existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as T) : null;
@@ -53,7 +44,7 @@ export function buildSeoPages({ dataDir, outDir, site, css }: BuildOptions): { c
     data.set(cc, { stations: shard.stations.map((c) => decodeStation(c, cc)), info });
   }
   const snapshotNames = new Map(places.filter((p) => p.kind === 'country').map((p) => [p.cc, p.name]));
-  const countries = buildModel(places, data, (cc) => regionName(cc) ?? snapshotNames.get(cc) ?? cc);
+  const countries = buildModel(places, data, (cc) => seoCountryName(cc, snapshotNames.get(cc)));
   const cities = allCities(countries);
 
   write(outDir, `${radioPath()}index.html`, indexPage(site, countries));

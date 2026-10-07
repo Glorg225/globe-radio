@@ -3,7 +3,8 @@ import type { I18n } from '../i18n/i18n';
 import type { SearchHit, SearchResult } from '../search/search-index';
 
 export const SEARCH_DEBOUNCE_MS = 150;
-export interface SearchBoxDeps { search(q: string): Promise<SearchResult>; placeLabel(p: Place): string; onPlace(p: Place): void; onStation(h: SearchHit): void; prefetch?(): void }
+// browse: optional block (links to country pages) shown while the field is empty.
+export interface SearchBoxDeps { search(q: string): Promise<SearchResult>; placeLabel(p: Place): string; onPlace(p: Place): void; onStation(h: SearchHit): void; prefetch?(): void; browse?(): HTMLElement | null }
 
 export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBoxDeps): { close(): void } {
   const anchor = input.closest('label') ?? input;
@@ -33,13 +34,26 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
     if (!pop) {
       pop = document.createElement('div');
       pop.className = 'search-pop';
-      pop.setAttribute('role', 'listbox');
       pop.id = POP_ID;
       input.setAttribute('aria-expanded', 'true');
       anchor.insertAdjacentElement('afterend', pop);
       document.addEventListener('mousedown', onOutside);
     }
+    pop.setAttribute('role', 'listbox');
     return pop;
+  }
+  // Links, not options: the popover is not a listbox while it shows them.
+  function showBrowse(): boolean {
+    const block = d.browse?.();
+    if (!block) return false;
+    token++;
+    const p = ensurePop();
+    p.removeAttribute('role');
+    p.replaceChildren(block);
+    actions = [];
+    active = -1;
+    input.removeAttribute('aria-activedescendant');
+    return true;
   }
   function message(text: string) {
     const p = document.createElement('p');
@@ -93,13 +107,17 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
     else input.removeAttribute('aria-activedescendant');
   }
 
-  input.addEventListener('focus', () => d.prefetch?.());
+  input.addEventListener('focus', () => {
+    d.prefetch?.();
+    if (!input.value.trim()) showBrowse();
+  });
   input.addEventListener('input', () => {
     clearTimeout(timer);
     actions = [];
     active = -1;
     highlight();
     const q = input.value.trim();
+    if (!q && showBrowse()) return;
     if (q.length < 2) { close(); return; }
     const my = ++token;
     timer = setTimeout(() => {
@@ -114,7 +132,8 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { close(); return; }
-    if (e.key === 'Tab') { close(); return; }
+    // Tab walks into the browse links; it closes only the result list.
+    if (e.key === 'Tab') { if (!pop?.hasAttribute('role')) return; close(); return; }
     if (!actions.length) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();

@@ -95,6 +95,27 @@ test('loads places and mounts the globe by default', async () => {
   expect(deps.refs.viewButtons[0].getAttribute('aria-pressed')).toBe('true');
 });
 
+test('nothing selected: the Here tab offers radio by country', async () => {
+  await startApp(deps);
+  const links = [...deps.refs.panelBody.querySelectorAll('.browse a')].map((a) => a.getAttribute('href'));
+  expect(links).toEqual(['radio/portugal/', 'radio/']);
+});
+
+test('empty search field offers countries only where the panel does not already show them', async () => {
+  await startApp(deps);
+  const focus = () => { deps.refs.searchInput.dispatchEvent(new Event('focus')); return document.querySelector('.search-pop .browse'); };
+  expect(focus()).toBeNull();
+  document.querySelector('.search-pop')?.remove();
+  deps.refs.panelBody.replaceChildren();
+  expect(focus()).not.toBeNull();
+});
+
+test('phone: empty search field offers countries', async () => {
+  await startApp({ ...deps, narrow: () => true });
+  deps.refs.searchInput.dispatchEvent(new Event('focus'));
+  expect(document.querySelector('.search-pop .browse a[href="radio/"]')).not.toBeNull();
+});
+
 test('no WebGL → flat map', async () => {
   const app = await startApp({ ...deps, hasWebGL: false });
   expect(app.mode()).toBe('map');

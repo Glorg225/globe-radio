@@ -97,7 +97,7 @@ test('footer links: radio by country (crawlable) and a hidden cookie-settings bu
   const refs = renderShell(root, createI18n('ru', ru));
   const a = root.querySelector('.stage__attribution a[href="radio/"]')!;
   expect(a.textContent).toBe('Радио по странам');
-  // Hidden until the static /radio/ pages (#17) are published.
-  expect(a.closest('[hidden]')).not.toBeNull();
+  // Visible since the static /radio/ pages (#17) are published.
+  expect(a.closest('[hidden]')).toBeNull();
   expect(refs.cookiesButton.closest('[hidden]')).not.toBeNull();
 });

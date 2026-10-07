@@ -125,3 +125,23 @@ test('Enter between a new keystroke and its results does not run the old result'
   expect(d.onPlace).not.toHaveBeenCalled();
   expect(d.onStation).not.toHaveBeenCalled();
 });
+
+test('empty field on focus shows the browse block; typing replaces it with results', async () => {
+  const block = document.createElement('section');
+  block.className = 'browse';
+  createSearchBox(input, i18n, { ...d, browse: () => block });
+  input.dispatchEvent(new Event('focus'));
+  expect(pop()!.querySelector('.browse')).toBe(block);
+  expect(pop()!.hasAttribute('role')).toBe(false);
+  await type('lis');
+  expect(pop()!.querySelector('.browse')).toBeNull();
+  expect(pop()!.getAttribute('role')).toBe('listbox');
+  await type('');
+  expect(pop()!.querySelector('.browse')).toBe(block);
+});
+
+test('without a browse block, focusing an empty field opens nothing', () => {
+  createSearchBox(input, i18n, d);
+  input.dispatchEvent(new Event('focus'));
+  expect(pop()).toBeNull();
+});

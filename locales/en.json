@@ -129,5 +129,7 @@
   "sheet.handle": "Expand or collapse",
   "place.show": "Place card",
   "footer.byCountry": "Radio by country",
-  "footer.cookies": "Cookie settings"
+  "footer.cookies": "Cookie settings",
+  "browse.title": "Browse by country",
+  "browse.all": "All countries →"
 }
