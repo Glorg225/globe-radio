@@ -20,6 +20,7 @@ import type { ShellRefs } from '../ui/shell';
 import { toSaved, type Library, type SavedStation } from '../library/library';
 import { formatClock, isValidTimeZone } from '../place-card/time';
 import type { SleepTimer } from '../player/sleep-timer';
+import { track } from '../analytics/track';
 import { pickSurprise } from '../player/surprise';
 import type { NetworkStatus } from '../pwa/network';
 import type { SearchResult } from '../search/search-index';
@@ -220,6 +221,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     pickToken++;
     if (offlineBlocked()) return;
     d.card.reveal?.();
+    track('play_station', { country: s.cc });
     recent.splice(0, recent.length, ...recent.filter((id) => id !== s.id), s.id);
     if (recent.length > RECENT_LIMIT) recent.shift();
     playingPlace = p;
@@ -359,6 +361,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   }
 
   async function surprise() {
+    track('surprise');
     const code = learnCode;
     const found = await pickSurprise({
       places,
@@ -383,6 +386,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       title: s.station.name,
       text: t('share.text', { station: s.station.name, place: placeLabel(playingPlace) }),
     });
+    track('share', { method: result });
     if (result === 'copied') showToast(refs.stage, t('share.copied'));
     if (result === 'failed') showToast(refs.stage, t('share.failed'));
   }
@@ -476,6 +480,12 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     if (selected) void renderList(selected, false);
   }
 
+  // Cookie settings: only when the consent snippet is on the page (production build with a GA id).
+  const consent = (globalThis as { globeConsent?: { open(): void } }).globeConsent;
+  if (consent) {
+    refs.cookiesButton.hidden = false;
+    refs.cookiesButton.addEventListener('click', () => consent.open());
+  }
   const handle: AppHandle = { mode: () => mode, selectPlace, next, learn: (code) => learnState?.set(code), surprise, tab: setTab };
   d.card.show(null);
   d.card.setLearn(null, (c) => learnState?.set(c));
@@ -504,7 +514,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   applyLearn(learnState.get());
   const searchIndex = d.createSearch(places);
   createSearchBox(refs.searchInput, i18n, {
-    search: (q) => searchIndex.search(q),
+    search: (q) => { track('search', { search_term: q }); return searchIndex.search(q); },
     prefetch: () => searchIndex.prefetch?.(),
     placeLabel: (p) => placeLabel(p),
     onPlace: (p) => { closeSearch(); nav.set('globe'); view?.flyTo(p.lat, p.lon); void selectPlace(p); },
