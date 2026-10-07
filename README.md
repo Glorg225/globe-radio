@@ -1,4 +1,4 @@
-# Радио планеты (рабочее название)
+# Globe Radio (в разработке называлось «Радио планеты»)
 
 > **Разработчикам:** начните с [docs/COLLABORATION.md](docs/COLLABORATION.md) — запуск, правила работы вдвоём, задачи.
 
@@ -99,7 +99,15 @@ npm run preview    # проверить сборку (с service worker) на ht
 Экран — несколько независимых панелей вокруг холста с глобусом. Чистый TypeScript + Vite даёт минимальный размер кода, что важно для требования «первый показ меньше 3 секунд».
 
 ## Название проекта
-Название «Радио планеты» — рабочее. Меняется в одном месте: ключ `app.name` в `locales/*.json`. Технический идентификатор (`APP_ID` в `src/app/config.ts`) от названия не зависит. Название также записано в `index.html` (теги `og:title`, `apple-mobile-web-app-title`) и в `scripts/og-image.ts` (картинка-превью: после правки `npm run og`).
+Название сайта — **Globe Radio**. Меняется в одном месте: ключ `app.name` (и `app.title` — заголовок для Google) в `locales/en.json`. Технический идентификатор (`APP_ID` в `src/app/config.ts`) от названия не зависит. Название также записано в `index.html` (теги `og:title`, `apple-mobile-web-app-title`) и в `scripts/og-image.ts` (картинка-превью: после правки `npm run og`).
 
 ## Проверка качества
 Lighthouse, ПК, production-сборка (06.10.2026): **доступность 100**, **производительность 79–81**. Вся потеря скорости — запуск 3D-глобуса (WebGL): браузер тратит ≈ 0,5 с на подготовку глобуса после первого показа страницы; сама страница показывается за 0,8 с. Повторить замер: `npm run build`, `npm run preview`, затем `npx lighthouse http://localhost:4173/ --preset=desktop --only-categories=performance,accessibility --output=json --output-path=.cache/lh.json` и `node scripts/lighthouse-summary.mjs .cache/lh.json`.
+
+## Язык сайта
+Продакшен — только английский (`SUPPORTED_LOCALES = ['en']` в `src/app/config.ts`). Русский каталог `locales/ru.json` остаётся для автотестов и на будущее; добавить язык — раздел «Как добавить язык интерфейса».
+
+## SEO и аналитика
+- Чек-лист видимости в Google (что сделано, что делает владелец) — [docs/SEO-CHECKLIST.md](docs/SEO-CHECKLIST.md).
+- Google Analytics 4 (`G-ENKZYY7NQ6`) подключается только при сборке с переменной `VITE_GA_ID` (задана в `.github/workflows/deploy.yml`); локально и в тестах аналитики нет. Баннер согласия (Consent Mode v2): без «Accept» ничего не отправляется; «Cookie settings» в подвале меняет выбор.
+- Адрес сайта для canonical и превью — `VITE_SITE_URL` (по умолчанию в `.env`; при переезде на свой домен поменять там и в настройках Pages).

@@ -39,6 +39,11 @@ jobs:
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}/
           VITE_SITE_URL: ${{ steps.pages.outputs.base_url }}
+          VITE_GA_ID: G-ENKZYY7NQ6
+      # Analytics for the static SEO pages (marker <!-- analytics -->).
+      - run: npx tsx scripts/inject-analytics.ts
+        env:
+          VITE_GA_ID: G-ENKZYY7NQ6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

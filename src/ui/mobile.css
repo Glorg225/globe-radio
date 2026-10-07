@@ -82,3 +82,5 @@
   .shell:has(.share-card) .install-banner { z-index: 35; inset-block-end: 74px; }
   .share-card { inset-block-start: 44%; }
 }
+/* Consent banner sits above the phone mini-player and bottom menu. */
+@media (max-width: 760px) { .consent-bar { bottom: 150px; } }

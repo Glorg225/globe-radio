@@ -123,3 +123,11 @@ test('Wikimedia thumbnails from any wikimedia.org host are accepted (thumb.wikim
 test('Russian stress marks are removed from the text', () => {
   expect(trimSentences('Лиссабо́н — столица. Герма́ния рядом.')).toBe('Лиссабон — столица. Германия рядом.');
 });
+
+test('English interface: the English article first, no Russian lookup', async () => {
+  const f = wikiFetch({ 'en.wikipedia.org/api/rest_v1/page/summary/Lisbon': () => json(summary('Lisbon', 'Lisbon is the capital of Portugal.')) });
+  const r = await findArticle({ wikiRu: 'Лиссабон', wikiEn: 'Lisbon' }, f, createWikiCache(null), 'en');
+  expect(r.summary).toMatchObject({ lang: 'en', title: 'Lisbon' });
+  expect(r.link).toBe(articleUrl('en', 'Lisbon'));
+  expect((f.mock.calls as unknown[][]).some(([u]) => String(u).includes('ru.wikipedia.org'))).toBe(false);
+});

@@ -10,7 +10,10 @@ function languageName(code: string, locale: string): string | undefined {
 }
 
 export const upperFirst = (s: string, locale: string) => s.charAt(0).toLocaleUpperCase(locale) + s.slice(1);
-export const lowerFirst = (s: string, locale: string) => s.charAt(0).toLocaleLowerCase(locale) + s.slice(1);
+// Language names are common nouns (lower case) in Russian and many other languages, but capitalised in English and German.
+const CAPITALISED_LANGUAGE_NAMES = new Set(['en', 'de']);
+export const lowerFirst = (s: string, locale: string) =>
+  CAPITALISED_LANGUAGE_NAMES.has(locale.slice(0, 2)) ? s : s.charAt(0).toLocaleLowerCase(locale) + s.slice(1);
 
 export function buildLanguageIndex(places: Place[], locale: string): LanguageEntry[] {
   const stations = new Map<string, number>();

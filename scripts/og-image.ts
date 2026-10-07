@@ -12,8 +12,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
   <g transform="translate(90 170)" fill="none" stroke="#FFB547" stroke-width="7" stroke-linecap="round">
     <circle cx="45" cy="45" r="40"/><ellipse cx="45" cy="45" rx="18" ry="40"/><path d="M8 32h74M8 58h74"/>
   </g>
-  <text x="90" y="330" font-family="Segoe UI, Arial, sans-serif" font-size="76" font-weight="700" fill="#EEF1F8">Радио планеты</text>
-  <text x="90" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="34" fill="#A3ADC8">Живое радио со всего мира на глобусе</text>
+  <text x="90" y="330" font-family="Segoe UI, Arial, sans-serif" font-size="76" font-weight="700" fill="#EEF1F8">Globe Radio</text>
+  <text x="90" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="34" fill="#A3ADC8">Live radio worldwide on a 3D globe</text>
 </svg>`;
 
 const png = new Resvg(svg, { font: { loadSystemFonts: true } }).render().asPng();

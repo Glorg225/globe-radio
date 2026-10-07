@@ -1,12 +1,16 @@
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
+import { withAnalytics } from './src/analytics/consent-snippet';
 import { buildManifest } from './src/pwa/manifest';
+import { SW_GLOB_IGNORES, SW_NAVIGATE_DENYLIST } from './src/pwa/sw-config';
 
 const base = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   base,
   plugins: [
+    // GA4 + consent banner only in builds with VITE_GA_ID (production); none in dev and tests.
+    { name: 'analytics', transformIndexHtml: (html: string) => withAnalytics(html, process.env.VITE_GA_ID ?? '') },
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
@@ -14,10 +18,10 @@ export default defineConfig({
       includeAssets: ['icons/apple-touch-icon.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
-        globIgnores: ['data/**', 'og.png'],
+        globIgnores: SW_GLOB_IGNORES,
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/\/data\//],
+        navigateFallbackDenylist: SW_NAVIGATE_DENYLIST,
         runtimeCaching: [
           {
             urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.includes('/data/'),

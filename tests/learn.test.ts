@@ -91,3 +91,10 @@ test('setting the same value twice notifies once', () => {
   st.set('es');
   expect(l).toHaveBeenCalledTimes(1);
 });
+
+test('review: English language names keep their capital letter', async () => {
+  const { languageNames } = await import('../src/place-card/language');
+  expect(lowerFirst('Spanish', 'en')).toBe('Spanish');
+  expect(languageNames(['es', 'ca'], 'en')).toBe('Spanish, Catalan');
+  expect(languageNames(['es'], 'ru')).toBe('испанский');
+});

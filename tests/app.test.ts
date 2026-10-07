@@ -803,3 +803,47 @@ test('review: picking the playing place or station again reveals the swiped-away
   await app.selectPlace(lisbon);
   expect(reveal).toHaveBeenCalled();
 });
+
+test('English interface: learn mode says "Next in English" (no Russian cases)', async () => {
+  const en = (await import('../locales/en.json')).default;
+  const i18nEn = createI18n('en', en);
+  const app = await startApp({ ...deps, i18n: i18nEn, refs: renderShell(document.getElementById('app')!, i18nEn) });
+  app.learn('en');
+  expect(document.querySelector('.pb__next')!.textContent).toBe('Next in English');
+});
+
+test('analytics events: play, search, surprise, share', async () => {
+  const gtag = vi.fn();
+  (globalThis as { gtag?: unknown }).gtag = gtag;
+  try {
+    const app = await startApp(deps);
+    await app.selectPlace(lisbon);
+    (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+    await flush();
+    expect(gtag).toHaveBeenCalledWith('event', 'play_station', { country: 'PT', place: 'Lisbon' });
+    deps.refs.searchInput.value = 'ра';
+    deps.refs.searchInput.dispatchEvent(new Event('input'));
+    await new Promise((r) => setTimeout(r, 200));
+    expect(gtag).toHaveBeenCalledWith('event', 'search', { search_term: 'ра' });
+    await app.surprise();
+    expect(gtag).toHaveBeenCalledWith('event', 'surprise', {});
+    (deps.refs.player.querySelector('.pb__share') as HTMLButtonElement).click();
+    await flush();
+    expect(gtag).toHaveBeenCalledWith('event', 'share', { method: 'copied' });
+  } finally {
+    delete (globalThis as { gtag?: unknown }).gtag;
+  }
+});
+
+test('cookie settings button appears when the consent snippet is present and reopens the banner', async () => {
+  const open = vi.fn();
+  (globalThis as { globeConsent?: unknown }).globeConsent = { open };
+  try {
+    await startApp(deps);
+    expect(deps.refs.cookiesButton.closest('[hidden]')).toBeNull();
+    deps.refs.cookiesButton.click();
+    expect(open).toHaveBeenCalled();
+  } finally {
+    delete (globalThis as { globeConsent?: unknown }).globeConsent;
+  }
+});

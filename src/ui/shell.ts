@@ -1,3 +1,4 @@
+import { SEO_PAGES_LIVE } from '../app/config';
 import type { I18n } from '../i18n/i18n';
 import { escapeHtml } from './html';
 import { icons } from './icons';
@@ -15,12 +16,12 @@ export interface ShellRefs {
   banner: HTMLElement; learnButton: HTMLButtonElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
   netBanner: HTMLElement; root: HTMLElement; installButton: HTMLButtonElement;
-  navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement; placeToggle: HTMLButtonElement;
+  navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement; placeToggle: HTMLButtonElement; cookiesButton: HTMLButtonElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
   const t = (key: string) => escapeHtml(i18n.t(key));
-  document.title = i18n.t('app.name');
+  document.title = i18n.t('app.title');
   root.className = 'shell';
   root.innerHTML = `
     <header class="shell__header">
@@ -61,7 +62,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
           <button data-zoom="in" aria-label="${t('map.zoomIn')}">+</button>
           <button data-zoom="out" aria-label="${t('map.zoomOut')}">−</button>
         </div>
-        <p class="stage__attribution">${t('footer.attribution')}</p>
+        <p class="stage__attribution">${t('footer.attribution')}<span${SEO_PAGES_LIVE ? '' : ' hidden'}> · <a href="radio/">${t('footer.byCountry')}</a></span><span class="cookies-link" hidden> · <button type="button" class="link-btn" data-action="cookies">${t('footer.cookies')}</button></span></p>
       </main>
       <aside class="shell__place">
         <div class="place__head">
@@ -104,5 +105,6 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     navButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-nav]')],
     sheetHandle: q('.sheet__handle'),
     placeToggle: q<HTMLButtonElement>('.stage__place-toggle'),
+    cookiesButton: q<HTMLButtonElement>('[data-action="cookies"]'),
   };
 }

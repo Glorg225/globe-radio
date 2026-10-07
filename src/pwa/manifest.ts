@@ -1,14 +1,14 @@
-import ru from '../../locales/ru.json';
+import en from '../../locales/en.json';
 
 export const THEME_COLOR = '#0A0F1E';
 
-// Web app manifest; the app name comes from the one config (locales/ru.json, key app.name).
+// Web app manifest; the app name comes from the one config (locales/en.json, key app.name).
 export function buildManifest(base: string) {
   return {
-    name: ru['app.name'],
-    short_name: ru['app.name'],
-    description: ru['app.description'],
-    lang: 'ru',
+    name: en['app.name'],
+    short_name: en['app.name'],
+    description: en['app.description'],
+    lang: 'en',
     dir: 'ltr' as const,
     start_url: base,
     scope: base,
