@@ -228,3 +228,11 @@ test('review: reveal brings the swiped-away phone sheet back', async () => {
   card.reveal();
   expect(sheet.hidden).toBe(true);
 });
+
+test('English interface: an English article gets no "article in English" note', async () => {
+  const en = (await import('../locales/en.json')).default;
+  const card = createPlaceCard(panel, stage, { ...deps, i18n: createI18n('en', en), findArticle: vi.fn(async () => wiki('A town.', 'en')) });
+  card.show({ place: lisbon, station: st(), info });
+  await flush();
+  expect(q('.pc__note').hidden).toBe(true);
+});

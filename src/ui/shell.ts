@@ -20,7 +20,7 @@ export interface ShellRefs {
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
   const t = (key: string) => escapeHtml(i18n.t(key));
-  document.title = i18n.t('app.name');
+  document.title = i18n.t('app.title');
   root.className = 'shell';
   root.innerHTML = `
     <header class="shell__header">

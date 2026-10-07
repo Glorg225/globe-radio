@@ -1,4 +1,4 @@
-import ru from '../../locales/ru.json';
+import en from '../../locales/en.json';
 import { loadPlaces } from '../data/places';
 import { createShardStore } from '../data/shards';
 import { applyDirection, createI18n, resolveLocale, type Messages } from '../i18n/i18n';
@@ -29,7 +29,7 @@ import { showActionToast } from '../ui/toast';
 import { startApp } from './app';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './config';
 
-const catalogs: Record<string, Messages> = { ru };
+const catalogs: Record<string, Messages> = { en };
 const storage = safeStorage();
 const locale = resolveLocale(location.search, storage, navigator.languages, SUPPORTED_LOCALES, DEFAULT_LOCALE);
 const i18n = createI18n(locale, catalogs[locale]);
@@ -57,7 +57,7 @@ const card = createPlaceCard(refs.placeCard, refs.stage, {
   i18n,
   storage,
   flagUrl,
-  findArticle: (info) => findArticle(info, fetch, wikiCache),
+  findArticle: (info) => findArticle(info, fetch, wikiCache, i18n.locale === 'ru' ? 'ru' : 'en'),
   now: () => new Date(),
   userOffset: () => -new Date().getTimezoneOffset(),
 });

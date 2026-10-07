@@ -1,3 +1,3 @@
 export const APP_ID = 'globe-radio';
-export const SUPPORTED_LOCALES = ['ru'] as const;
-export const DEFAULT_LOCALE = 'ru';
+export const SUPPORTED_LOCALES = ['en'] as const;
+export const DEFAULT_LOCALE = 'en';

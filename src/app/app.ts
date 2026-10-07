@@ -464,7 +464,8 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   function applyLearn(code: string | null) {
     learnCode = code;
     const entry = code ? languages.find((e) => e.code === code) ?? null : null;
-    langPrep = entry ? prepositional(lowerFirst(entry.name, i18n.locale)) : '';
+    // Russian needs the prepositional case; other languages use the language name as is ("in Spanish").
+    langPrep = entry ? (i18n.locale === 'ru' ? prepositional(lowerFirst(entry.name, i18n.locale)) : entry.name) : '';
     if (base) layer = layered(base, code ? createClusterer(places, (p) => p.langs?.[code] ?? 0) : null);
     view?.refresh();
     picker?.update();

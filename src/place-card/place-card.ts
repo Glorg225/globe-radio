@@ -113,7 +113,8 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
     el.wiki.hidden = !s && !r.link;
     el.photo.hidden = !s?.image;
     if (s?.image) el.photo.src = s.image;
-    el.note.hidden = s?.lang !== 'en';
+    // Note only when the article is in another language than the interface.
+    el.note.hidden = !s || s.lang === i18n.locale;
     el.text.hidden = !s;
     el.text.textContent = s?.text ?? '';
     el.sText.textContent = s?.text ?? '';

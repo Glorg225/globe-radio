@@ -803,3 +803,11 @@ test('review: picking the playing place or station again reveals the swiped-away
   await app.selectPlace(lisbon);
   expect(reveal).toHaveBeenCalled();
 });
+
+test('English interface: learn mode says "Next in English" (no Russian cases)', async () => {
+  const en = (await import('../locales/en.json')).default;
+  const i18nEn = createI18n('en', en);
+  const app = await startApp({ ...deps, i18n: i18nEn, refs: renderShell(document.getElementById('app')!, i18nEn) });
+  app.learn('en');
+  expect(document.querySelector('.pb__next')!.textContent).toBe('Next in English');
+});

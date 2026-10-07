@@ -7,7 +7,7 @@ const pngSize = (path: string) => { const b = readFileSync(path); return [b.read
 test('manifest: name from the one config, standalone, dark theme, scope = site path', () => {
   const m = buildManifest('/globe-radio/');
   expect(m).toMatchObject({
-    name: 'Радио планеты', short_name: 'Радио планеты', lang: 'ru', display: 'standalone', orientation: 'portrait',
+    name: 'Globe Radio', short_name: 'Globe Radio', lang: 'en', display: 'standalone', orientation: 'portrait',
     start_url: '/globe-radio/', scope: '/globe-radio/', theme_color: THEME_COLOR, background_color: THEME_COLOR,
   });
   expect(THEME_COLOR).toBe('#0A0F1E');

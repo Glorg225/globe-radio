@@ -68,7 +68,16 @@ async function ruTitleFor(enTitle: string, fetchFn: typeof fetch, cache: WikiCac
   return ru;
 }
 
-export async function findArticle(info: Pick<PlaceInfo, 'wikiRu' | 'wikiEn'>, fetchFn: typeof fetch, cache: WikiCache): Promise<WikiResult> {
+export async function findArticle(info: Pick<PlaceInfo, 'wikiRu' | 'wikiEn'>, fetchFn: typeof fetch, cache: WikiCache, prefer: Lang = 'ru'): Promise<WikiResult> {
+  if (prefer === 'en') {
+    if (!info.wikiEn) return { summary: null, link: null };
+    try {
+      const s = await summary('en', info.wikiEn, fetchFn, cache);
+      return s ? { summary: s, link: s.url } : { summary: null, link: articleUrl('en', info.wikiEn) };
+    } catch {
+      return { summary: null, link: articleUrl('en', info.wikiEn) };
+    }
+  }
   let fallback: string | null = info.wikiRu ? articleUrl('ru', info.wikiRu) : info.wikiEn ? articleUrl('en', info.wikiEn) : null;
   const tried = new Set<string>();
   const tryRu = async (title: string) => {
