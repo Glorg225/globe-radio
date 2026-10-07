@@ -37,7 +37,8 @@ test('a city and a region with the same English name become one page', () => {
   expect(pt.cities.map((c) => c.name)).toEqual(['Lisbon']);
   const lisbon = pt.cities[0];
   expect(lisbon.stations.map((s) => s.id)).toEqual(['2', '3', '1']);
-  expect(lisbon).toMatchObject({ slug: 'lisbon', tz: 'Europe/Lisbon', lat: 38.72, lon: -9.03 });
+  // The page takes the city's own point, even when its region has more stations.
+  expect(lisbon).toMatchObject({ slug: 'lisbon', tz: 'Europe/Lisbon', lat: 38.73, lon: -9.15 });
 });
 
 test('country page: slug from the name, all stations sorted by popularity', () => {
@@ -65,3 +66,23 @@ test('nearbyCities: nearest first, without the city itself, at most n', () => {
   const a = refs.find((r) => r.city.name === 'A')!;
   expect(nearbyCities(a, refs, 2).map((r) => r.city.name)).toEqual(['B', 'D']);
 });
+
+test('a region that is the city itself joins the city page; a state or a surrounding region does not', () => {
+  const places = [
+    place({ id: 'c:1', cc: 'DE', name: 'Berlin', lat: 52.52, lon: 13.4 }),
+    place({ id: 'a:DE.16', cc: 'DE', kind: 'region', name: 'State of Berlin', lat: 52.6, lon: 13.4 }),
+    place({ id: 'c:2', cc: 'DE', name: 'Zürich', lat: 47.37, lon: 8.54 }),
+    place({ id: 'a:DE.25', cc: 'DE', kind: 'region', name: 'Zurich', lat: 47.4, lon: 8.6 }),
+    place({ id: 'c:3', cc: 'DE', name: 'Oklahoma City', lat: 35.47, lon: -97.52 }),
+    place({ id: 'a:DE.40', cc: 'DE', kind: 'region', name: 'Oklahoma', lat: 35.5, lon: -97.5 }),
+    place({ id: 'c:4', cc: 'DE', name: 'Kyiv', lat: 50.45, lon: 30.52 }),
+    place({ id: 'a:DE.13', cc: 'DE', kind: 'region', name: 'Kyiv Oblast', lat: 49.8, lon: 30.11 }),
+  ];
+  const n: Record<string, number> = { 'c:1': 3, 'a:DE.16': 5, 'c:2': 1, 'a:DE.25': 2, 'c:3': 3, 'a:DE.40': 3, 'c:4': 3, 'a:DE.13': 3 };
+  const stations = Object.entries(n).flatMap(([pid, k]) => Array.from({ length: k }, (_, i) => st(`${pid}-${i}`, pid, 0, 'DE')));
+  const [de] = buildModel(places, new Map([['DE', { stations, info: new Map() }]]), () => 'Germany');
+  const pages = Object.fromEntries(de.cities.map((c) => [c.slug, c.stations.length]));
+  expect(pages).toEqual({ berlin: 8, zurich: 3, 'oklahoma-city': 3, oklahoma: 3, kyiv: 3, 'kyiv-oblast': 3 });
+  expect(de.cities.find((c) => c.slug === 'berlin')).toMatchObject({ name: 'Berlin', lat: 52.52 });
+});
+

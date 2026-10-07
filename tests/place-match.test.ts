@@ -146,3 +146,16 @@ test('a station in a city district belongs to the city', () => {
   expect(matcher.match(st({ state: 'Mitte' }))).toMatchObject({ id: 'c:10', name: 'Berlin', kind: 'region' });
 });
 
+test('a region name shared by a city region and the region around it goes to the city region', () => {
+  const kyiv = { id: 20, nameRu: 'Киев', name: 'Kyiv', lat: 50.45, lon: 30.52, cc: 'UA', admin1: '12', pop: 2_900_000, aliases: ['kyiv'], tz: 'Europe/Kyiv', wikiRu: '', wikiEn: '' };
+  const bilaTserkva = { ...kyiv, id: 21, name: 'Bila Tserkva', lat: 49.8, lon: 30.11, admin1: '13', pop: 200_000, aliases: ['bila tserkva'] };
+  const matcher = createPlaceMatcher({
+    cities: [kyiv, bilaTserkva],
+    admin1: [
+      { cc: 'UA', code: '13', nameRu: '', name: 'Kyiv Oblast', aliases: ['kyiv'], wikiRu: '', wikiEn: '' },
+      { cc: 'UA', code: '12', nameRu: '', name: 'Kyiv City', aliases: ['kyiv'], wikiRu: '', wikiEn: '' },
+    ],
+  }, { UA: [49, 32] }, () => 'Ukraine');
+  expect(matcher.match(st({ cc: 'UA', state: 'Kyiv' }))).toMatchObject({ id: 'a:UA.12', name: 'Kyiv City', lat: 50.45 });
+});
+
