@@ -17,3 +17,13 @@ test('the preview image exists and is a 1200×630 PNG', () => {
 test('index.html carries the Google Search Console verification tag', () => {
   expect(readFileSync('index.html', 'utf8')).toContain('<meta name="google-site-verification" content="koz8gY8zAL6HrfheDI7TlQw0owSM11vRuoMCq31SH0Q">');
 });
+
+test('home page SEO: canonical, og:url, short description, valid WebApplication JSON-LD', () => {
+  const html = readFileSync('index.html', 'utf8');
+  expect(html).toContain('<link rel="canonical" href="%VITE_SITE_URL%/">');
+  expect(html).toContain('<meta property="og:url" content="%VITE_SITE_URL%/">');
+  const desc = /<meta name="description" content="([^"]+)">/.exec(html)![1];
+  expect(desc.length).toBeLessThanOrEqual(160);
+  const ld = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)![1]);
+  expect(ld).toMatchObject({ '@context': 'https://schema.org', '@type': 'WebApplication', name: 'Globe Radio', applicationCategory: 'MultimediaApplication' });
+});

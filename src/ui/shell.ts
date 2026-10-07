@@ -15,7 +15,7 @@ export interface ShellRefs {
   banner: HTMLElement; learnButton: HTMLButtonElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
   netBanner: HTMLElement; root: HTMLElement; installButton: HTMLButtonElement;
-  navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement; placeToggle: HTMLButtonElement;
+  navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement; placeToggle: HTMLButtonElement; cookiesButton: HTMLButtonElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -61,7 +61,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
           <button data-zoom="in" aria-label="${t('map.zoomIn')}">+</button>
           <button data-zoom="out" aria-label="${t('map.zoomOut')}">−</button>
         </div>
-        <p class="stage__attribution">${t('footer.attribution')}</p>
+        <p class="stage__attribution">${t('footer.attribution')} · <a href="radio/">${t('footer.byCountry')}</a> · <button type="button" class="link-btn" data-action="cookies" hidden>${t('footer.cookies')}</button></p>
       </main>
       <aside class="shell__place">
         <div class="place__head">
@@ -104,5 +104,6 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     navButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-nav]')],
     sheetHandle: q('.sheet__handle'),
     placeToggle: q<HTMLButtonElement>('.stage__place-toggle'),
+    cookiesButton: q<HTMLButtonElement>('[data-action="cookies"]'),
   };
 }
