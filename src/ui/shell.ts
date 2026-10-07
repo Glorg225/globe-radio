@@ -1,3 +1,4 @@
+import { SEO_PAGES_LIVE } from '../app/config';
 import type { I18n } from '../i18n/i18n';
 import { escapeHtml } from './html';
 import { icons } from './icons';
@@ -61,7 +62,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
           <button data-zoom="in" aria-label="${t('map.zoomIn')}">+</button>
           <button data-zoom="out" aria-label="${t('map.zoomOut')}">−</button>
         </div>
-        <p class="stage__attribution">${t('footer.attribution')} · <a href="radio/">${t('footer.byCountry')}</a> · <button type="button" class="link-btn" data-action="cookies" hidden>${t('footer.cookies')}</button></p>
+        <p class="stage__attribution">${t('footer.attribution')}<span${SEO_PAGES_LIVE ? '' : ' hidden'}> · <a href="radio/">${t('footer.byCountry')}</a></span><span class="cookies-link" hidden> · <button type="button" class="link-btn" data-action="cookies">${t('footer.cookies')}</button></span></p>
       </main>
       <aside class="shell__place">
         <div class="place__head">

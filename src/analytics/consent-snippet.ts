@@ -20,7 +20,8 @@ gtag('config',ID);
 function load(){if(loaded)return;loaded=true;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id='+ID;document.head.appendChild(s);}
 function read(){try{return localStorage.getItem(KEY);}catch(e){return null;}}
 function save(v){try{localStorage.setItem(KEY,v);}catch(e){}}
-function apply(v){if(v==='granted'){gtag('consent','update',{analytics_storage:'granted'});load();}else if(v==='denied'){gtag('consent','update',{analytics_storage:'denied'});}}
+function wipe(){document.cookie.split(';').forEach(function(c){var n=c.split('=')[0].trim();if(n==='_ga'||n.indexOf('_ga_')===0){document.cookie=n+'=; Max-Age=0; path=/';}});}
+function apply(v){if(v==='granted'){window['ga-disable-'+ID]=false;gtag('consent','update',{analytics_storage:'granted'});load();}else if(v==='denied'){gtag('consent','update',{analytics_storage:'denied'});if(loaded){window['ga-disable-'+ID]=true;wipe();try{location.reload();}catch(e){}}}}
 function hide(){if(bar){bar.remove();bar=null;}}
 function choose(v){save(v);apply(v);hide();}
 function button(text,cls,v){var b=document.createElement('button');b.type='button';b.className=cls;b.textContent=text;b.addEventListener('click',function(){choose(v);});return b;}

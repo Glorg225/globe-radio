@@ -87,3 +87,15 @@ test('the build puts the snippet right after <title> on the home page, only with
   expect(out.indexOf('G-TEST')).toBeGreaterThan(out.indexOf('</title>'));
   expect(out.indexOf('G-TEST')).toBeLessThan(out.indexOf('<link>'));
 });
+
+test('review: Accept then Reject stops Google at once and removes its cookies', () => {
+  run('G-TEST');
+  (document.querySelector('.consent-bar__accept') as HTMLButtonElement).click();
+  document.cookie = '_ga=GA1.1.1; path=/';
+  document.cookie = '_ga_TEST=GS1.1; path=/';
+  g.globeConsent!.open();
+  (document.querySelector('.consent-bar__reject') as HTMLButtonElement).click();
+  expect((g as unknown as Record<string, unknown>)['ga-disable-G-TEST']).toBe(true);
+  expect(document.cookie).not.toContain('_ga');
+  expect(localStorage.getItem('consent')).toBe('denied');
+});

@@ -820,7 +820,7 @@ test('analytics events: play, search, surprise, share', async () => {
     await app.selectPlace(lisbon);
     (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
     await flush();
-    expect(gtag).toHaveBeenCalledWith('event', 'play_station', { country: 'PT' });
+    expect(gtag).toHaveBeenCalledWith('event', 'play_station', { country: 'PT', place: 'Lisbon' });
     deps.refs.searchInput.value = 'ра';
     deps.refs.searchInput.dispatchEvent(new Event('input'));
     await new Promise((r) => setTimeout(r, 200));
@@ -840,7 +840,7 @@ test('cookie settings button appears when the consent snippet is present and reo
   (globalThis as { globeConsent?: unknown }).globeConsent = { open };
   try {
     await startApp(deps);
-    expect(deps.refs.cookiesButton.hidden).toBe(false);
+    expect(deps.refs.cookiesButton.closest('[hidden]')).toBeNull();
     deps.refs.cookiesButton.click();
     expect(open).toHaveBeenCalled();
   } finally {

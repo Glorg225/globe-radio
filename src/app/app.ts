@@ -221,7 +221,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     pickToken++;
     if (offlineBlocked()) return;
     d.card.reveal?.();
-    track('play_station', { country: s.cc });
+    track('play_station', { country: s.cc, place: p.name });
     recent.splice(0, recent.length, ...recent.filter((id) => id !== s.id), s.id);
     if (recent.length > RECENT_LIMIT) recent.shift();
     playingPlace = p;
@@ -483,7 +483,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   // Cookie settings: only when the consent snippet is on the page (production build with a GA id).
   const consent = (globalThis as { globeConsent?: { open(): void } }).globeConsent;
   if (consent) {
-    refs.cookiesButton.hidden = false;
+    (refs.cookiesButton.closest('.cookies-link') as HTMLElement).hidden = false;
     refs.cookiesButton.addEventListener('click', () => consent.open());
   }
   const handle: AppHandle = { mode: () => mode, selectPlace, next, learn: (code) => learnState?.set(code), surprise, tab: setTab };
