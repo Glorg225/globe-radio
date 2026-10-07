@@ -44,7 +44,7 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
         <img class="pc__photo" alt="" referrerpolicy="no-referrer">
         <p class="pc__note" hidden>${t('place.wiki.english')}</p>
         <p class="pc__text"></p>
-        <a class="pc__link" target="_blank" rel="noopener noreferrer"></a>
+        <a class="pc__link" href="https://www.wikipedia.org/" target="_blank" rel="noopener noreferrer" hidden></a>
       </div>
     </div>`;
   const sheet = document.createElement('div');
@@ -58,7 +58,7 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
       <div class="pcs__clock"></div>
     </div>
     <p class="pcs__text"></p>
-    <a class="pcs__link" target="_blank" rel="noopener noreferrer"></a>`;
+    <a class="pcs__link" href="https://www.wikipedia.org/" target="_blank" rel="noopener noreferrer" hidden></a>`;
   sheetHost.append(sheet);
   const detachDrag = attachSheetDrag(sheet, sheet.querySelector<HTMLElement>('.pcs__handle')!, { expandable: false, onClose: () => { sheet.hidden = true; } });
 

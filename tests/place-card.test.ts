@@ -236,3 +236,11 @@ test('English interface: an English article gets no "article in English" note', 
   await flush();
   expect(q('.pc__note').hidden).toBe(true);
 });
+
+test('SEO: Wikipedia links always carry a crawlable href, even before an article loads', () => {
+  createPlaceCard(panel, stage, deps);
+  for (const a of [panel.querySelector('.pc__link'), stage.querySelector('.pcs__link')] as HTMLAnchorElement[]) {
+    expect(a.getAttribute('href')).toMatch(/^https:\/\/\w+\.wikipedia\.org\//);
+    expect(a.hidden).toBe(true);
+  }
+});
