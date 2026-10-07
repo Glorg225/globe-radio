@@ -85,7 +85,9 @@ npm run preview    # собранный сайт с service worker: http://local
 - Новые тексты в `locales/*.json` — добавлять **в конец** файла (меньше конфликтов).
 - Перед PR подтянуть свежий `main`: `git pull origin main` (или rebase), прогнать `npm test` и `npm run build`.
 
-**Сейчас в работе у Claude (не трогать без договорённости):** План 7 — английская версия, SEO-страницы стран и городов (`/radio/...`), аналитика GA4 с баннером согласия, `docs/SEO-CHECKLIST.md`. Затрагивает: `locales/`, `src/app/`, `src/place-card/wiki.ts`, `src/pwa/manifest.ts`, `index.html`, `scripts/` (новые SEO-скрипты), `package.json`, `.github/workflows/deploy.yml`. Актуальный статус — в задаче с меткой `for: claude` + `in progress`.
+**Сейчас в работе (План 7):**
+- **Claude** — английская версия, главная страница для Google, аналитика GA4 с баннером согласия, чек-лист SEO: задача [#8](https://github.com/Glorg225/globe-radio/issues/8). Файлы: `locales/`, `src/`, `index.html`, `vite.config.ts`, `scripts/og-image.ts`, `.github/workflows/deploy.yml` — не трогать без договорённости.
+- **Второй разработчик** — SEO-страницы стран и городов, sitemap, robots, 404: задача [#17](https://github.com/Glorg225/globe-radio/issues/17) (подробное ТЗ и контракт с частью Claude — в самой задаче). Файлы: новые `scripts/seo/*`, `scripts/build-seo-pages.ts`, `tests/seo-*.test.ts`, строка `build` в `package.json`.
 
 ## 6. Как узнать, кто что сделал
 - **Issues** — что запланировано и кто взял.
