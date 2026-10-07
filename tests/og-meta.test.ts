@@ -13,3 +13,7 @@ test('the preview image exists and is a 1200×630 PNG', () => {
   expect(b.subarray(1, 4).toString()).toBe('PNG');
   expect([b.readUInt32BE(16), b.readUInt32BE(20)]).toEqual([1200, 630]);
 });
+
+test('index.html carries the Google Search Console verification tag', () => {
+  expect(readFileSync('index.html', 'utf8')).toContain('<meta name="google-site-verification" content="koz8gY8zAL6HrfheDI7TlQw0owSM11vRuoMCq31SH0Q">');
+});
