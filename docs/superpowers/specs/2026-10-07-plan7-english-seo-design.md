@@ -86,3 +86,11 @@ docs/SEO-CHECKLIST.md, docs/COLLABORATION.md, CHANGELOG.md, README.md
 
 ## 9. Не входит
 Отдельные страницы станций; другие языки сайта; покупка домена и переезд; блог/статьи.
+
+## 10. Разделение работы (07.10.2026)
+| Кто | Что | Файлы | Задача |
+|---|---|---|---|
+| **Claude** | §3 английская версия; §4.1 главная (title, description, canonical, JSON-LD, ссылка «Radio by country»); §5 аналитика и согласие (в приложении и затем в SEO-страницах); исключение `/radio/` и `404.html` из service worker; §6 `docs/SEO-CHECKLIST.md` | `locales/`, `src/`, `index.html`, `vite.config.ts`, `scripts/og-image.ts`, `public/og.png`, `.github/workflows/deploy.yml`, `docs/` | [#8](https://github.com/Glorg225/globe-radio/issues/8) |
+| **Второй разработчик** | §4.2–4.4: генератор SEO-страниц стран и городов, `/radio/`, `sitemap.xml`, `robots.txt`, `404.html`, `seo.css` | новые `scripts/seo/*`, `scripts/build-seo-pages.ts`, `tests/seo-*.test.ts`; одна строка `build` в `package.json` | [#17](https://github.com/Glorg225/globe-radio/issues/17) |
+
+**Контракт между частями** — в задаче #17: формат данных снимка, `VITE_SITE_URL`/`BASE_PATH`, ссылка Listen `?station=<id>&c=<CC>`, метка `<!-- analytics -->` в `<head>` SEO-страниц (код подставляет Claude после вливания обеих частей).
