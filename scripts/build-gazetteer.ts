@@ -3,6 +3,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } 
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
 import { encodeGazetteer, normalizeName, type GzAdmin1, type GzCity, type GzCountry } from '../src/data/gazetteer';
+import { haversineKm } from '../src/data/geo';
 
 const ALIAS_MIN_POP = 100_000;
 const SKIP_LANGS = new Set(['link', 'post', 'iata', 'icao', 'faac', 'wkdt', 'unlc', 'tcid', 'fr_1793', 'phon', 'piny']);
@@ -13,15 +14,18 @@ function addAlias(list: string[], raw: string) {
   if (n && !list.includes(n)) list.push(n);
 }
 
-export function parseCities(text: string): GzCity[] {
-  const out: GzCity[] = [];
+// fcode: GeoNames feature code (PPLC capital, PPLA admin seat, PPLX section of a populated place...).
+export type ParsedCity = GzCity & { fcode: string };
+
+export function parseCities(text: string): ParsedCity[] {
+  const out: ParsedCity[] = [];
   for (const line of text.split('\n')) {
     const f = line.split('\t');
     if (f.length < 15) continue;
     const pop = Number(f[14]) || 0;
-    const city: GzCity = {
+    const city: ParsedCity = {
       id: Number(f[0]), nameRu: '', name: f[1], lat: Number(f[4]), lon: Number(f[5]),
-      cc: f[8], admin1: f[10], pop, aliases: [], tz: f[17] ?? '', wikiRu: '', wikiEn: '',
+      cc: f[8], admin1: f[10], pop, aliases: [], tz: f[17] ?? '', wikiRu: '', wikiEn: '', fcode: f[7] ?? '',
     };
     addAlias(city.aliases, f[1]);
     addAlias(city.aliases, f[2]);
@@ -29,6 +33,26 @@ export function parseCities(text: string): GzCity[] {
     out.push(city);
   }
   return out;
+}
+
+const DISTRICT = 'PPLX';
+const DISTRICT_KM = 30;
+
+// cities15000 lists big city districts (Mitte, Times Square, Kurenivka) as places of their own, and a station
+// in a city centre is nearer to its district than to the city's point. Each district gets the biggest real
+// city of its country within 30 km as parent; without a bigger one nearby it stays a place of its own.
+export function linkDistricts(cities: ParsedCity[]): void {
+  const byCc = new Map<string, ParsedCity[]>();
+  for (const c of cities) if (c.fcode !== DISTRICT) byCc.set(c.cc, [...(byCc.get(c.cc) ?? []), c]);
+  for (const d of cities) {
+    if (d.fcode !== DISTRICT) continue;
+    let best: ParsedCity | undefined;
+    for (const c of byCc.get(d.cc) ?? []) {
+      if (c.pop <= d.pop || (best && c.pop <= best.pop)) continue;
+      if (haversineKm(d.lat, d.lon, c.lat, c.lon) <= DISTRICT_KM) best = c;
+    }
+    if (best) d.parent = best.id;
+  }
 }
 
 // Returned objects carry their GeoNames id so alternate names can be attached (see main).
@@ -114,6 +138,7 @@ async function main() {
   unzip(await download('alternateNamesV2.zip'));
 
   const cities = parseCities(readFileSync(`${CACHE}/cities15000.txt`, 'utf8'));
+  linkDistricts(cities);
   const adminRows = parseAdmin1(readFileSync(`${CACHE}/admin1CodesASCII.txt`, 'utf8'));
   const cityMap = new Map(cities.map((c) => [c.id, c]));
   const adminMap = new Map<number, GzAdmin1>(adminRows.map(({ geonameId, ...a }) => [geonameId, a]));
@@ -125,6 +150,7 @@ async function main() {
   const file = encodeGazetteer({ cities, admin1: [...adminMap.values()], countries: [...countryMap.values()] });
   mkdirSync('data', { recursive: true });
   writeFileSync('data/gazetteer.json', JSON.stringify(file));
+  console.log(`districts linked to their city: ${cities.filter((c) => c.parent).length}`);
   console.log(`cities: ${cities.length}, admin1: ${adminMap.size}, size: ${(JSON.stringify(file).length / 1e6).toFixed(1)} MB`);
 }
 

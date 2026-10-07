@@ -137,3 +137,12 @@ test('a country whose zones all keep the same clock gets a timezone (e.g. Argent
   }, { AR: [-34, -64] }, (cc) => cc);
   expect(ar.match(st({ cc: 'AR' }))!.tz).toBe('America/Argentina/Buenos_Aires');
 });
+
+test('a station in a city district belongs to the city', () => {
+  const berlin = { id: 10, nameRu: 'Берлин', name: 'Berlin', lat: 52.52, lon: 13.405, cc: 'DE', admin1: '16', pop: 3_400_000, aliases: ['berlin'], tz: 'Europe/Berlin', wikiRu: '', wikiEn: 'Berlin' };
+  const mitte = { ...berlin, id: 11, nameRu: 'Митте', name: 'Mitte', lat: 52.53, lon: 13.39, pop: 330_000, aliases: ['mitte'], wikiEn: 'Mitte', parent: 10 };
+  const matcher = createPlaceMatcher({ cities: [berlin, mitte], admin1: [] }, centroids, (cc, l) => names[l][cc]);
+  expect(matcher.match(st({ approx: false, lat: 52.531, lon: 13.389 }))).toMatchObject({ id: 'c:10', name: 'Berlin', lat: 52.52, kind: 'exact' });
+  expect(matcher.match(st({ state: 'Mitte' }))).toMatchObject({ id: 'c:10', name: 'Berlin', kind: 'region' });
+});
+
