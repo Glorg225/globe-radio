@@ -133,5 +133,7 @@
   "place.show": "Карточка места",
   "app.title": "Радио планеты — живое радио со всего мира на 3D-глобусе",
   "footer.byCountry": "Радио по странам",
-  "footer.cookies": "Настройки cookies"
+  "footer.cookies": "Настройки cookies",
+  "browse.title": "Радио по странам",
+  "browse.all": "Все страны →"
 }

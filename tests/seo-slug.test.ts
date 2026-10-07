@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { assignSlugs, slugify } from '../scripts/seo/slug';
+import { assignSlugs, slugify } from '../src/seo/slug';
 
 test('slugify keeps Latin letters and digits, strips diacritics and punctuation', () => {
   expect(slugify('São Paulo')).toBe('sao-paulo');

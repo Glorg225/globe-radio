@@ -25,6 +25,8 @@ import { pickSurprise } from '../player/surprise';
 import type { NetworkStatus } from '../pwa/network';
 import type { SearchResult } from '../search/search-index';
 import { buildShareUrl, parseShareParams, resolveShared, stripShareParams } from '../share/share-link';
+import { topCountries, type CountryLink } from '../seo/country';
+import { renderBrowseCountries } from '../ui/browse-countries';
 import { createMobileNav } from '../ui/mobile-nav';
 import { createSearchBox } from '../ui/search-box';
 import { attachSheetDrag } from '../ui/sheet';
@@ -90,6 +92,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   let focusStar: { id: string; index: number } | null = null;
   let pickToken = 0;
   let byId = new Map<string, Place>();
+  let countries: CountryLink[] = [];
 
   const storedVolume = Number(read(VOLUME_KEY) ?? '0.8');
   let volume = Number.isFinite(storedVolume) && storedVolume >= 0 && storedVolume <= 1 ? storedVolume : 0.8;
@@ -292,7 +295,10 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     if (tab === 'here') {
       saved = null;
       if (selected) void renderList(selected, true);
-      else renderListMessage(refs.panelBody, t('panel.empty'));
+      else {
+        renderListMessage(refs.panelBody, t('panel.empty'));
+        if (countries.length) refs.panelBody.append(renderBrowseCountries(i18n, countries));
+      }
       return;
     }
     list = null;
@@ -500,6 +506,8 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   }
   refs.status.textContent = '';
   byId = new Map(places.map((p) => [p.id, p]));
+  countries = topCountries(places);
+  if (tab === 'here' && !selected) renderTab();
   base = createClusterer(places);
   layer = base;
   languages = buildLanguageIndex(places, i18n.locale);
@@ -516,6 +524,8 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   createSearchBox(refs.searchInput, i18n, {
     search: (q) => { track('search', { search_term: q }); return searchIndex.search(q); },
     prefetch: () => searchIndex.prefetch?.(),
+    // On a wide screen the Here tab already shows the block when nothing is selected: no duplicate under the field.
+    browse: () => (countries.length && (d.narrow?.() || !refs.panelBody.querySelector('.browse')) ? renderBrowseCountries(i18n, countries) : null),
     placeLabel: (p) => placeLabel(p),
     onPlace: (p) => { closeSearch(); nav.set('globe'); view?.flyTo(p.lat, p.lon); void selectPlace(p); },
     onStation: async (h) => {

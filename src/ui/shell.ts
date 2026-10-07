@@ -6,6 +6,7 @@ import './tokens.css';
 import './shell.css';
 import './learn.css';
 import './conveniences.css';
+import './browse.css';
 import './mobile.css';
 
 export interface ShellRefs {

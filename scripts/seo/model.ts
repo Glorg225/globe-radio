@@ -1,10 +1,10 @@
 // Groups the station snapshot into the static SEO pages: one per country and one per city.
 import type { Place } from '../../src/data/places';
 import type { PlaceInfo, StationLite } from '../../src/data/shards';
-import { assignSlugs } from './slug';
+import { MIN_STATIONS } from '../../src/seo/country';
+import { assignSlugs } from '../../src/seo/slug';
 
-// A country or city gets its own page only with at least this many stations.
-export const MIN_STATIONS = 3;
+export { MIN_STATIONS };
 
 export interface CityPage { cc: string; name: string; slug: string; lat: number; lon: number; tz: string; stations: StationLite[] }
 // placeNames: the country and all its places, lowercased - station tags with these names are not genres.

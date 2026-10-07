@@ -20,7 +20,7 @@ const st = (id: string, placeId: string): StationLite => ({
 });
 
 function snapshot(dir: string) {
-  const places = [place({ id: 'k:PT', kind: 'country', name: 'Portugal' }), place({ id: 'c:10', name: 'Lisbon' }), place({ id: 'c:20', name: 'Porto' })];
+  const places = [place({ id: 'k:PT', kind: 'country', name: 'Portugal', count: 1 }), place({ id: 'c:10', name: 'Lisbon', count: 3 }), place({ id: 'c:20', name: 'Porto', count: 1 })];
   const stations = [st('1', 'c:10'), st('2', 'c:10'), st('3', 'c:10'), st('4', 'c:20'), st('5', 'k:PT')];
   mkdirSync(join(dir, 'stations'), { recursive: true });
   writeFileSync(join(dir, 'places.json'), JSON.stringify({ v: 2, generated: '2026-10-07T16:21:04.852Z', places: places.map(encodePlace) }));
@@ -60,4 +60,17 @@ test('siteFromEnv: defaults and slashes', () => {
   expect(DEFAULT_SITE_URL).toBe('https://glorg225.github.io/globe-radio');
   expect(siteFromEnv({ VITE_SITE_URL: 'https://x.org/r/', BASE_PATH: '/r' })).toEqual({ url: 'https://x.org/r', base: '/r/' });
   expect(siteFromEnv({ VITE_SITE_URL: '', BASE_PATH: 'r/' })).toEqual({ url: DEFAULT_SITE_URL, base: '/r/' });
+});
+
+test('country links in the app point to generated pages', async () => {
+  const { topCountries } = await import('../src/seo/country');
+  const { decodePlace } = await import('../src/data/places');
+  const data = tmp();
+  const out = tmp();
+  snapshot(data);
+  buildSeoPages({ dataDir: data, outDir: out, site, css });
+  const places = JSON.parse(readFileSync(join(data, 'places.json'), 'utf8')).places.map(decodePlace);
+  const links = topCountries(places);
+  expect(links.map((c) => c.path)).toEqual(['radio/portugal/']);
+  for (const c of links) expect(existsSync(join(out, c.path, 'index.html')), c.path).toBe(true);
 });
