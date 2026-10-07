@@ -1,0 +1,84 @@
+/* Phone and tablet layout (Plan 6). Desktop styles live in shell.css. */
+.install-banner { position: fixed; z-index: 25; inset-inline: 16px; inset-block-end: 150px; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-card); background: var(--surface-card); border: 1px solid var(--border-control); font-size: 13px; color: var(--star); }
+.install-banner__text { flex: 1; }
+.install-banner__go { block-size: 36px; padding-inline: 12px; border-radius: 10px; border: 1px solid var(--border-popover); background: transparent; color: var(--text); font-size: 13px; }
+.install-banner__close { inline-size: 32px; block-size: 32px; border: 0; background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
+.mobile-nav { display: none; }
+@media (max-width: 760px) {
+  .shell { block-size: 100dvh; }
+  .shell__header { block-size: 60px; gap: 8px; padding-inline: 16px 12px; }
+  .logo { inline-size: auto; flex: 1; gap: 8px; }
+  .logo svg { inline-size: 26px; block-size: 26px; }
+  .logo__text { font-size: 16px; }
+  .shell__header .search, .shell__header .spacer, .shell__header [data-action="learn"], .shell__header [data-action="install"] { display: none; }
+  .shell__header [data-action="surprise"] { inline-size: 44px; block-size: 44px; padding: 0; justify-content: center; border-radius: 12px; }
+  .shell__header [data-action="surprise"] span { display: none; }
+  .shell__header .segment { position: fixed; z-index: 6; inset-block-start: 68px; inset-inline-start: 50%; transform: translateX(-50%); padding: 3px; border-radius: 10px; }
+  .shell__header .segment button { block-size: 30px; padding-inline: 14px; border-radius: 8px; font-size: 13px; }
+  .stage__zoom { display: none; }
+  .stage__attribution { inset-block-start: 108px; inset-block-end: auto; inset-inline: 16px; max-inline-size: none; text-align: center; font-size: 10px; line-height: 1.35; opacity: .8; }
+  .panel-body { padding-block-end: 84px; }
+  .mobile-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: fixed; z-index: 12; inset-inline: 0; inset-block-end: 0; block-size: 66px; background: var(--surface); border-block-start: 1px solid var(--border-divider); }
+  .mobile-nav button { border: 0; background: transparent; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; }
+  .mobile-nav__bar { inline-size: 22px; block-size: 3px; border-radius: 2px; background: transparent; }
+  .mobile-nav button.is-active { color: var(--text); }
+  .mobile-nav button.is-active .mobile-nav__bar { background: var(--accent); }
+  .mobile-nav button.is-learning .mobile-nav__bar { background: var(--teal); }
+  .shell.is-searching .shell__header .search { display: flex; position: fixed; z-index: 20; inset-block-start: 0; inset-inline: 0; block-size: 60px; max-inline-size: none; border-radius: 0; border-width: 0 0 1px; background: var(--surface); padding-inline: 16px; }
+  .shell.is-searching .search-pop { position: fixed; inset-block: 60px max(66px, var(--kb, 0px)); inset-inline: 0; inline-size: auto; max-block-size: none; border-radius: 0; border-width: 0; }
+  .learn-pop { position: fixed; z-index: 20; inset-block: 68px max(74px, var(--kb, 0px)); inset-inline: 8px; }
+}
+.sheet__handle { display: none; }
+@media (max-width: 760px) {
+  .sheet__handle { display: block; position: relative; flex-shrink: 0; inline-size: 40px; block-size: 4px; border-radius: 2px; background: var(--border-popover); margin: 10px auto 2px; touch-action: none; }
+  .sheet__handle::before { content: ''; position: absolute; inset: -14px -40px; }
+  .shell__left { display: flex; position: fixed; z-index: 10; inset-inline: 0; inset-block-end: 66px; block-size: 50dvh; inline-size: auto; border-radius: 22px 22px 0 0; border: 1px solid var(--border-card); background: var(--surface-raised); transform: translateY(calc(100% + 66px)); transition: transform .25s ease-out, block-size .25s ease-out; }
+  .shell__left.is-open { transform: none; }
+  .shell__left.is-full { block-size: calc(100dvh - 60px - 66px); }
+  .panel-close { display: inline-flex; }
+  .pcs__handle { position: relative; touch-action: none; }
+  .pcs__handle::before { content: ''; position: absolute; inset: -14px -40px; }
+}
+.pb__more { display: none; }
+.pb__sleepin { display: none; }
+@media (max-width: 760px) {
+  .shell__player { position: fixed; z-index: 11; inset-inline: 8px; inset-block-end: 74px; block-size: 68px; padding: 0 8px 0 10px; gap: 10px; border-radius: 16px; background: var(--surface-mini-player); border: 1px solid var(--border-popover); }
+  .pb__now { gap: 10px; }
+  .pb__tile { inline-size: 46px; block-size: 46px; border-radius: 10px; font-size: 18px; }
+  .pb__name { font-size: 15px; }
+  .pb__meta { font-size: 12px; margin-block-start: 2px; }
+  .pb__live, .pb__star, .pb__next, .pb__right { display: none; }
+  .pb__center { gap: 0; }
+  .pb__more { display: flex; inline-size: 44px; block-size: 44px; border: 0; background: transparent; color: var(--text); align-items: center; justify-content: center; }
+  .pb__play { inline-size: 48px; block-size: 48px; }
+  .shell__player.has-sleep .pb__status { display: none; }
+  .shell__player.has-sleep .pb__sleepin { display: inline; }
+  .more-menu, .sleep-menu { position: fixed; inset-block-end: 150px; inset-inline-end: 8px; }
+}
+.stage__place-toggle { display: none; }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .shell__place { position: fixed; z-index: 10; inset-block: var(--h-header) var(--h-player); inset-inline-end: 0; overflow-y: auto; transform: translateX(100%); transition: transform .25s ease-out; box-shadow: -12px 0 30px rgb(0 0 0 / .35); }
+  .shell__place.is-open { transform: none; }
+  .shell__place .pc__collapse { display: none; }
+  .stage__place-toggle { display: inline-flex; position: absolute; z-index: 3; inset-block-start: 16px; inset-inline-start: 20px; }
+  .pb__sleep span { display: none; }
+  .pb__sleep { padding-inline: 12px; }
+  .pb__range { inline-size: 80px; }
+  .shell__header { gap: 12px; padding-inline: 16px; }
+  .logo { inline-size: auto; }
+  .logo__text, .shell__header .btn span { display: none; }
+  .shell__header [data-action="surprise"], .shell__header [data-action="learn"] { inline-size: 42px; padding: 0; justify-content: center; }
+  .pb__next span { display: none; }
+  .pb__next { inline-size: 44px; padding: 0; justify-content: center; }
+  .shell__player { gap: 14px; padding-inline: 16px; }
+}
+@media (max-width: 760px) { .shell__place { display: none; } }
+
+/* Phone: banners and toasts sit below the fixed "3D | Map" switch; the install banner never covers a sheet or the share card. */
+@media (max-width: 760px) {
+  .net-banner, .learn-banner { margin-block-start: 50px; }
+  .toast { inset-block-start: 56px; z-index: 13; }
+  .shell:has(.shell__left.is-open) .install-banner, .shell:has(.pc-sheet:not([hidden])) .install-banner { display: none; }
+  .shell:has(.share-card) .install-banner { z-index: 35; inset-block-end: 74px; }
+  .share-card { inset-block-start: 44%; }
+}

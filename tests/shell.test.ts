@@ -73,3 +73,22 @@ test('tabs, search input and surprise button are exposed', () => {
   expect(refs.searchInput.type).toBe('search');
   expect(refs.surpriseButton.dataset.action).toBe('surprise');
 });
+
+test('offline banner slot and root are exposed', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.netBanner.hidden).toBe(true);
+  expect(refs.root).toBe(root);
+});
+
+test('phone nav has four sections in mockup order', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.navButtons.map((b) => b.dataset.nav)).toEqual(['globe', 'search', 'favorites', 'learn']);
+  expect(refs.navButtons.map((b) => b.textContent)).toEqual(['Глобус', 'Поиск', 'Избранное', 'Учу язык']);
+  expect(root.querySelector('.mobile-nav')!.getAttribute('aria-label')).toBe('Разделы');
+});
+
+test('tablet place-card toggle is exposed', () => {
+  const refs = renderShell(root, createI18n('ru', ru));
+  expect(refs.placeToggle.getAttribute('aria-label')).toBe('Карточка места');
+  expect(refs.placeToggle.getAttribute('aria-expanded')).toBe('false');
+});

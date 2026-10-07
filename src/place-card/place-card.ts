@@ -4,6 +4,7 @@ import type { PlaceInfo, StationLite } from '../data/shards';
 import type { I18n } from '../i18n/i18n';
 import { escapeHtml } from '../ui/html';
 import { icons } from '../ui/icons';
+import { attachSheetDrag } from '../ui/sheet';
 import { languageNames } from './language';
 import './place-card.css';
 import { diffLabel, formatClock, isValidTimeZone, msUntilNextMinute, offsetMinutes } from './time';
@@ -16,7 +17,7 @@ export interface PlaceCardDeps {
   findArticle(info: PlaceInfo): Promise<WikiResult>;
   now(): Date; userOffset(): number;
 }
-export interface PlaceCard { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void; destroy(): void }
+export interface PlaceCard { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void; reveal(): void; destroy(): void }
 export const COLLAPSE_KEY = 'placeCardCollapsed';
 
 export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps: PlaceCardDeps): PlaceCard {
@@ -50,7 +51,7 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
   sheet.className = 'pc-sheet';
   sheet.hidden = true;
   sheet.innerHTML = `
-    <div class="pcs__handle"></div>
+    <div class="pcs__handle" role="button" tabindex="0" aria-label="${t('place.collapse')}"></div>
     <div class="pcs__top">
       <img class="pcs__flag" width="36" height="24" alt="">
       <div class="pcs__head"><div class="pcs__name"></div><div class="pcs__meta"></div></div>
@@ -59,6 +60,7 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
     <p class="pcs__text"></p>
     <a class="pcs__link" target="_blank" rel="noopener noreferrer"></a>`;
   sheetHost.append(sheet);
+  const detachDrag = attachSheetDrag(sheet, sheet.querySelector<HTMLElement>('.pcs__handle')!, { expandable: false, onClose: () => { sheet.hidden = true; } });
 
   const q = <T extends HTMLElement>(root: HTMLElement, s: string) => root.querySelector<T>(s)!;
   const el = {
@@ -150,6 +152,7 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
         sheet.hidden = true;
         return;
       }
+      sheet.hidden = false;
       // Language depends on the station: refresh it even when the place is the same (pause/resume, next in the same city).
       const langs = languageNames(d.station.langs, i18n.locale) || i18n.t('place.lang.none');
       el.langs.textContent = langs;
@@ -188,9 +191,12 @@ export function createPlaceCard(panel: HTMLElement, sheetHost: HTMLElement, deps
       onLearn = cb;
       renderLearn();
     },
+    // Phone: bring back the sheet the listener swiped away (same station or place picked again).
+    reveal() { if (currentPlaceId) sheet.hidden = false; },
     destroy() {
       token++;
       if (timer !== undefined) clearTimeout(timer);
+      detachDrag();
       sheet.remove();
     },
   };

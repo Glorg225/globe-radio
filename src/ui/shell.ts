@@ -5,6 +5,7 @@ import './tokens.css';
 import './shell.css';
 import './learn.css';
 import './conveniences.css';
+import './mobile.css';
 
 export interface ShellRefs {
   header: HTMLElement; left: HTMLElement; panelBody: HTMLElement; closePanel: HTMLButtonElement;
@@ -13,6 +14,8 @@ export interface ShellRefs {
   placeCard: HTMLElement; player: HTMLElement;
   banner: HTMLElement; learnButton: HTMLButtonElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
+  netBanner: HTMLElement; root: HTMLElement; installButton: HTMLButtonElement;
+  navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement; placeToggle: HTMLButtonElement;
 }
 
 export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
@@ -35,8 +38,10 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       <button class="btn btn--outline btn--icon" data-action="install" aria-label="${t('header.install')}">${icons.download}</button>
     </header>
     <div class="learn-banner" hidden></div>
+    <div class="net-banner" hidden></div>
     <div class="shell__body">
       <aside class="shell__left">
+        <div class="sheet__handle" role="button" tabindex="0" aria-label="${t('sheet.handle')}"></div>
         <div class="panel-top">
           <nav class="tabs">
             <button class="tabs__tab is-active" data-tab="here">${t('panel.tabs.here')}</button>
@@ -50,6 +55,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       <main class="shell__stage">
         <div class="stage__stars" aria-hidden="true"></div>
         <div class="stage__map"></div>
+        <button class="btn btn--outline btn--icon stage__place-toggle" type="button" aria-label="${t('place.show')}" aria-expanded="false">${icons.info}</button>
         <p class="stage__status" role="status"></p>
         <div class="stage__zoom">
           <button data-zoom="in" aria-label="${t('map.zoomIn')}">+</button>
@@ -65,6 +71,12 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       </aside>
     </div>
     <footer class="shell__player"></footer>
+    <nav class="mobile-nav" aria-label="${t('nav.label')}">
+      <button type="button" data-nav="globe"><span class="mobile-nav__bar"></span><span>${t('nav.globe')}</span></button>
+      <button type="button" data-nav="search"><span class="mobile-nav__bar"></span><span>${t('nav.search')}</span></button>
+      <button type="button" data-nav="favorites"><span class="mobile-nav__bar"></span><span>${t('nav.favorites')}</span></button>
+      <button type="button" data-nav="learn"><span class="mobile-nav__bar"></span><span>${t('nav.learn')}</span></button>
+    </nav>
   `;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
   return {
@@ -86,5 +98,11 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     tabs: [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')],
     searchInput: q<HTMLInputElement>('.search input'),
     surpriseButton: q<HTMLButtonElement>('[data-action="surprise"]'),
+    netBanner: q('.net-banner'),
+    root,
+    installButton: q<HTMLButtonElement>('[data-action="install"]'),
+    navButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-nav]')],
+    sheetHandle: q('.sheet__handle'),
+    placeToggle: q<HTMLButtonElement>('.stage__place-toggle'),
   };
 }

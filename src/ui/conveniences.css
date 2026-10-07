@@ -22,3 +22,7 @@
 .share-card__listen { inline-size: 100%; block-size: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: var(--r-control); background: var(--accent); color: var(--on-accent); font-size: 16px; font-weight: 600; }
 .share-card__note { margin: 0; font-size: 12px; color: var(--text-faint); }
 .share-card__globe { border: 0; background: none; color: var(--link); font-size: 14px; }
+.more-menu { position: absolute; z-index: 20; inset-block-end: 56px; display: flex; flex-direction: column; padding: 6px; border-radius: var(--r-card); background: var(--surface-raised); border: 1px solid var(--border-popover); }
+.more-menu button { padding: 10px 14px; border: 0; border-radius: 10px; background: transparent; color: var(--text); text-align: start; font-size: 15px; }
+.more-menu button:hover, .more-menu button:focus-visible { background: var(--item-selected); }
+.pb__center { position: relative; }

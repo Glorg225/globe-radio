@@ -555,3 +555,251 @@ test('a malformed shared link is removed from the address and reported (review f
   expect(deps.replaceUrl).toHaveBeenCalledWith('https://u/globe-radio/?lang=ru');
   expect(deps.refs.stage.textContent).toContain('Станция из ссылки больше не вещает');
 });
+
+function fakeNet(on: boolean) {
+  const ls = new Set<(o: boolean) => void>();
+  return { on, online() { return this.on; }, subscribe(l: (o: boolean) => void) { ls.add(l); return () => { ls.delete(l); }; }, set(o: boolean) { this.on = o; ls.forEach((l) => l(o)); } };
+}
+
+test('offline: picking a station says the stream is unavailable at once, nothing connects (review focus 2)', async () => {
+  const net = fakeNet(false);
+  const app = await startApp({ ...deps, network: net });
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(player.play).not.toHaveBeenCalled();
+  expect(deps.refs.stage.textContent).toContain('Нет подключения — эфир недоступен');
+  net.set(true);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(player.play).toHaveBeenCalled();
+});
+
+test('offline start with no cached places: error status, no endless loading (review focus 2)', async () => {
+  await startApp({ ...deps, network: fakeNet(false), loadPlaces: async () => { throw new Error('offline'); } });
+  expect(deps.refs.status.textContent).not.toBe('Загружаем станции…');
+  expect(deps.refs.status.textContent).not.toBe('');
+});
+
+test('shared link switches the install banner to the share context and back', async () => {
+  const ID = '96062a7b-0601-11e8-ae97-52543be04c81';
+  shards.get.mockResolvedValue([{ ...st('x', 'c:1', 1, ['pt']), id: ID }]);
+  const installUi = { setContext: vi.fn() };
+  await startApp({ ...deps, installUi, narrow: () => true, location: { href: `https://u/?station=${ID}&c=PT`, search: `?station=${ID}&c=PT` } });
+  await flush();
+  expect(installUi.setContext).toHaveBeenLastCalledWith('share');
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+  (deps.refs.stage.querySelector('.share-card__globe') as HTMLButtonElement).click();
+  expect(installUi.setContext).toHaveBeenLastCalledWith('normal');
+});
+
+const navBtn = (n: string) => deps.refs.navButtons.find((b) => b.dataset.nav === n)!;
+
+test('phone nav: search opens the search screen; a picked place returns to the globe', async () => {
+  await startApp(deps);
+  navBtn('search').click();
+  expect(deps.refs.root.classList.contains('is-searching')).toBe(true);
+  expect(document.activeElement).toBe(deps.refs.searchInput);
+  expect(navBtn('search').getAttribute('aria-current')).toBe('page');
+  deps.refs.searchInput.value = 'ра';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  (document.querySelector('.search-pop__item') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.root.classList.contains('is-searching')).toBe(false);
+  expect(navBtn('globe').getAttribute('aria-current')).toBe('page');
+});
+
+test('phone nav: favorites opens the saved list, globe closes it, learn opens the picker and marks learning', async () => {
+  const app = await startApp(deps);
+  navBtn('favorites').click();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(true);
+  expect(deps.refs.tabs[1].classList.contains('is-active')).toBe(true);
+  navBtn('globe').click();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+  navBtn('learn').click();
+  expect(document.querySelector('.learn-pop')).not.toBeNull();
+  app.learn('en');
+  expect(navBtn('learn').classList.contains('is-learning')).toBe(true);
+});
+
+test('phone: picking a station closes the list sheet so the place card shows; the handle can close it', async () => {
+  const app = await startApp({ ...deps, narrow: () => true });
+  await app.selectPlace(lisbon);
+  expect(deps.refs.left.classList.contains('is-open')).toBe(true);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+  expect(player.play).toHaveBeenCalled();
+  await app.selectPlace(lisbon);
+  deps.refs.sheetHandle.dispatchEvent(new MouseEvent('pointerdown', { clientY: 300, bubbles: true }));
+  document.dispatchEvent(new MouseEvent('pointerup', { clientY: 400, bubbles: true }));
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+});
+
+test('desktop: picking a station keeps the list open', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(true);
+});
+
+test('mini-player "more" menu: sleep, share and favorite', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  const more = deps.refs.player.querySelector('.pb__more') as HTMLButtonElement;
+  more.click();
+  const labels = [...document.querySelectorAll('.more-menu button')].map((b) => b.textContent);
+  expect(labels).toEqual(['Сон', 'Поделиться', 'В избранное']);
+  ([...document.querySelectorAll('.more-menu button')][2] as HTMLButtonElement).click();
+  expect(deps.library.isFavorite('a')).toBe(true);
+  more.click();
+  ([...document.querySelectorAll('.more-menu button')][0] as HTMLButtonElement).click();
+  expect(document.querySelector('.sleep-menu')).not.toBeNull();
+});
+
+test('tablet: the toggle opens and closes the place-card drawer; Escape closes it', async () => {
+  await startApp(deps);
+  deps.refs.placeToggle.click();
+  expect(deps.refs.placeCard.classList.contains('is-open')).toBe(true);
+  expect(deps.refs.placeToggle.getAttribute('aria-expanded')).toBe('true');
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(deps.refs.placeCard.classList.contains('is-open')).toBe(false);
+  expect(deps.refs.placeToggle.getAttribute('aria-expanded')).toBe('false');
+});
+
+test('saved tab: the star keeps keyboard focus; the highlight follows the playing station', async () => {
+  deps.library.toggleFavorite({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  deps.library.toggleFavorite({ id: 'b', name: 'Radio b', placeId: 'c:1', cc: 'PT', favicon: '' });
+  const app = await startApp(deps);
+  app.tab('history');
+  deps.library.remember({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  (deps.refs.panelBody.querySelector('.station__star') as HTMLButtonElement).click();
+  expect(document.activeElement).toBe(deps.refs.panelBody.querySelector('.station__star'));
+  app.tab('favorites');
+  player.set({ kind: 'playing', station: st('b', 'c:1') });
+  expect(deps.refs.panelBody.querySelector('.station.is-playing .station__name')!.textContent).toBe('Radio b');
+});
+
+test('back to "Here" shows loading at once instead of the old saved list', async () => {
+  const app = await startApp(deps);
+  await app.selectPlace(lisbon);
+  app.tab('favorites');
+  shards.get.mockImplementationOnce(() => new Promise(() => {}));
+  app.tab('here');
+  expect(deps.refs.panelBody.textContent).toBe('Загружаем станции…');
+});
+
+test('the last pick wins over a slower earlier one', async () => {
+  deps.library.toggleFavorite({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  deps.library.toggleFavorite({ id: 'p', name: 'Radio p', placeId: 'c:2', cc: 'PT', favicon: '' });
+  let releaseSlow!: (v: StationLite[]) => void;
+  shards.get.mockImplementationOnce(() => new Promise((r) => { releaseSlow = r; }));
+  const app = await startApp(deps);
+  app.tab('favorites');
+  const picks = () => [...deps.refs.panelBody.querySelectorAll('.station__pick')] as HTMLButtonElement[];
+  picks()[1].click();
+  picks()[0].click();
+  await flush();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'p' }));
+  releaseSlow(pt);
+  await flush();
+  expect(player.play).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'p' }));
+  expect(player.play).toHaveBeenCalledTimes(1);
+});
+
+test('honest messages: search hit missing from the data; country file failed to load', async () => {
+  const app = await startApp({ ...deps, createSearch: () => ({ search: async () => ({ places: [], stations: [{ name: 'Ghost FM', place: lisbon }] }) }) });
+  deps.refs.searchInput.value = 'gh';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  (document.querySelector('.search-pop__item') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.stage.textContent).toContain('Станция больше не вещает');
+  deps.library.toggleFavorite({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  app.tab('favorites');
+  shards.get.mockRejectedValueOnce(new Error('offline'));
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.stage.textContent).toContain('Не удалось загрузить станции этого места');
+});
+
+test('phone: «Удиви меня» and a station from search close the list so the place card shows', async () => {
+  const app = await startApp({ ...deps, narrow: () => true });
+  await app.surprise();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+  expect(player.play).toHaveBeenCalled();
+  deps.refs.searchInput.value = 'ра';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  ([...document.querySelectorAll('.search-pop__item')][1] as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.left.classList.contains('is-open')).toBe(false);
+});
+
+test('shared link works with a live location that changes when the address is cleaned (regression)', async () => {
+  const ID = '96062a7b-0601-11e8-ae97-52543be04c81';
+  shards.get.mockResolvedValue([{ ...st('x', 'c:1', 1, ['pt']), id: ID }]);
+  const loc = { href: `https://u/?station=${ID}&c=PT`, search: `?station=${ID}&c=PT` };
+  const replaceUrl = vi.fn((url: string) => { loc.href = url; loc.search = new URL(url).search; });
+  await startApp({ ...deps, location: loc, replaceUrl });
+  await flush();
+  expect(replaceUrl).toHaveBeenCalledWith('https://u/');
+  expect(deps.refs.stage.querySelector('.share-card')).not.toBeNull();
+});
+
+test('review: offline, Play on a paused station does not start an 8-second connect', async () => {
+  const net = fakeNet(true);
+  const app = await startApp({ ...deps, network: net });
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  player.set({ kind: 'paused', station: st('a', 'c:1') });
+  net.set(false);
+  (deps.refs.player.querySelector('.pb__play') as HTMLButtonElement).click();
+  expect(player.toggle).not.toHaveBeenCalled();
+  expect(deps.refs.stage.textContent).toContain('Нет подключения — эфир недоступен');
+  document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true }));
+  expect(player.toggle).not.toHaveBeenCalled();
+});
+
+test('review: offline with no places, tapping a favorite says there is no connection', async () => {
+  deps.library.toggleFavorite({ id: 'a', name: 'Radio a', placeId: 'c:1', cc: 'PT', favicon: '' });
+  const app = await startApp({ ...deps, network: fakeNet(false), loadPlaces: async () => { throw new Error('offline'); } });
+  app.tab('favorites');
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.stage.textContent).toContain('Нет подключения — эфир недоступен');
+  expect(deps.refs.stage.textContent).not.toContain('Станция больше не вещает');
+});
+
+test('review: a searched station whose country file fails says so', async () => {
+  await startApp({ ...deps, narrow: () => true });
+  shards.get.mockRejectedValue(new Error('net'));
+  deps.refs.searchInput.value = 'ра';
+  deps.refs.searchInput.dispatchEvent(new Event('input'));
+  await new Promise((r) => setTimeout(r, 200));
+  ([...document.querySelectorAll('.search-pop__item')][1] as HTMLButtonElement).click();
+  await flush();
+  expect(deps.refs.stage.textContent).toContain('Не удалось загрузить станции этого места');
+});
+
+test('review: Space on a sheet handle does not toggle playback', async () => {
+  await startApp(deps);
+  deps.refs.sheetHandle.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true, cancelable: true }));
+  expect(player.toggle).not.toHaveBeenCalled();
+});
+
+test('review: picking the playing place or station again reveals the swiped-away place card', async () => {
+  const reveal = vi.fn();
+  const app = await startApp({ ...deps, card: { show: vi.fn(), setLearn: vi.fn(), reveal } });
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  reveal.mockClear();
+  await app.selectPlace(lisbon);
+  expect(reveal).toHaveBeenCalled();
+});

@@ -202,3 +202,29 @@ test('no recognised station language → no learn button (review focus 5)', () =
   card.show({ place: { ...lisbon, id: 'c:9' }, station: st(['zz']), info });
   expect(q('.pc__learn').hidden).toBe(true);
 });
+
+test('phone sheet: swipe down hides it; the next station shows it again', async () => {
+  const card = createPlaceCard(panel, stage, deps);
+  card.show({ place: lisbon, station: st(), info });
+  await flush();
+  const sheet = stage.querySelector('.pc-sheet') as HTMLElement;
+  const handle = sheet.querySelector('.pcs__handle') as HTMLElement;
+  expect(handle.getAttribute('role')).toBe('button');
+  handle.dispatchEvent(new MouseEvent('pointerdown', { clientY: 300, bubbles: true }));
+  document.dispatchEvent(new MouseEvent('pointerup', { clientY: 400, bubbles: true }));
+  expect(sheet.hidden).toBe(true);
+  card.show({ place: lisbon, station: { ...st(), id: 's2' }, info });
+  expect(sheet.hidden).toBe(false);
+});
+
+test('review: reveal brings the swiped-away phone sheet back', async () => {
+  const card = createPlaceCard(panel, stage, deps);
+  card.show({ place: lisbon, station: st(), info });
+  const sheet = stage.querySelector('.pc-sheet') as HTMLElement;
+  sheet.hidden = true;
+  card.reveal();
+  expect(sheet.hidden).toBe(false);
+  card.show(null);
+  card.reveal();
+  expect(sheet.hidden).toBe(true);
+});

@@ -21,12 +21,16 @@ import { toSaved, type Library, type SavedStation } from '../library/library';
 import { formatClock, isValidTimeZone } from '../place-card/time';
 import type { SleepTimer } from '../player/sleep-timer';
 import { pickSurprise } from '../player/surprise';
+import type { NetworkStatus } from '../pwa/network';
 import type { SearchResult } from '../search/search-index';
 import { buildShareUrl, parseShareParams, resolveShared, stripShareParams } from '../share/share-link';
+import { createMobileNav } from '../ui/mobile-nav';
 import { createSearchBox } from '../ui/search-box';
+import { attachSheetDrag } from '../ui/sheet';
 import { showShareCard } from '../ui/share-card';
+import { openMoreMenu } from '../ui/more-menu';
 import { openSleepMenu } from '../ui/sleep-menu';
-import { renderListMessage, renderSavedList, renderStationList, type StationListHandle } from '../ui/station-list';
+import { renderListMessage, renderSavedList, renderStationList, type SavedListHandle, type StationListHandle } from '../ui/station-list';
 import { showToast } from '../ui/toast';
 
 export interface AppDeps {
@@ -36,7 +40,7 @@ export interface AppDeps {
   player: Player; blacklist: Blacklist;
   hasWebGL: boolean; narrowTouch: boolean;
   measureFps(): Promise<number>;
-  card: { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void };
+  card: { show(d: PlaceCardData | null): void; setLearn(code: string | null, onLearn: (code: string) => void): void; reveal?(): void };
   mediaSession?: MediaSession;
   library: Library;
   sleep: SleepTimer;
@@ -47,6 +51,9 @@ export interface AppDeps {
   flagUrl(cc: string): string | null;
   now(): Date;
   fetchFn?: typeof fetch;
+  network?: NetworkStatus;
+  installUi?: { setContext(c: 'share' | 'normal'): void };
+  narrow?(): boolean;
 }
 export type PanelTab = 'here' | 'favorites' | 'history';
 export interface AppHandle {
@@ -78,6 +85,9 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   let playingPlace: Place | null = null;
   let list: { placeId: string; handle: StationListHandle } | null = null;
   let tab: PanelTab = 'here';
+  let saved: SavedListHandle | null = null;
+  let focusStar: { id: string; index: number } | null = null;
+  let pickToken = 0;
   let byId = new Map<string, Place>();
 
   const storedVolume = Number(read(VOLUME_KEY) ?? '0.8');
@@ -104,8 +114,25 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   };
 
   let sleepChoice: number | null = null;
+  // Offline: say so at once instead of letting the player wait for the 8-second stream timeout.
+  const offlineBlocked = () => {
+    if (!d.network || d.network.online()) return false;
+    showToast(refs.stage, t('net.offlinePlay'));
+    return true;
+  };
+  const togglePlay = () => {
+    const kind = player.getState().kind;
+    if (kind !== 'loading' && kind !== 'playing' && offlineBlocked()) return;
+    player.toggle();
+  };
+  const openSleep = (anchor: HTMLElement) => {
+    openSleepMenu(anchor, i18n, sleepChoice, (m) => {
+      sleepChoice = m;
+      if (m) d.sleep.start(m); else d.sleep.cancel();
+    });
+  };
   const bar = createPlayerBar(refs.player, i18n, {
-    onToggle: () => player.toggle(),
+    onToggle: togglePlay,
     onNext: () => { void next(); },
     onVolume: (v) => {
       volume = v;
@@ -117,17 +144,23 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     onMute: () => { muted = !muted; player.setMuted(muted); write(MUTE_KEY, muted ? '1' : '0'); renderBar(); },
     onFavorite: () => { const s = player.getState(); if (s.kind !== 'idle') d.library.toggleFavorite(toSaved(s.station)); },
     onShare: () => { void shareCurrent(); },
-    onSleep: (anchor) => {
-      openSleepMenu(anchor, i18n, sleepChoice, (m) => {
-        sleepChoice = m;
-        if (m) d.sleep.start(m); else d.sleep.cancel();
-      });
+    onSleep: openSleep,
+    onMore: (anchor) => {
+      const s = player.getState();
+      if (s.kind === 'idle') return;
+      const fav = d.library.isFavorite(s.station.id);
+      openMoreMenu(anchor, t('player.more'), [
+        { label: t('player.sleep'), onClick: () => openSleep(anchor) },
+        { label: t('player.share'), onClick: () => { void shareCurrent(); } },
+        { label: t(fav ? 'station.unfavorite' : 'station.favorite'), onClick: () => { d.library.toggleFavorite(toSaved(s.station)); } },
+      ]);
     },
   });
   const renderBar = () => bar.render({
     state: player.getState(), place: placeLabel(playingPlace), volume, muted,
     nextLabel: learnCode ? t('learn.next', { langPrep }) : undefined,
     favorite: (() => { const s = player.getState(); return s.kind !== 'idle' && d.library.isFavorite(s.station.id); })(),
+    sleepMinutes: d.sleep.minutesLeft() ?? undefined,
     sleepLabel: (() => { const m = d.sleep.minutesLeft(); return m === null ? undefined : t('sleep.active', { m }); })(),
   });
   d.sleep.subscribe(() => {
@@ -159,7 +192,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
         subtitle,
         stations,
         playingId: state.kind === 'idle' ? null : state.station.id,
-        onPick: (s) => { void playStation(s, place); },
+        onPick: (s) => { if (d.narrow?.()) { closeSheet(); nav.set('globe'); } void playStation(s, place); },
         learn: lang ? { tip: t('learn.tip'), talkLabel: t('learn.talk') } : undefined,
         favorites: { isFavorite: (id) => d.library.isFavorite(id), onToggle: (s) => { d.library.toggleFavorite(toSaved(s)); } },
       });
@@ -173,6 +206,8 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   async function selectPlace(p: Place) {
     selected = p;
     showTab('here');
+    nav.set('globe');
+    if (playingPlace && p.id === playingPlace.id) d.card.reveal?.();
     refs.left.classList.add('is-open');
     await renderList(p);
   }
@@ -182,6 +217,9 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   const RECENT_LIMIT = 30;
 
   async function playStation(s: StationLite, p: Place) {
+    pickToken++;
+    if (offlineBlocked()) return;
+    d.card.reveal?.();
     recent.splice(0, recent.length, ...recent.filter((id) => id !== s.id), s.id);
     if (recent.length > RECENT_LIMIT) recent.shift();
     playingPlace = p;
@@ -235,9 +273,10 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       d.mediaSession,
       station ? { title: station.name, artist: placeLabel(playingPlace), artwork: station.favicon } : null,
       s.kind === 'playing' || s.kind === 'loading' ? 'playing' : s.kind === 'idle' ? 'none' : 'paused',
-      { play: () => player.toggle(), pause: () => player.pause(), next: () => { void next(); } },
+      { play: togglePlay, pause: () => player.pause(), next: () => { void next(); } },
     );
     if (tab === 'here' && list && selected && list.placeId === selected.id) list.handle.setPlaying(station?.id ?? null);
+    if (tab !== 'here') saved?.setPlaying(station?.id ?? null);
     void updateCard(station);
   });
 
@@ -249,21 +288,28 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   const savedSub = (item: SavedStation) => placeLabel(byId.get(item.placeId) ?? null) || countryName(item.cc, i18n.locale);
   function renderTab() {
     if (tab === 'here') {
-      if (selected) void renderList(selected, false);
+      saved = null;
+      if (selected) void renderList(selected, true);
       else renderListMessage(refs.panelBody, t('panel.empty'));
       return;
     }
     list = null;
     const st = player.getState();
-    renderSavedList(refs.panelBody, i18n, {
-      items: tab === 'favorites' ? d.library.favorites() : d.library.history(),
+    const items = tab === 'favorites' ? d.library.favorites() : d.library.history();
+    saved = renderSavedList(refs.panelBody, i18n, {
+      items,
+      focus: focusStar ?? undefined,
       playingId: st.kind === 'idle' ? null : st.station.id,
       empty: t(tab === 'favorites' ? 'library.emptyFavorites' : 'library.emptyHistory'),
       sub: savedSub,
-      onPick: (item) => { void playSaved(item); },
+      onPick: (item) => { if (d.narrow?.()) { closeSheet(); nav.set('globe'); } void playSaved(item); },
       isFavorite: (id) => d.library.isFavorite(id),
-      onToggleFavorite: (item) => { d.library.toggleFavorite(item); },
+      onToggleFavorite: (item) => {
+        focusStar = { id: item.id, index: items.findIndex((x) => x.id === item.id) };
+        d.library.toggleFavorite(item);
+      },
     });
+    focusStar = null;
   }
   function setTab(name: PanelTab) {
     showTab(name);
@@ -271,6 +317,24 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     renderTab();
   }
   for (const b of refs.tabs) b.addEventListener('click', () => setTab(b.dataset.tab as PanelTab));
+  // Phone: bottom menu, search screen and the list sheet.
+  const closeSearch = () => refs.root.classList.remove('is-searching');
+  const closeSheet = () => refs.left.classList.remove('is-open', 'is-full');
+  const nav = createMobileNav(refs.navButtons, {
+    onGlobe: () => { closeSearch(); closeSheet(); nav.set('globe'); },
+    onSearch: () => { closeSheet(); refs.root.classList.add('is-searching'); refs.searchInput.focus(); nav.set('search'); },
+    onFavorites: () => { closeSearch(); setTab('favorites'); nav.set('favorites'); },
+    onLearn: () => { closeSearch(); refs.learnButton.click(); },
+  });
+  refs.closePanel.addEventListener('click', () => nav.set('globe'));
+  // Tablet: the place card is a drawer on the right.
+  const setPlaceDrawer = (open: boolean) => {
+    refs.placeCard.classList.toggle('is-open', open);
+    refs.placeToggle.setAttribute('aria-expanded', String(open));
+  };
+  refs.placeToggle.addEventListener('click', () => setPlaceDrawer(!refs.placeCard.classList.contains('is-open')));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && refs.placeCard.classList.contains('is-open')) setPlaceDrawer(false); });
+  attachSheetDrag(refs.left, refs.sheetHandle, { expandable: true, onClose: () => { closeSheet(); nav.set('globe'); } });
   d.library.subscribe(() => {
     if (tab !== 'here') renderTab();
     list?.handle.refreshFavorites();
@@ -278,13 +342,20 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   });
 
   async function playSaved(item: SavedStation) {
+    if (offlineBlocked()) return;
+    const my = ++pickToken;
     const place = byId.get(item.placeId);
     let station: StationLite | undefined;
-    try { station = (await d.shards.get(item.cc)).find((s) => s.id === item.id); } catch { station = undefined; }
+    try {
+      station = (await d.shards.get(item.cc)).find((s) => s.id === item.id);
+    } catch {
+      if (my === pickToken) showToast(refs.stage, t('list.loadError'));
+      return;
+    }
+    if (my !== pickToken) return;
     if (!station || !place) { showToast(refs.stage, t('library.gone')); return; }
     view?.flyTo(place.lat, place.lon);
     await playStation(station, place);
-    if (tab !== 'here') renderTab();
   }
 
   async function surprise() {
@@ -299,6 +370,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     if (!found) { showToast(refs.stage, t('surprise.none')); return; }
     view?.flyTo(found.place.lat, found.place.lon);
     void selectPlace(found.place);
+    if (d.narrow?.()) closeSheet();
     await playStation(found.station, found.place);
   }
   refs.surpriseButton.addEventListener('click', () => { void surprise(); });
@@ -317,21 +389,25 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
 
   // A shared link (?station=...) opens a card; sound starts only after the "Listen" tap.
   async function openShared() {
-    if (!new URLSearchParams(d.location.search).has('station')) return;
+    // Read the link before cleaning the address: d.location is live in the browser.
+    const search = d.location.search;
+    if (!new URLSearchParams(search).has('station')) return;
+    const params = parseShareParams(search);
     d.replaceUrl(stripShareParams(d.location.href));
-    const params = parseShareParams(d.location.search);
     if (!params) { showToast(refs.stage, t('share.gone')); return; }
     const found = await resolveShared(params, { places, shards: d.shards, fetchFn: d.fetchFn });
     if (!found) { showToast(refs.stage, t('share.gone')); return; }
     view?.flyTo(found.place.lat, found.place.lon);
     void selectPlace(found.place);
+    if (d.narrow?.()) refs.left.classList.remove('is-open');
+    d.installUi?.setContext('share');
     let tz = '';
     try { tz = (await d.shards.info(found.place.cc)).get(found.place.id)?.tz ?? ''; } catch { tz = ''; }
     const where = placeLabel(found.place);
     const line = isValidTimeZone(tz) ? t('share.placeTime', { place: where, time: formatClock(tz, d.now(), i18n.locale) }) : where;
     showShareCard(refs.stage, i18n, { name: found.station.name, flag: d.flagUrl(found.place.cc), line }, {
-      onListen: () => { void playStation(found.station, found.place); },
-      onClose: () => {},
+      onListen: () => { d.installUi?.setContext('normal'); void playStation(found.station, found.place); },
+      onClose: () => { d.installUi?.setContext('normal'); },
     });
   }
 
@@ -376,11 +452,11 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   refs.zoomOut.addEventListener('click', () => view?.zoomBy(0.5));
   refs.closePanel.addEventListener('click', () => refs.left.classList.remove('is-open'));
   document.addEventListener('keydown', (e) => {
-    if (e.code !== 'Space') return;
+    if (e.code !== 'Space' || e.defaultPrevented) return;
     const target = e.target as HTMLElement | null;
-    if (target?.closest?.('input, textarea, select, button, [contenteditable]')) return;
+    if (target?.closest?.('input, textarea, select, button, [contenteditable], [role="button"]')) return;
     e.preventDefault();
-    player.toggle();
+    togglePlay();
   });
 
   let picker: { update(): void } | null = null;
@@ -392,6 +468,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     if (base) layer = layered(base, code ? createClusterer(places, (p) => p.langs?.[code] ?? 0) : null);
     view?.refresh();
     picker?.update();
+    nav.setLearning(!!entry);
     banner.show(entry);
     d.card.setLearn(code, (c) => learnState?.set(c));
     renderBar();
@@ -429,14 +506,23 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     search: (q) => searchIndex.search(q),
     prefetch: () => searchIndex.prefetch?.(),
     placeLabel: (p) => placeLabel(p),
-    onPlace: (p) => { view?.flyTo(p.lat, p.lon); void selectPlace(p); },
+    onPlace: (p) => { closeSearch(); nav.set('globe'); view?.flyTo(p.lat, p.lon); void selectPlace(p); },
     onStation: async (h) => {
+      closeSearch();
+      nav.set('globe');
+      if (offlineBlocked()) return;
+      const my = ++pickToken;
       view?.flyTo(h.place.lat, h.place.lon);
       void selectPlace(h.place);
-      try {
-        const station = (await d.shards.get(h.place.cc)).find((s) => s.placeId === h.place.id && s.name === h.name);
-        if (station) await playStation(station, h.place);
-      } catch { /* the list shows the load error */ }
+      if (d.narrow?.()) closeSheet();
+      let station: StationLite | undefined;
+      try { station = (await d.shards.get(h.place.cc)).find((s) => s.placeId === h.place.id && s.name === h.name); } catch {
+        if (my === pickToken) showToast(refs.stage, t('list.loadError'));
+        return;
+      }
+      if (my !== pickToken) return;
+      if (!station) { showToast(refs.stage, t('library.gone')); return; }
+      await playStation(station, h.place);
     },
   });
   await mountSafe(initialMode({ saved: read(MODE_STORAGE_KEY), hasWebGL: d.hasWebGL, narrowTouch: d.narrowTouch }));

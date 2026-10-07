@@ -98,3 +98,30 @@ test('focusing the field starts loading the index (spec: first click)', () => {
   input.dispatchEvent(new FocusEvent('focus'));
   expect(prefetch).toHaveBeenCalled();
 });
+
+test('combobox semantics: expanded state, active option announced, Tab closes', async () => {
+  createSearchBox(input, i18n, d);
+  expect(input.getAttribute('role')).toBe('combobox');
+  expect(input.getAttribute('aria-expanded')).toBe('false');
+  await type('lis');
+  expect(input.getAttribute('aria-expanded')).toBe('true');
+  expect(input.getAttribute('aria-controls')).toBe(pop()!.id);
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+  const first = pop()!.querySelector('.search-pop__item')!;
+  expect(input.getAttribute('aria-activedescendant')).toBe(first.id);
+  expect(first.getAttribute('aria-selected')).toBe('true');
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+  expect(pop()).toBeNull();
+  expect(input.getAttribute('aria-expanded')).toBe('false');
+});
+
+test('Enter between a new keystroke and its results does not run the old result', async () => {
+  createSearchBox(input, i18n, d);
+  await type('lis');
+  input.value = 'lisb';
+  input.dispatchEvent(new Event('input'));
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  expect(d.onPlace).not.toHaveBeenCalled();
+  expect(d.onStation).not.toHaveBeenCalled();
+});

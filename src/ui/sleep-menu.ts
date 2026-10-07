@@ -22,7 +22,18 @@ export function openSleepMenu(anchor: HTMLElement, i18n: I18n, current: number |
     b.addEventListener('click', () => { close(); onPick(m); });
     menu.append(b);
   }
-  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { close(); anchor.focus(); } };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') { close(); anchor.focus(); return; }
+    if (e.key === 'Tab') { close(); return; }
+    const list = [...menu.querySelectorAll<HTMLButtonElement>('button')];
+    const i = list.indexOf(document.activeElement as HTMLButtonElement);
+    const to = e.key === 'ArrowDown' ? (i + 1) % list.length
+      : e.key === 'ArrowUp' ? (i - 1 + list.length) % list.length
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? list.length - 1
+      : -1;
+    if (to >= 0) { e.preventDefault(); list[to].focus(); }
+  };
   const onOutside = (e: MouseEvent) => { if (!menu.contains(e.target as Node) && !anchor.contains(e.target as Node)) close(); };
   function close() {
     if (open?.close === close) open = null;

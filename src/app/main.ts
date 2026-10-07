@@ -17,7 +17,15 @@ import { resolveStreamUrl } from '../player/stream-url';
 import { createSleepTimer } from '../player/sleep-timer';
 import { createSearchIndex } from '../search/search-index';
 import { shareStation } from '../share/share';
+import { registerSW } from 'virtual:pwa-register';
+import { createNetworkStatus } from '../pwa/network';
+import { createInstall } from '../pwa/install';
+import { setupUpdates } from '../pwa/update';
+import { createInstallUi } from '../ui/install-ui';
+import { bindKeyboardInset } from '../ui/keyboard-inset';
+import { bindNetBanner } from '../ui/net-banner';
 import { renderShell } from '../ui/shell';
+import { showActionToast } from '../ui/toast';
 import { startApp } from './app';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './config';
 
@@ -28,6 +36,21 @@ const i18n = createI18n(locale, catalogs[locale]);
 applyDirection(document, locale);
 const refs = renderShell(document.getElementById('app')!, i18n);
 renderStarfield(refs.stars);
+const network = createNetworkStatus(window);
+bindNetBanner(refs.netBanner, i18n, network);
+bindKeyboardInset(window, refs.root);
+const narrowQuery = matchMedia('(max-width: 760px)');
+const installUi = createInstallUi({
+  button: refs.installButton,
+  host: refs.root,
+  i18n,
+  state: createInstall({ win: window, storage, userAgent: navigator.userAgent, standalone: matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true }),
+  narrow: () => narrowQuery.matches,
+});
+setupUpdates({
+  register: (o) => registerSW({ onNeedRefresh: o.onNeedRefresh }),
+  show: (onUpdate) => { showActionToast(refs.stage, i18n.t('update.available'), { label: i18n.t('update.reload'), onClick: onUpdate }); },
+});
 
 const wikiCache = createWikiCache(storage);
 const card = createPlaceCard(refs.placeCard, refs.stage, {
@@ -72,4 +95,7 @@ void startApp({
   replaceUrl: (url) => history.replaceState(null, '', url),
   flagUrl,
   now: () => new Date(),
+  network,
+  installUi,
+  narrow: () => narrowQuery.matches,
 });
