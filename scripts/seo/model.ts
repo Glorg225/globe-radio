@@ -1,4 +1,6 @@
 // Groups the station snapshot into the static SEO pages: one per country and one per city.
+import { normalizeName } from '../../src/data/gazetteer';
+import { haversineKm } from '../../src/data/geo';
 import type { Place } from '../../src/data/places';
 import type { PlaceInfo, StationLite } from '../../src/data/shards';
 import { MIN_STATIONS } from '../../src/seo/country';
@@ -11,6 +13,28 @@ export interface CityPage { cc: string; name: string; slug: string; lat: number;
 export interface CountryPage { cc: string; name: string; slug: string; placeNames: string[]; stations: StationLite[]; cities: CityPage[] }
 export interface CountryData { stations: StationLite[]; info: Map<string, PlaceInfo> }
 export interface CityRef { country: CountryPage; city: CityPage }
+
+// A region joins its city's page when it is the city itself ("State of Berlin", "Minsk City", "Zurich" for Zürich):
+// the region name without generic words equals the whole city name and the region point is near the city.
+// "Oklahoma" stays apart from "Oklahoma City" (the city name keeps "City"), "Kyiv Oblast" too (its point is 78 km away).
+const REGION_CITY_KM = 30;
+const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+
+function mergeCityRegions(groups: Map<string, Place[]>): void {
+  const cityOf = (g: Place[]) => g.find((p) => p.kind === 'exact');
+  for (const [key, group] of groups) {
+    if (cityOf(group)) continue;
+    const region = group[0];
+    const target = [...groups.values()].find((g) => {
+      const city = cityOf(g);
+      return g !== group && city && fold(city.name) === normalizeName(region.name)
+        && haversineKm(region.lat, region.lon, city.lat, city.lon) <= REGION_CITY_KM;
+    });
+    if (!target) continue;
+    target.push(...group);
+    groups.delete(key);
+  }
+}
 
 const byClicks = (a: StationLite, b: StationLite) => b.clicks - a.clicks || a.name.localeCompare(b.name);
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, 'en');
@@ -37,9 +61,12 @@ export function buildModel(places: Place[], data: Map<string, CountryData>, coun
       const key = p.name.trim().toLowerCase();
       groups.set(key, [...(groups.get(key) ?? []), p]);
     }
+    mergeCityRegions(groups);
     const candidates = [...groups.values()]
       .map((group) => {
-        const main = group.reduce((a, b) => (size(b) > size(a) ? b : a));
+        // Name and point of the city when the group has one, even if its region has more stations.
+        const cities = group.filter((p) => p.kind === 'exact');
+        const main = (cities.length ? cities : group).reduce((a, b) => (size(b) > size(a) ? b : a));
         return {
           id: main.id, name: main.name, lat: main.lat, lon: main.lon,
           tz: group.map((p) => info.get(p.id)?.tz ?? '').find(Boolean) ?? '',

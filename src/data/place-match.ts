@@ -30,14 +30,17 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
   }
   // Several regions can share an alias ("Moscow" is the city region RU.48 and a translation of RU.47).
   // Prefer the region whose own name is exactly the alias, then one whose name normalises to it, then the first seen.
+  // On a tie the region whose main city has that name wins: "Kyiv" is Kyiv City (main city Kyiv), not Kyiv Oblast.
   const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
   const aliasScore = new Map<string, number>();
   for (const a of gz.admin1) {
     const exact = [plain(a.name), plain(a.nameRu)];
     const norm = [normalizeName(a.name), normalizeName(a.nameRu)];
+    const center = admin1Center.get(`${a.cc}.${a.code}`);
+    const centerNames = center ? [normalizeName(center.name), normalizeName(center.nameRu)] : [];
     for (const alias of a.aliases) {
       const key = `${a.cc}|${alias}`;
-      const score = exact.includes(alias) ? 2 : norm.includes(alias) ? 1 : 0;
+      const score = (exact.includes(alias) ? 2 : norm.includes(alias) ? 1 : 0) + (centerNames.includes(alias) ? 0.5 : 0);
       if (!admin1ByAlias.has(key) || score > aliasScore.get(key)!) {
         admin1ByAlias.set(key, a);
         aliasScore.set(key, score);
