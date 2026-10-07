@@ -12,6 +12,9 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
   const admin1ByAlias = new Map<string, GzAdmin1>();
   const admin1Center = new Map<string, GzCity>();
   const cell = (lat: number, lon: number) => `${Math.floor(lat)}:${Math.floor(lon)}`;
+  // A city district (Mitte) stands for its city (Berlin): see linkDistricts in scripts/build-gazetteer.ts.
+  const cityById = new Map(gz.cities.map((c) => [c.id, c]));
+  const resolve = (c: GzCity): GzCity => (c.parent && cityById.get(c.parent)) || c;
 
   for (const c of gz.cities) {
     const k = cell(c.lat, c.lon);
@@ -57,7 +60,7 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
         }
       }
     }
-    return best;
+    return best && resolve(best);
   }
 
   // A country gets a timezone only if all its cities share one (single-zone countries).
@@ -119,7 +122,7 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
     }
     for (const key of keys) {
       const city = cityByAlias.get(`${s.cc}|${key}`);
-      if (city) return cityRef(city, 'region');
+      if (city) return cityRef(resolve(city), 'region');
     }
     const c = centroids[s.cc];
     if (!c) return null;

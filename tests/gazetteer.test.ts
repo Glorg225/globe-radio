@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { decodeGazetteer, encodeGazetteer, normalizeName } from '../src/data/gazetteer';
-import { applyAltName, parseAdmin1, parseCities } from '../scripts/build-gazetteer';
+import { decodeGazetteer, encodeGazetteer, normalizeName, type Gazetteer } from '../src/data/gazetteer';
+import { applyAltName, linkDistricts, parseAdmin1, parseCities } from '../scripts/build-gazetteer';
 
 test('normalizeName strips case, diacritics, punctuation and generic words', () => {
   expect(normalizeName('Région Île-de-France')).toBe('ile de france');
@@ -107,3 +107,43 @@ test('countries get Wikipedia titles from their own GeoNames link rows', async (
   const g = { cities: [], admin1: [], countries: [{ cc: 'CD', wikiRu: 'Демократическая Республика Конго', wikiEn: 'Democratic Republic of the Congo' }] };
   expect(decodeGazetteer(encodeGazetteer(g)).countries).toEqual(g.countries);
 });
+
+// GeoNames "PPLX" = section of a populated place (Mitte, Times Square): not a city of its own.
+const fLine = (id: number, name: string, lat: number, lon: number, cc: string, pop: number, code: string) =>
+  [id, name, name, '', lat, lon, 'P', code, cc, '', '01', '', '', '', pop, '', '', 'Europe/Berlin', '2024-01-01'].join('\t');
+
+test('linkDistricts: a district points to the biggest real city of its country within 30 km', () => {
+  const cities = parseCities([
+    fLine(1, 'Berlin', 52.52, 13.405, 'DE', 3_400_000, 'PPLC'),
+    fLine(2, 'Mitte', 52.53, 13.39, 'DE', 330_000, 'PPLX'),
+    fLine(3, 'Potsdam', 52.4, 13.07, 'DE', 180_000, 'PPLA'),
+    fLine(4, 'Frankfurt (Oder) Mitte', 52.35, 14.55, 'DE', 20_000, 'PPLX'),
+    fLine(5, 'Słubice', 52.35, 14.56, 'PL', 1_700_000, 'PPL'),
+    fLine(6, 'Kurenivka', 50.49, 30.48, 'UA', 80_000, 'PPLX'),
+    fLine(7, 'Kyiv', 50.45, 30.52, 'UA', 2_900_000, 'PPLC'),
+    fLine(8, 'Big District', 10, 10, 'XX', 900_000, 'PPLX'),
+    fLine(9, 'Small Town', 10.01, 10.01, 'XX', 20_000, 'PPL'),
+  ].join('\n'));
+  linkDistricts(cities);
+  const parent = Object.fromEntries(cities.map((c) => [c.name, c.parent]));
+  expect(parent).toEqual({
+    Berlin: undefined, Mitte: 1, Potsdam: undefined, 'Frankfurt (Oder) Mitte': undefined,
+    'Słubice': undefined, Kurenivka: 7, Kyiv: undefined, 'Big District': undefined, 'Small Town': undefined,
+  });
+});
+
+test('the district parent survives encoding; other rows stay as before', () => {
+  const g: Gazetteer = {
+    cities: [
+      { id: 1, nameRu: '', name: 'Berlin', lat: 1, lon: 1, cc: 'DE', admin1: '16', pop: 3, aliases: [], tz: '', wikiRu: '', wikiEn: '' },
+      { id: 2, nameRu: '', name: 'Mitte', lat: 1, lon: 1, cc: 'DE', admin1: '16', pop: 1, aliases: [], tz: '', wikiRu: '', wikiEn: '', parent: 1 },
+    ],
+    admin1: [],
+    countries: [],
+  };
+  const f = encodeGazetteer(g);
+  expect(f.cities[0]).toHaveLength(12);
+  expect(decodeGazetteer(f)).toEqual(g);
+  expect(decodeGazetteer(f).cities[0]).not.toHaveProperty('parent');
+});
+
