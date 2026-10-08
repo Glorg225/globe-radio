@@ -65,7 +65,8 @@ function layout(site: Site, p: Page): string {
     // Web fonts must not block the first paint: text shows in the fallback font, then swaps.
     `<link rel="preload" href="${esc(FONTS)}" as="style" onload="this.onload=null;this.rel='stylesheet'">`,
     `<noscript><link rel="stylesheet" href="${esc(FONTS)}"></noscript>`,
-    site.css ? `<style>${site.css}</style>` : '',
+    // "</style" inside the CSS would end the element early.
+    site.css ? `<style>${site.css.replace(/<\/(style)/gi, '<\\/$1')}</style>` : '',
     ...data.map((d) => `<script type="application/ld+json">${jsonLd(d)}</script>`),
     '<!-- analytics -->',
   ].filter(Boolean);
@@ -105,8 +106,11 @@ function breadcrumbData(site: Site, crumbs: Crumb[]): object {
   };
 }
 
-// address: the city (on a city page) and the country; image: the station logo, only over https.
-function stationsData(site: Site, name: string, stations: StationLite[], locality?: string): object {
+// Station logos from Radio Browser are often .ico or extensionless links: publish only https image files.
+const IMAGE_URL = /^https:\/\/[^\s?#]+\.(?:png|jpe?g|gif|webp|svg)(?:[?#]\S*)?$/i;
+
+// address: the station's city when known, and its country; image: the station logo.
+function stationsData(site: Site, name: string, stations: StationLite[], locality: (s: StationLite) => string | undefined): object {
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -118,8 +122,8 @@ function stationsData(site: Site, name: string, stations: StationLite[], localit
         '@type': 'RadioStation',
         name: s.name,
         url: `${site.url}/${stationQuery(s)}`,
-        ...(/^https:\/\//.test(s.favicon) ? { image: s.favicon } : {}),
-        address: { '@type': 'PostalAddress', ...(locality ? { addressLocality: locality } : {}), addressCountry: s.cc },
+        ...(IMAGE_URL.test(s.favicon) ? { image: s.favicon } : {}),
+        address: { '@type': 'PostalAddress', ...(locality(s) ? { addressLocality: locality(s) } : {}), addressCountry: s.cc },
       },
     })),
   };
@@ -169,6 +173,7 @@ export function indexPage(site: Site, countries: CountryPage[]): string {
 }
 
 export function countryPage(site: Site, c: CountryPage): string {
+  const cityOf = new Map(c.cities.flatMap((city) => city.stations.map((s) => [s.id, city.name] as const)));
   const exclude = c.placeNames;
   const n = c.stations.length;
   const cities = c.cities.length ? ` in ${plural(c.cities.length, 'city', 'cities')}` : '';
@@ -179,7 +184,7 @@ export function countryPage(site: Site, c: CountryPage): string {
     h1: `${c.name} Radio Stations`,
     intro: `${c.name} has ${plural(n, 'live radio station')} on ${SITE_NAME}${cities}. ${summary(c.stations, exclude)}`.trim(),
     crumbs: [home, { name: c.name, path: countryPath(c) }],
-    data: [stationsData(site, `${c.name} radio stations`, c.stations)],
+    data: [stationsData(site, `${c.name} radio stations`, c.stations, (s) => cityOf.get(s.id))],
     main: [
       `<section><h2>Most popular stations in ${esc(c.name)}</h2>${stationList(site, c.stations.slice(0, TOP_STATIONS), exclude)}</section>`,
       c.cities.length
@@ -207,7 +212,7 @@ export function cityPage(site: Site, ref: CityRef, nearby: CityRef[]): string {
     intro: [`${where} has ${plural(n, 'live radio station')} on ${SITE_NAME}.`, summary(city.stations, exclude), city.tz ? `Local time zone: ${city.tz}.` : '']
       .filter(Boolean).join(' '),
     crumbs: [home, { name: country.name, path: countryPath(country) }, { name: city.name, path: cityPath(ref) }],
-    data: [stationsData(site, `${city.name} radio stations`, city.stations, city.name)],
+    data: [stationsData(site, `${city.name} radio stations`, city.stations, () => city.name)],
     main: [
       `<section><h2>Stations in ${esc(city.name)}</h2>${stationList(site, city.stations, exclude)}</section>`,
       nearbyItems.length ? `<section><h2>Nearby cities</h2>${linkList('nearby', nearbyItems)}</section>` : '',

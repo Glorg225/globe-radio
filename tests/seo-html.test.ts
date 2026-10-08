@@ -130,8 +130,6 @@ test('JSON-LD stations carry the logo (https only) and the city and country as a
   expect(items[1].item.image).toBe('https://cdn.example/logo.png');
   expect(items[2].item).not.toHaveProperty('image');
   expect(items[1].item.address).toEqual({ '@type': 'PostalAddress', addressLocality: 'Lisbon', addressCountry: 'PT' });
-  const countryItems = ld(parse(countryPage(site, pt))).find((d) => d['@type'] === 'ItemList').itemListElement;
-  expect(countryItems[0].item.address).toEqual({ '@type': 'PostalAddress', addressCountry: 'PT' });
 });
 
 test('nothing blocks the first paint: styles inline, web fonts load without blocking', () => {
@@ -146,4 +144,22 @@ test('nothing blocks the first paint: styles inline, web fonts load without bloc
   expect(preload.getAttribute('href')).toContain('fonts.googleapis.com');
   expect(preload.getAttribute('onload')).toContain("this.rel='stylesheet'");
   expect(html).toMatch(/<noscript><link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com/);
+});
+
+test('station image only for https links to an image file; country pages give the station city', () => {
+  const { pt, lisbon } = fixture();
+  lisbon.stations[0].favicon = 'https://cdn.example/favicon.ico';
+  lisbon.stations[1].favicon = 'https://cdn.example/logo.PNG?v=2';
+  lisbon.stations[2].favicon = 'https://cdn.example/logo';
+  const items = ld(parse(cityPage(site, { country: pt, city: lisbon }, []))).find((d) => d['@type'] === 'ItemList').itemListElement;
+  expect(items.map((i: { item: { image?: string } }) => i.item.image)).toEqual([undefined, 'https://cdn.example/logo.PNG?v=2', undefined]);
+  const countryItems = ld(parse(countryPage(site, pt))).find((d) => d['@type'] === 'ItemList').itemListElement;
+  expect(countryItems[0].item.address).toEqual({ '@type': 'PostalAddress', addressLocality: 'Lisbon', addressCountry: 'PT' });
+});
+
+test('inlined CSS cannot close the style element', () => {
+  const { pt } = fixture();
+  const doc = parse(countryPage({ ...site, css: '/* </style><script>x()</script> */ .a{}' }, pt));
+  expect(doc.querySelector('head style')!.textContent).toContain('.a{}');
+  expect(doc.querySelectorAll('script:not([type])')).toHaveLength(1);
 });
