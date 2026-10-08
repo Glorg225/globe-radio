@@ -5,7 +5,7 @@ import type { StationLite } from '../../src/data/shards';
 import { escapeHtml as esc } from '../../src/ui/html';
 import { hasCountryPage, type GenreCountry, type GenrePage, type StyleHere } from './genres';
 import type { CityRef, CountryPage } from './model';
-import { fitDescription, genreTags, languageName, listPhrase, plural, topLanguages } from './text';
+import { fitDescription, languageName, listPhrase, plural, topLanguages } from './text';
 
 // url: absolute site address without a trailing slash; base: path prefix with a trailing slash;
 // css: the stylesheet, inlined into every page (one request less before the first paint).
@@ -134,15 +134,16 @@ function stationsData(site: Site, name: string, stations: StationLite[], localit
   };
 }
 
-function stationItem(site: Site, s: StationLite, exclude: string[]): string {
-  const details = [...s.langs.slice(0, 1).map(languageName), ...genreTags(s.tags, exclude).slice(0, 4)];
+// Language and styles from the dictionary, not raw tags (those mix in bitrates, places and station names).
+function stationItem(site: Site, s: StationLite): string {
+  const details = [...s.langs.slice(0, 1).map(languageName), ...stationGenres(s.tags).slice(0, 3).map((id) => genreById(id)!.name)];
   return `<li class="station"><div class="station__text"><span class="station__name">${esc(s.name)}</span>${
     details.length ? `<span class="station__meta">${esc(details.join(' · '))}</span>` : ''
   }</div><a class="listen" href="${esc(listenHref(site, s))}" aria-label="${esc(`Listen to ${s.name}`)}">Listen</a></li>`;
 }
 
-function stationList(site: Site, stations: StationLite[], exclude: string[]): string {
-  return `<ol class="stations">${stations.map((s) => stationItem(site, s, exclude)).join('')}</ol>`;
+function stationList(site: Site, stations: StationLite[]): string {
+  return `<ol class="stations">${stations.map((s) => stationItem(site, s)).join('')}</ol>`;
 }
 
 function linkList(cls: string, items: { href: string; name: string; count: number }[]): string {
@@ -231,11 +232,11 @@ export function genrePage(site: Site, page: GenrePage): string {
     title: title(genre.name),
     description: fitDescription(`Listen to ${plural(n, `live ${genre.name} radio station`)} from ${plural(countries.length, 'country', 'countries')} online`, stations.map((s) => s.name), TAIL),
     h1: `${genre.name} Radio Stations`,
-    intro: `${SITE_NAME} has ${plural(n, `live ${genre.name} radio station`)} in ${plural(countries.length, 'country', 'countries')}. Most of them broadcast from ${listPhrase(top)}.`,
+    intro: `${SITE_NAME} has ${plural(n, `live ${genre.name} radio station`)} in ${plural(countries.length, 'country', 'countries')}. The biggest countries for ${genre.name} radio are ${listPhrase(top)}.`,
     crumbs: [home, styles, { name: genre.name, path: genrePath(genre) }],
     data: [stationsData(site, `${genre.name} radio stations`, stations, () => undefined)],
     main: [
-      `<section><h2>Most popular ${esc(genre.name)} stations</h2>${stationList(site, stations.slice(0, TOP_STATIONS), [])}</section>`,
+      `<section><h2>Most popular ${esc(genre.name)} stations</h2>${stationList(site, stations.slice(0, TOP_STATIONS))}</section>`,
       withPage.length
         ? `<section><h2>${esc(genre.name)} radio by country</h2>${linkList('countries', withPage.map((c) => ({ href: link(site, genreCountryPath(genre, c.country)), name: c.country.name, count: c.stations.length })))}</section>`
         : '',
@@ -257,7 +258,7 @@ export function genreCountryPage(site: Site, page: GenrePage, gc: GenreCountry):
     crumbs: [home, styles, { name: genre.name, path: genrePath(genre) }, { name: country.name, path: genreCountryPath(genre, country) }],
     data: [stationsData(site, where, stations, () => undefined)],
     main: [
-      `<section><h2>${esc(where)}</h2>${stationList(site, stations.slice(0, GENRE_COUNTRY_MAX), country.placeNames)}</section>`,
+      `<section><h2>${esc(where)}</h2>${stationList(site, stations.slice(0, GENRE_COUNTRY_MAX))}</section>`,
       `<p class="more"><a href="${esc(link(site, countryPath(country)))}">All radio stations in ${esc(country.name)}</a> · <a href="${esc(link(site, genrePath(genre)))}">${esc(genre.name)} radio worldwide</a></p>`,
     ].join('\n'),
   });
@@ -265,7 +266,6 @@ export function genreCountryPage(site: Site, page: GenrePage, gc: GenreCountry):
 
 export function countryPage(site: Site, c: CountryPage, styles: StyleHere[] = []): string {
   const cityOf = new Map(c.cities.flatMap((city) => city.stations.map((s) => [s.id, city.name] as const)));
-  const exclude = c.placeNames;
   const n = c.stations.length;
   const cities = c.cities.length ? ` in ${plural(c.cities.length, 'city', 'cities')}` : '';
   return layout(site, {
@@ -277,7 +277,7 @@ export function countryPage(site: Site, c: CountryPage, styles: StyleHere[] = []
     crumbs: [home, { name: c.name, path: countryPath(c) }],
     data: [stationsData(site, `${c.name} radio stations`, c.stations, (s) => cityOf.get(s.id))],
     main: [
-      `<section><h2>Most popular stations in ${esc(c.name)}</h2>${stationList(site, c.stations.slice(0, TOP_STATIONS), exclude)}</section>`,
+      `<section><h2>Most popular stations in ${esc(c.name)}</h2>${stationList(site, c.stations.slice(0, TOP_STATIONS))}</section>`,
       c.cities.length
         ? `<section><h2>Radio by city</h2>${linkList('cities', c.cities.map((city) => ({ href: link(site, cityPath({ country: c, city })), name: city.name, count: city.stations.length })))}</section>`
         : '',
@@ -288,7 +288,6 @@ export function countryPage(site: Site, c: CountryPage, styles: StyleHere[] = []
 
 export function cityPage(site: Site, ref: CityRef, nearby: CityRef[], styles: StyleHere[] = []): string {
   const { country, city } = ref;
-  const exclude = country.placeNames;
   const n = city.stations.length;
   const where = `${city.name}, ${country.name}`;
   const nearbyItems = nearby.map((r) => ({
@@ -306,7 +305,7 @@ export function cityPage(site: Site, ref: CityRef, nearby: CityRef[], styles: St
     crumbs: [home, { name: country.name, path: countryPath(country) }, { name: city.name, path: cityPath(ref) }],
     data: [stationsData(site, `${city.name} radio stations`, city.stations, () => city.name)],
     main: [
-      `<section><h2>Stations in ${esc(city.name)}</h2>${stationList(site, city.stations, exclude)}</section>`,
+      `<section><h2>Stations in ${esc(city.name)}</h2>${stationList(site, city.stations)}</section>`,
       stylesSection(site, country, styles),
       nearbyItems.length ? `<section><h2>Nearby cities</h2>${linkList('nearby', nearbyItems)}</section>` : '',
       `<p class="more"><a href="${esc(link(site, countryPath(country)))}">All radio stations in ${esc(country.name)}</a></p>`,

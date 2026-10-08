@@ -10,17 +10,17 @@ test('tagKey ignores case, diacritics, spaces and punctuation, keeps other scrip
 });
 
 test('decades are recognised by a rule, not by a list', () => {
-  for (const t of ['80s', "80's", '80er', '1980s', '80', 'Eighties']) expect(decadeOf(tagKey(t)), t).toBe('80s');
+  for (const t of ['80s', "80's", '80er', '1980s', 'Eighties']) expect(decadeOf(tagKey(t)), t).toBe('80s');
   for (const t of ['00s', '2000s', '2000er']) expect(decadeOf(tagKey(t)), t).toBe('2000s');
   expect(decadeOf(tagKey('2010s'))).toBe('2010s');
   expect(decadeOf(tagKey('50s'))).toBe('50s');
-  for (const t of ['128kbps', '80s en español', '1980', '99.3 fm', '24/7']) expect(decadeOf(tagKey(t)), t).toBeUndefined();
+  for (const t of ['128kbps', '80s en español', '1980', '80', '90', '10s', '99.3 fm', '24/7']) expect(decadeOf(tagKey(t)), t).toBeUndefined();
 });
 
 test('stationGenres: several styles per station, in dictionary order, junk gives none', () => {
   expect(stationGenres(['Smooth Jazz', 'news', 'jazz', 'NOTICIAS'])).toEqual(['jazz', 'news']);
   expect(stationGenres(['hiphop', 'rap', "80's", 'deep house'])).toEqual(['house', 'hip-hop', '80s']);
-  expect(stationGenres(['music', 'webradio', 'fm', 'nrj', 'américa', '128kbps'])).toEqual([]);
+  expect(stationGenres(['music', 'webradio', 'fm', 'nrj', 'américa', '128kbps', 'goa'])).toEqual([]);
   expect(stationGenres([])).toEqual([]);
 });
 

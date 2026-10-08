@@ -8,7 +8,7 @@ const st = (cc: string, tags: string[], clicks = 0): StationLite => ({
   id: `s${n++}`, name: `S${n}`, url: '', placeId: 'c:1', cc, langs: [], tags, votes: 0, clicks, favicon: '', hls: false,
 });
 const country = (cc: string, name: string, stations: StationLite[]): CountryPage =>
-  ({ cc, name, slug: name.toLowerCase(), placeNames: [], stations, cities: [] });
+  ({ cc, name, slug: name.toLowerCase(), stations, cities: [] });
 
 function fixture() {
   const de = country('DE', 'Germany', [...Array.from({ length: 10 }, (_, i) => st('DE', ['Jazz'], i)), st('DE', ['news'])]);

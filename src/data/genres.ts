@@ -23,7 +23,7 @@ export const GENRES: Genre[] = [
   g('dance', 'Dance', ['dance', 'club', 'club dance', 'eurodance', 'pop dance', 'dance music', 'party', 'dance hits']),
   g('house', 'House', ['house', 'deep house', 'tech house', 'progressive house']),
   g('techno', 'Techno', ['techno', 'minimal', 'hard techno']),
-  g('trance', 'Trance', ['trance', 'psytrance', 'progressive trance', 'goa']),
+  g('trance', 'Trance', ['trance', 'psytrance', 'progressive trance', 'goa trance']),
   g('chillout', 'Chillout & Lounge', ['chillout', 'chill', 'lounge', 'chillout+lounge', 'ambient', 'ambient and relaxation music', 'relax', 'relaxation', 'downtempo', 'chillwave', 'lofi']),
   g('hip-hop', 'Hip-Hop & Rap', ['hip hop', 'rap', 'trap', 'hip-hop/rap', 'urban hip hop', 'deutschrap', 'рэп']),
   g('rnb', 'R&B & Soul', ['r&b', 'rnb', 'soul', 'urban', 'r&b/soul', 'neo soul', 'motown']),
@@ -57,13 +57,14 @@ export function tagKey(tag: string): string {
 
 const DECADE_WORDS: Record<string, string> = { fifties: '50s', sixties: '60s', seventies: '70s', eighties: '80s', nineties: '90s' };
 
-// "80s", "80's", "80er", "1980s", "80", "eighties" -> "80s"; "00s", "2000er" -> "2000s". A bare year ("1980") is not a decade.
+// "80s", "80's", "80er", "1980s", "eighties" -> "80s"; "00s", "2000er" -> "2000s", "2010s" -> "2010s".
+// Bare numbers ("90", "1980", "10s") are not decades: they are as often frequencies, years or "top 10s".
 export function decadeOf(key: string): string | undefined {
   if (DECADE_WORDS[key]) return DECADE_WORDS[key];
-  const old = /^(?:(?:19)?([5-9])0(?:s|er)|([5-9])0)$/.exec(key);
-  if (old) return `${old[1] ?? old[2]}0s`;
-  const recent = /^(?:20)?(00|10)(?:s|er)$/.exec(key);
-  if (recent) return `20${recent[1]}s`;
+  const old = /^(?:19)?([5-9])0(?:s|er)$/.exec(key);
+  if (old) return `${old[1]}0s`;
+  if (/^(?:20)?00(?:s|er)$/.test(key)) return '2000s';
+  if (/^2010(?:s|er)$/.test(key)) return '2010s';
   return undefined;
 }
 

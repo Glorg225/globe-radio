@@ -14,7 +14,7 @@ function fixture() {
   const lisbon: CityPage = { cc: 'PT', name: 'Lisbon', slug: 'lisbon', lat: 38.7, lon: -9.1, tz: 'Europe/Lisbon', stations: [st('s1', { name: EVIL }), st('s2'), st('s3')] };
   const porto: CityPage = { cc: 'PT', name: 'Porto', slug: 'porto', lat: 41.1, lon: -8.6, tz: 'Europe/Lisbon', stations: [st('s4'), st('s5'), st('s6')] };
   const extra = Array.from({ length: 60 }, (_, i) => st(`x${i}`));
-  const pt: CountryPage = { cc: 'PT', name: 'Portugal', slug: 'portugal', placeNames: ['portugal', 'lisbon', 'porto', 'viseu'], stations: [...lisbon.stations, ...porto.stations, ...extra], cities: [lisbon, porto] };
+  const pt: CountryPage = { cc: 'PT', name: 'Portugal', slug: 'portugal', stations: [...lisbon.stations, ...porto.stations, ...extra], cities: [lisbon, porto] };
   return { pt, lisbon, porto };
 }
 
@@ -55,7 +55,7 @@ test('city page: stations with Listen links, nearby cities, link to the country'
   expect(listen).toHaveLength(3);
   expect(listen[1].getAttribute('href')).toBe('/gr/?station=s2&c=PT');
   expect(listen[1].getAttribute('aria-label')).toBe('Listen to Station s2');
-  expect(doc.querySelector('.station__meta')!.textContent).toBe('Portuguese · news · talk');
+  expect(doc.querySelector('.station__meta')!.textContent).toBe('Portuguese · News · Talk');
   expect(doc.querySelector('.nearby a[href="/gr/radio/portugal/porto/"]')).not.toBeNull();
   expect(doc.querySelector('a[href="/gr/radio/portugal/"]')).not.toBeNull();
 });

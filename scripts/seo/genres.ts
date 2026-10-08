@@ -1,5 +1,5 @@
 // Style pages of the static SEO site: /radio/genre/<style>/ and /radio/genre/<style>/<country>/.
-import { GENRES, stationGenres, type Genre } from '../../src/data/genres';
+import { GENRES, genreOfTag, stationGenres, type Genre } from '../../src/data/genres';
 import type { StationLite } from '../../src/data/shards';
 import type { CountryPage } from './model';
 
@@ -57,10 +57,14 @@ export function buildGenres(countries: CountryPage[]): GenrePage[] {
 export function genreCoverage(stations: StationLite[], n = 20): { total: number; matched: number; unmatched: [string, number][] } {
   let matched = 0;
   const unknown = new Map<string, number>();
+  const known = new Map<string, boolean>();
   for (const s of stations) {
     if (stylesOfStation(s).length) matched++;
     for (const raw of new Set(s.tags.map((t) => t.trim().toLowerCase()))) {
-      if (!raw || /\d/.test(raw) || stationGenres([raw]).length) continue;
+      if (!raw || /\d/.test(raw)) continue;
+      let hasStyle = known.get(raw);
+      if (hasStyle === undefined) known.set(raw, (hasStyle = !!genreOfTag(raw)));
+      if (hasStyle) continue;
       unknown.set(raw, (unknown.get(raw) ?? 0) + 1);
     }
   }
