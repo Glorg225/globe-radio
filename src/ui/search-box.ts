@@ -20,6 +20,9 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
   input.setAttribute('aria-controls', POP_ID);
 
   const onOutside = (e: MouseEvent) => { if (pop && !pop.contains(e.target as Node) && !anchor.contains(e.target as Node)) close(); };
+  // Keyboard users tab from the field into the browse links: close once focus leaves both.
+  const onFocusIn = (e: FocusEvent) => { if (pop && !pop.contains(e.target as Node) && e.target !== input) close(); };
+  let reopen = true;
   function close() {
     token++;
     pop?.remove();
@@ -29,6 +32,7 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
     input.setAttribute('aria-expanded', 'false');
     input.removeAttribute('aria-activedescendant');
     document.removeEventListener('mousedown', onOutside);
+    document.removeEventListener('focusin', onFocusIn);
   }
   function ensurePop(): HTMLElement {
     if (!pop) {
@@ -37,7 +41,15 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
       pop.id = POP_ID;
       input.setAttribute('aria-expanded', 'true');
       anchor.insertAdjacentElement('afterend', pop);
+      pop.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        close();
+        reopen = false;
+        input.focus();
+        reopen = true;
+      });
       document.addEventListener('mousedown', onOutside);
+      document.addEventListener('focusin', onFocusIn);
     }
     pop.setAttribute('role', 'listbox');
     return pop;
@@ -109,7 +121,7 @@ export function createSearchBox(input: HTMLInputElement, i18n: I18n, d: SearchBo
 
   input.addEventListener('focus', () => {
     d.prefetch?.();
-    if (!input.value.trim()) showBrowse();
+    if (reopen && !input.value.trim()) showBrowse();
   });
   input.addEventListener('input', () => {
     clearTimeout(timer);

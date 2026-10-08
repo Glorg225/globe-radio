@@ -4,6 +4,11 @@ export interface Place extends PlaceRef { count: number; pop: number; langs?: Re
 export type CompactPlace = [id: string, lat: number, lon: number, kind: 0 | 1 | 2, cc: string, nameRu: string, name: string, count: number, pop: number, langs?: string];
 export interface PlacesFile { v: 2; generated: string; places: CompactPlace[] }
 
+// Stations with coordinates far from any known city get a placeholder place "p:<CC>:<lat>,<lon>" named after
+// the nearest city within 300 km or the country (see place-match): a spot on the map, not a city.
+export const PLACEHOLDER_PREFIX = 'p:';
+export const isPlaceholder = (id: string) => id.startsWith(PLACEHOLDER_PREFIX);
+
 const KINDS: PlaceKind[] = ['exact', 'region', 'country'];
 
 export function encodeLangs(m: Record<string, number> | undefined): string {

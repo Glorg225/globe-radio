@@ -74,3 +74,22 @@ test('country links in the app point to generated pages', async () => {
   expect(links.map((c) => c.path)).toEqual(['radio/portugal/']);
   for (const c of links) expect(existsSync(join(out, c.path, 'index.html')), c.path).toBe(true);
 });
+
+test('app country links match generated pages even when country slugs collide', async () => {
+  const { topCountries } = await import('../src/seo/country');
+  const { decodePlace } = await import('../src/data/places');
+  const data = tmp();
+  const out = tmp();
+  const p = (id: string, cc: string, count: number) => place({ id, cc, kind: 'country', name: 'Atlantis', count });
+  const places = [p('k:AA', 'AA', 3), p('k:AB', 'AB', 4)];
+  mkdirSync(join(data, 'stations'), { recursive: true });
+  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map(encodePlace) }));
+  for (const pl of places) {
+    const stations = Array.from({ length: pl.count }, (_, i) => ({ ...st(`${pl.cc}${i}`, pl.id), cc: pl.cc }));
+    writeFileSync(join(data, 'stations', `${pl.cc}.json`), JSON.stringify({ v: 2, cc: pl.cc, stations: stations.map(encodeStation) }));
+  }
+  buildSeoPages({ dataDir: data, outDir: out, site, css });
+  const links = topCountries(JSON.parse(readFileSync(join(data, 'places.json'), 'utf8')).places.map(decodePlace));
+  expect(links.map((c) => c.path)).toEqual(['radio/atlantis/', 'radio/atlantis-aa/']);
+  for (const c of links) expect(existsSync(join(out, c.path, 'index.html')), c.path).toBe(true);
+});

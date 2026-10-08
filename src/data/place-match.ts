@@ -1,6 +1,7 @@
 import { normalizeName, type Gazetteer, type GzAdmin1, type GzCity } from './gazetteer';
 import { offsetMinutes } from '../place-card/time';
 import { haversineKm } from './geo';
+import { PLACEHOLDER_PREFIX } from './places';
 import type { Centroids, PlaceKind, PlaceRef, Station } from './types';
 
 const SNAP_KM = 30;
@@ -110,7 +111,7 @@ export function createPlaceMatcher(gz: Gazetteer, centroids: Centroids, countryN
       if (near) return cityRef(near, 'exact');
       const named = nearestCity(s.lat, s.lon, NAME_KM, s.cc);
       return {
-        id: `p:${s.cc}:${s.lat.toFixed(2)},${s.lon.toFixed(2)}`, lat: s.lat, lon: s.lon, kind: 'exact', cc: s.cc,
+        id: `${PLACEHOLDER_PREFIX}${s.cc}:${s.lat.toFixed(2)},${s.lon.toFixed(2)}`, lat: s.lat, lon: s.lon, kind: 'exact', cc: s.cc,
         nameRu: named?.nameRu ?? countryName(s.cc, 'ru'), name: named?.name ?? countryName(s.cc, 'en'),
         tz: named?.tz || countryTz(s.cc), wikiRu: named?.wikiRu, wikiEn: named?.wikiEn,
       };
