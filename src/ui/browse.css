@@ -21,4 +21,4 @@ button.browse__chip { font: inherit; font-size: 13px; font-weight: 500; cursor: 
 .style-pop { overflow-y: auto; }
 .style-pop__group { margin: 10px 10px 4px; font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
 .style-pop__group:first-child { margin-block-start: 2px; }
-
+.browse__style.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }

@@ -3,7 +3,7 @@ import type { CountryLink } from '../seo/country';
 
 // "Browse by country": links from the app to the static country pages (/radio/...).
 // styles: biggest styles as buttons that switch the style mode on (#40).
-export function renderBrowseCountries(i18n: I18n, countries: CountryLink[], styles?: { ids: { id: string; name: string }[]; onPick(id: string): void }): HTMLElement {
+export function renderBrowseCountries(i18n: I18n, countries: CountryLink[], styles?: { ids: { id: string; name: string }[]; current?: string | null; onPick(id: string): void }): HTMLElement {
   const section = document.createElement('section');
   section.className = 'browse';
   const title = document.createElement('p');
@@ -36,6 +36,8 @@ export function renderBrowseCountries(i18n: I18n, countries: CountryLink[], styl
       b.type = 'button';
       b.className = 'browse__chip browse__style';
       b.textContent = s.name;
+      b.classList.toggle('is-active', s.id === styles.current);
+      b.setAttribute('aria-pressed', String(s.id === styles.current));
       b.addEventListener('click', () => styles.onPick(s.id));
       row.append(b);
     }

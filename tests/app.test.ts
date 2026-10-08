@@ -1092,3 +1092,17 @@ test('the style mode highlights in amber, the learn mode in teal', async () => {
   await flush();
   expect(tones()).toEqual(new Set(['muted', 'teal']));
 });
+
+test('the active style chip is marked and a second tap switches the mode off', async () => {
+  await startApp({ ...deps, loadPlaces: async () => [{ ...lisbon, count: 5, styles: ['jazz', 'news'] }, porto] });
+  deps.refs.panelBody.querySelector<HTMLButtonElement>('.browse__style')!.click();
+  await flush();
+  const chip = () => deps.refs.panelBody.querySelector<HTMLButtonElement>('.browse__style')!;
+  expect(chip().classList.contains('is-active')).toBe(true);
+  expect(chip().getAttribute('aria-pressed')).toBe('true');
+  chip().click();
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBeNull();
+  expect(chip().classList.contains('is-active')).toBe(false);
+});
+

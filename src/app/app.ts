@@ -584,6 +584,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     styleBanner.show(id ? styleSummary(id) : null);
     renderBar();
     if (selected) void renderList(selected, false);
+    else if (tab === 'here') renderTab();
   }
 
   // The biggest styles (by stations of the places that list them) as buttons in the browse block.
@@ -594,7 +595,9 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   }
   const browseStylesProps = (fromSearch = false) => ({
     ids: browseStyles,
-    onPick: (id: string) => { if (fromSearch) { searchBox?.close(); closeSearch(); } styleState?.set(id); },
+    current: styleId,
+    // A tap on the active style switches the mode off, as in the Style dialog.
+    onPick: (id: string) => { if (fromSearch) { searchBox?.close(); closeSearch(); } styleState?.set(id === styleState?.get() ? null : id); },
   });
   function applyLearn(code: string | null) {
     learnCode = code;
