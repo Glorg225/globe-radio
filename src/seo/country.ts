@@ -2,14 +2,23 @@
 // scripts/build-seo-pages.ts generates them: both take names and addresses from here.
 import { countryName } from '../data/place-name';
 import type { Place } from '../data/places';
-import { slugify } from './slug';
+import { assignSlugs } from './slug';
 
 // A country or city gets its own page only with at least this many stations.
 export const MIN_STATIONS = 3;
 
+// ZZ is CLDR's "Unknown Region": Intl names it, but it is not a country name.
 export function seoCountryName(cc: string, fallback = ''): string {
-  const name = countryName(cc, 'en');
+  const name = cc === 'ZZ' ? cc : countryName(cc, 'en');
   return name !== cc ? name : fallback || cc;
+}
+
+// Page slugs of all countries, shared by the app links and the page generator. Biggest first keeps the plain
+// slug on a collision, the next one gets its code ("atlantis-aa").
+export function countrySlugs(list: { cc: string; name: string; count: number }[]): Map<string, string> {
+  const ordered = [...list].sort((a, b) => b.count - a.count || a.cc.localeCompare(b.cc));
+  const slugs = assignSlugs(ordered, (c) => c.name, (c) => c.cc);
+  return new Map(ordered.map((c) => [c.cc, slugs.get(c)!]));
 }
 
 export interface CountryLink { cc: string; name: string; path: string; count: number }
@@ -22,12 +31,12 @@ export function topCountries(places: Place[], n = 8): CountryLink[] {
     counts.set(p.cc, (counts.get(p.cc) ?? 0) + p.count);
     if (p.kind === 'country') snapshotNames.set(p.cc, p.name);
   }
-  return [...counts]
+  const eligible = [...counts]
     .filter(([, count]) => count >= MIN_STATIONS)
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([cc, count]) => ({ cc, count, name: seoCountryName(cc, snapshotNames.get(cc)) }));
+  const slugs = countrySlugs(eligible);
+  return eligible
+    .sort((a, b) => b.count - a.count || a.cc.localeCompare(b.cc))
     .slice(0, n)
-    .map(([cc, count]) => {
-      const name = seoCountryName(cc, snapshotNames.get(cc));
-      return { cc, name, path: `radio/${slugify(name) || slugify(cc)}/`, count };
-    });
+    .map((c) => ({ cc: c.cc, name: c.name, path: `radio/${slugs.get(c.cc)}/`, count: c.count }));
 }

@@ -86,3 +86,33 @@ test('a region that is the city itself joins the city page; a state or a surroun
   expect(de.cities.find((c) => c.slug === 'berlin')).toMatchObject({ name: 'Berlin', lat: 52.52 });
 });
 
+test('stations far from any city (placeholder places named after the country) get no city page', () => {
+  const places = [place({ id: 'p:DE:1.00,2.00', cc: 'DE', name: 'Germany', lat: 1, lon: 2 }), place({ id: 'p:DE:40.00,9.00', cc: 'DE', name: 'Germany', lat: 40, lon: 9 })];
+  const stations = [st('1', 'p:DE:1.00,2.00', 0, 'DE'), st('2', 'p:DE:1.00,2.00', 0, 'DE'), st('3', 'p:DE:1.00,2.00', 0, 'DE'), st('4', 'p:DE:40.00,9.00', 0, 'DE')];
+  const [de] = buildModel(places, new Map([['DE', { stations, info: new Map() }]]), () => 'Germany');
+  expect(de.cities).toEqual([]);
+  expect(de.stations).toHaveLength(4);
+});
+
+test('cities that share a name but lie far apart get separate pages', () => {
+  const places = [
+    place({ id: 'c:1', cc: 'US', name: 'Springfield', lat: 39.8, lon: -89.65 }),
+    place({ id: 'c:2', cc: 'US', name: 'Springfield', lat: 42.1, lon: -72.59 }),
+    place({ id: 'a:US.IL', cc: 'US', kind: 'region', name: 'Springfield', lat: 39.85, lon: -89.6 }),
+  ];
+  const n: Record<string, number> = { 'c:1': 3, 'c:2': 5, 'a:US.IL': 1 };
+  const stations = Object.entries(n).flatMap(([pid, k]) => Array.from({ length: k }, (_, i) => st(`${pid}-${i}`, pid, 0, 'US')));
+  const [us] = buildModel(places, new Map([['US', { stations, info: new Map() }]]), () => 'United States');
+  expect(Object.fromEntries(us.cities.map((c) => [c.slug, [c.lat, c.stations.length]]))).toEqual({ springfield: [42.1, 5], 'springfield-1': [39.8, 4] });
+});
+
+test('a region joins the nearest of the matching cities', () => {
+  const places = [
+    place({ id: 'c:1', cc: 'CH', name: 'Zürich', lat: 47.37, lon: 8.54 }),
+    place({ id: 'c:2', cc: 'CH', name: 'Zurich', lat: 47.55, lon: 8.54 }),
+    place({ id: 'a:CH.25', cc: 'CH', kind: 'region', name: 'Zurich Region', lat: 47.53, lon: 8.54 }),
+  ];
+  const stations = ['c:1', 'c:1', 'c:1', 'c:2', 'a:CH.25', 'a:CH.25'].map((pid, i) => st(String(i), pid, 0, 'CH'));
+  const [ch] = buildModel(places, new Map([['CH', { stations, info: new Map() }]]), () => 'Switzerland');
+  expect(Object.fromEntries(ch.cities.map((c) => [c.name, c.stations.length]))).toEqual({ 'Zürich': 3, Zurich: 3 });
+});

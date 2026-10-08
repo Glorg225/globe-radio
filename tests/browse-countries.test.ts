@@ -33,3 +33,13 @@ test('renderBrowseCountries: country links and a link to all countries', () => {
   const links = [...el.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
   expect(links).toEqual([['Portugal', 'radio/portugal/'], ['All countries →', 'radio/']]);
 });
+
+test('seoCountryName ignores the CLDR "unknown region" code', () => {
+  expect(seoCountryName('ZZ', 'Atlantis')).toBe('Atlantis');
+  expect(seoCountryName('ZZ')).toBe('ZZ');
+});
+
+test('countries whose names collide get distinct slugs, the bigger keeps the plain one', () => {
+  const places = [place('c:1', 'AA', 3, { kind: 'country', name: 'Atlantis' }), place('c:2', 'AB', 5, { kind: 'country', name: 'Atlantis' })];
+  expect(topCountries(places).map((c) => c.path)).toEqual(['radio/atlantis/', 'radio/atlantis-aa/']);
+});
