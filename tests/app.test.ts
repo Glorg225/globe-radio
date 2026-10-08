@@ -921,7 +921,10 @@ test('analytics events: play, search, surprise, share', async () => {
     deps.refs.searchInput.value = 'ра';
     deps.refs.searchInput.dispatchEvent(new Event('input'));
     await new Promise((r) => setTimeout(r, 200));
-    expect(gtag).toHaveBeenCalledWith('event', 'search', { search_term: 'ра' });
+    // Typing alone sends nothing; the search is counted when a result is picked.
+    expect(gtag).not.toHaveBeenCalledWith('event', 'search', expect.anything());
+    (document.querySelector('.search-pop__item') as HTMLButtonElement).click();
+    expect(gtag).toHaveBeenCalledWith('event', 'search', { search_term: 'ра', content_type: 'place' });
     await app.surprise();
     expect(gtag).toHaveBeenCalledWith('event', 'surprise', {});
     (deps.refs.player.querySelector('.pb__share') as HTMLButtonElement).click();

@@ -663,14 +663,17 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   styleState.subscribe((id) => { void applyStyle(id); });
   if (styleState.get()) void applyStyle(styleState.get());
   const searchIndex = d.createSearch(places);
+  let lastSearch = '';
   searchBox = createSearchBox(refs.searchInput, i18n, {
-    search: (q) => { track('search', { search_term: q }); return searchIndex.search(q); },
+    // The search is counted when a result is picked, not on every keystroke.
+    search: (q) => { lastSearch = q; return searchIndex.search(q); },
     prefetch: () => searchIndex.prefetch?.(),
     // On a wide screen the Here tab already shows the block when nothing is selected: no duplicate under the field.
     browse: () => (countries.length && (d.narrow?.() || !refs.panelBody.querySelector('.browse')) ? renderBrowseCountries(i18n, countries, browseStylesProps(true)) : null),
     placeLabel: (p) => placeLabel(p),
-    onPlace: (p) => { closeSearch(); nav.set('globe'); view?.flyTo(p.lat, p.lon); void selectPlace(p); },
+    onPlace: (p) => { track('search', { search_term: lastSearch, content_type: 'place' }); closeSearch(); nav.set('globe'); view?.flyTo(p.lat, p.lon); void selectPlace(p); },
     onStation: async (h) => {
+      track('search', { search_term: lastSearch, content_type: 'station' });
       closeSearch();
       nav.set('globe');
       if (offlineBlocked()) return;
