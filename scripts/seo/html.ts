@@ -200,6 +200,8 @@ export function indexPage(site: Site, countries: CountryPage[]): string {
 const styles: Crumb = { name: 'Styles', path: genreIndexPath() };
 const GROUPS: [GenreGroup, string][] = [['genre', 'Genres'], ['format', 'Formats'], ['decade', 'Decades']];
 const GENRE_COUNTRY_MAX = 100;
+// A city page lists this many stations at most: Mexico City has 374, and the full list made a 171 KB page.
+const CITY_MAX = 100;
 
 export function genreIndexPage(site: Site, pages: GenrePage[]): string {
   const total = new Set(pages.flatMap((p) => p.stations.map((s) => s.id))).size;
@@ -303,7 +305,11 @@ export function cityPage(site: Site, ref: CityRef, nearby: CityRef[], styles: St
     crumbs: [home, { name: country.name, path: countryPath(country) }, { name: city.name, path: cityPath(ref) }],
     data: [stationsData(site, `${city.name} radio stations`, city.stations, () => city.name)],
     main: [
-      `<section><h2>Stations in ${esc(city.name)}</h2>${stationList(site, city.stations)}</section>`,
+      `<section><h2>Stations in ${esc(city.name)}</h2>${stationList(site, city.stations.slice(0, CITY_MAX))}${
+        n > CITY_MAX
+          ? `<p class="stations-more">Showing the ${CITY_MAX} most popular of ${n.toLocaleString('en-US')} stations. <a href="${esc(site.base)}">Open the 3D globe</a> to hear all of them.</p>`
+          : ''
+      }</section>`,
       stylesSection(site, country, styles),
       nearbyItems.length ? `<section><h2>Nearby cities</h2>${linkList('nearby', nearbyItems)}</section>` : '',
       `<p class="more"><a href="${esc(link(site, countryPath(country)))}">All radio stations in ${esc(countryInSentence(country.name))}</a></p>`,

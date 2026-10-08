@@ -229,3 +229,17 @@ test('sentences put "the" before such country names; one country reads in the si
   expect(parse(genrePage(site, news)).querySelector('.intro')!.textContent).toContain('The biggest country for News radio is the United States.');
   expect(parse(genreCountryPage(site, news, news.countries[0])).querySelector('.intro')!.textContent).toMatch(/^The United States has /);
 });
+
+test('a big city lists its 100 most popular stations and points to the globe for the rest', () => {
+  const { pt, lisbon } = fixture();
+  const big = { ...lisbon, stations: Array.from({ length: 130 }, (_, i) => st(`b${i}`, { clicks: 130 - i })) };
+  const doc = parse(cityPage(site, { country: pt, city: big }, []));
+  expect(doc.querySelectorAll('a.listen')).toHaveLength(100);
+  expect(doc.querySelector('.intro')!.textContent).toContain('130 live radio stations');
+  const more = doc.querySelector('.stations-more')!;
+  expect(more.textContent).toBe('Showing the 100 most popular of 130 stations. Open the 3D globe to hear all of them.');
+  expect(more.querySelector('a')!.getAttribute('href')).toBe('/gr/');
+  const small = parse(cityPage(site, { country: pt, city: lisbon }, []));
+  expect(small.querySelector('.stations-more')).toBeNull();
+});
+
