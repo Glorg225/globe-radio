@@ -73,6 +73,8 @@
   .shell__player { gap: 14px; padding-inline: 16px; }
 }
 @media (max-width: 760px) { .shell__place { display: none; } }
+/* The sheet has its own close button: no second cross in the list header. */
+@media (max-width: 760px) { .list-close { display: none; } .list-head { padding-inline-end: var(--pad-panel); } }
 
 /* Phone: banners and toasts sit below the fixed "3D | Map" switch; the install banner never covers a sheet or the share card. */
 @media (max-width: 760px) {

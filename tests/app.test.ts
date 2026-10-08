@@ -116,6 +116,37 @@ test('phone: empty search field offers countries', async () => {
   expect(document.querySelector('.search-pop .browse a[href="radio/"]')).not.toBeNull();
 });
 
+test('the close button and Escape clear the selected place back to the empty panel', async () => {
+  await startApp(deps);
+  await globe.cb().onSelect(lisbon);
+  expect(deps.refs.panelBody.querySelector('.list-title')).not.toBeNull();
+  deps.refs.panelBody.querySelector<HTMLButtonElement>('.list-close')!.click();
+  expect(deps.refs.panelBody.querySelector('.list-title')).toBeNull();
+  expect(deps.refs.panelBody.querySelector('.browse')).not.toBeNull();
+  expect(document.activeElement).toBe(deps.refs.tabs[0]);
+  await globe.cb().onSelect(lisbon);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(deps.refs.panelBody.querySelector('.browse')).not.toBeNull();
+});
+
+test('Escape that closes an open menu does not also clear the selected place', async () => {
+  await startApp(deps);
+  await globe.cb().onSelect(lisbon);
+  const menu = document.createElement('div');
+  menu.setAttribute('role', 'menu');
+  document.body.append(menu);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  menu.remove();
+  expect(deps.refs.panelBody.querySelector('.list-title')).not.toBeNull();
+});
+
+test('Escape while typing in search does not clear the selected place', async () => {
+  await startApp(deps);
+  await globe.cb().onSelect(lisbon);
+  deps.refs.searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  expect(deps.refs.panelBody.querySelector('.list-title')).not.toBeNull();
+});
+
 test('no WebGL → flat map', async () => {
   const app = await startApp({ ...deps, hasWebGL: false });
   expect(app.mode()).toBe('map');

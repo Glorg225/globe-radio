@@ -125,3 +125,14 @@ test('saved list keeps focus on the starred row, or the same position when the r
   expect(el.querySelectorAll('.station')[1].classList.contains('is-playing')).toBe(true);
   expect(el.querySelectorAll('.station')[0].classList.contains('is-playing')).toBe(false);
 });
+
+test('a close button in the header clears the selection; none without onClose', () => {
+  const onClose = vi.fn();
+  renderStationList(el, i18n, { title: 'X', subtitle: '', stations: [st('a', 'A')], playingId: null, onPick() {}, onClose });
+  const btn = el.querySelector<HTMLButtonElement>('.list-head .list-close')!;
+  expect(btn.getAttribute('aria-label')).toBe('Сбросить выбор');
+  btn.click();
+  expect(onClose).toHaveBeenCalledOnce();
+  renderStationList(el, i18n, { title: 'X', subtitle: '', stations: [], playingId: null, onPick() {} });
+  expect(el.querySelector('.list-close')).toBeNull();
+});

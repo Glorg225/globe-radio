@@ -8,6 +8,8 @@ export interface StationListProps {
   title: string; subtitle: string; stations: StationLite[]; playingId: string | null; onPick(s: StationLite): void;
   learn?: { tip: string; talkLabel: string };
   favorites?: { isFavorite(id: string): boolean; onToggle(s: StationLite): void };
+  // Clears the selected place (button in the header).
+  onClose?(): void;
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string) => {
@@ -43,6 +45,14 @@ function paintStar(star: HTMLButtonElement, i18n: I18n, on: boolean) {
 export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListProps): StationListHandle {
   const head = el('div', 'list-head');
   head.append(el('h2', 'list-title', p.title), el('p', 'list-sub', p.subtitle));
+  if (p.onClose) {
+    const close = el('button', 'btn--ghost list-close');
+    close.type = 'button';
+    close.setAttribute('aria-label', i18n.t('list.clear'));
+    close.innerHTML = icons.x;
+    close.addEventListener('click', () => p.onClose?.());
+    head.append(close);
+  }
   const list = el('ul', p.learn ? 'stations stations--learn' : 'stations');
   const rows = new Map<string, { row: HTMLLIElement; pick: HTMLButtonElement }>();
   const stars = new Map<string, HTMLButtonElement>();

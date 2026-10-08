@@ -199,12 +199,23 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
         onPick: (s) => { if (d.narrow?.()) { closeSheet(); nav.set('globe'); } void playStation(s, place); },
         learn: lang ? { tip: t('learn.tip'), talkLabel: t('learn.talk') } : undefined,
         favorites: { isFavorite: (id) => d.library.isFavorite(id), onToggle: (s) => { d.library.toggleFavorite(toSaved(s)); } },
+        onClose: clearSelection,
       });
       list = { placeId: place.id, handle };
     } catch {
       if (selected !== place || tab !== 'here') return;
       renderListMessage(refs.panelBody, t('list.loadError'), { label: t('common.retry'), onClick: () => { void renderList(place); } });
     }
+  }
+
+  // Back to "Pick a point on the globe" and the country links.
+  function clearSelection() {
+    if (!selected) return;
+    selected = null;
+    list = null;
+    showTab('here');
+    renderTab();
+    refs.tabs[0]?.focus();
   }
 
   async function selectPlace(p: Place) {
@@ -341,6 +352,15 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     refs.placeToggle.setAttribute('aria-expanded', String(open));
   };
   refs.placeToggle.addEventListener('click', () => setPlaceDrawer(!refs.placeCard.classList.contains('is-open')));
+  // Escape clears the selected place, unless something on top of the page takes it first: a typing field,
+  // an open menu or dialog (they close themselves on the same key), or the place drawer (closed below).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !selected || refs.placeCard.classList.contains('is-open')) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (document.querySelector('[role="menu"], [role="dialog"], .learn-pop, .search-pop')) return;
+    clearSelection();
+  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && refs.placeCard.classList.contains('is-open')) setPlaceDrawer(false); });
   attachSheetDrag(refs.left, refs.sheetHandle, { expandable: true, onClose: () => { closeSheet(); nav.set('globe'); } });
   d.library.subscribe(() => {

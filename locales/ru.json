@@ -135,5 +135,6 @@
   "footer.byCountry": "Радио по странам",
   "footer.cookies": "Настройки cookies",
   "browse.title": "Радио по странам",
-  "browse.all": "Все страны →"
+  "browse.all": "Все страны →",
+  "list.clear": "Сбросить выбор"
 }
