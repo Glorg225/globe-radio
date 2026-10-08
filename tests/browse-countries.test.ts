@@ -43,3 +43,13 @@ test('countries whose names collide get distinct slugs, the bigger keeps the pla
   const places = [place('c:1', 'AA', 3, { kind: 'country', name: 'Atlantis' }), place('c:2', 'AB', 5, { kind: 'country', name: 'Atlantis' })];
   expect(topCountries(places).map((c) => c.path)).toEqual(['radio/atlantis/', 'radio/atlantis-aa/']);
 });
+
+test('country names without officialese', () => {
+  const cases: Record<string, string> = {
+    HK: 'Hong Kong', MO: 'Macao', CD: 'DR Congo', CG: 'Republic of the Congo', MM: 'Myanmar', PS: 'Palestine',
+    BA: 'Bosnia and Herzegovina', TT: 'Trinidad and Tobago', LC: 'Saint Lucia', KN: 'Saint Kitts and Nevis',
+    VC: 'Saint Vincent and the Grenadines', CC: 'Cocos Islands', US: 'United States', GW: 'Guinea-Bissau', CI: 'Côte d’Ivoire',
+  };
+  for (const [cc, name] of Object.entries(cases)) expect(seoCountryName(cc), cc).toBe(name);
+  expect(topCountries([place('k:HK', 'HK', 5, { kind: 'country' })])[0].path).toBe('radio/hong-kong/');
+});

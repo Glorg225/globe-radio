@@ -43,3 +43,10 @@ export function fitDescription(lead: string, names: string[], tail: string, max 
   const text = `${lead}. ${tail}`;
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
+
+// English puts "the" before some country names: the United States, the Netherlands, the Cayman Islands.
+const WITH_THE = /^(?:United |Republic of |Isle of Man$)|(?:Islands|Republic|Netherlands|Philippines|Bahamas|Gambia|Maldives|Seychelles|Comoros|Emirates|Territory|Territories)$/;
+
+export function countryInSentence(name: string, start = false): string {
+  return WITH_THE.test(name) ? `${start ? 'The' : 'the'} ${name}` : name;
+}

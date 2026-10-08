@@ -8,7 +8,7 @@ export const GENRE_MIN_WORLD = 10;
 // 10, not 3: a style in a country with fewer stations makes a thin page (601 pages instead of 1,317, 87 % of the stations).
 export const GENRE_MIN_COUNTRY = 10;
 // "Popular styles here" lists a style from this many stations of the place.
-const STYLE_MIN_HERE = 2;
+export const STYLE_MIN_HERE = 2;
 
 export interface GenreCountry { country: CountryPage; stations: StationLite[] }
 export interface GenrePage { genre: Genre; stations: StationLite[]; countries: GenreCountry[] }
@@ -72,10 +72,16 @@ export function genreCoverage(stations: StationLite[], n = 20): { total: number;
   return { total: stations.length, matched, unmatched };
 }
 
-// "Popular styles here" on a country or city page: styles with a world page, most frequent first.
-export function stylesOf(stations: StationLite[], pages: GenrePage[], country: CountryPage, n = 8): StyleHere[] {
+// How many of the stations have each style (one count per station and style).
+export function countStyles(stations: StationLite[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const s of stations) for (const id of stylesOfStation(s)) counts.set(id, (counts.get(id) ?? 0) + 1);
+  return counts;
+}
+
+// "Popular styles here" on a country or city page: styles with a world page, most frequent first.
+export function stylesOf(stations: StationLite[], pages: GenrePage[], country: CountryPage, n = 8): StyleHere[] {
+  const counts = countStyles(stations);
   const out: StyleHere[] = [];
   for (const page of pages) {
     const count = counts.get(page.genre.id) ?? 0;

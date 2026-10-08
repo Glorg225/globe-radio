@@ -219,3 +219,13 @@ test('the country index and the footer link to the styles', () => {
   expect(doc.querySelector('footer a[href="/gr/radio/genre/"]')).not.toBeNull();
 });
 
+test('sentences put "the" before such country names; one country reads in the singular', () => {
+  const { pt } = fixture();
+  const us: CountryPage = { ...pt, cc: 'US', name: 'United States', slug: 'united-states', cities: [] };
+  const doc = parse(countryPage(site, us));
+  expect(doc.querySelector('.intro')!.textContent).toMatch(/^The United States has /);
+  expect(meta(doc, 'meta[name="description"]')).toContain('from the United States online');
+  const news = buildGenres([us]).find((p) => p.genre.id === 'news')!;
+  expect(parse(genrePage(site, news)).querySelector('.intro')!.textContent).toContain('The biggest country for News radio is the United States.');
+  expect(parse(genreCountryPage(site, news, news.countries[0])).querySelector('.intro')!.textContent).toMatch(/^The United States has /);
+});
