@@ -1,9 +1,9 @@
 // Groups the station snapshot into the static SEO pages: one per country and one per city.
 import { normalizeName } from '../../src/data/gazetteer';
 import { haversineKm } from '../../src/data/geo';
-import type { Place } from '../../src/data/places';
+import { isPlaceholder, type Place } from '../../src/data/places';
 import type { PlaceInfo, StationLite } from '../../src/data/shards';
-import { MIN_STATIONS } from '../../src/seo/country';
+import { countrySlugs, eligibleCountries, MIN_STATIONS } from '../../src/seo/country';
 import { assignSlugs } from '../../src/seo/slug';
 
 export { MIN_STATIONS };
@@ -14,26 +14,57 @@ export interface CountryPage { cc: string; name: string; slug: string; placeName
 export interface CountryData { stations: StationLite[]; info: Map<string, PlaceInfo> }
 export interface CityRef { country: CountryPage; city: CityPage }
 
+// Places with the same English name within 30 km are one city ("Lisbon" the city and "Lisbon" the region);
+// a namesake far away (Springfield, Illinois / Springfield, Massachusetts) is a city of its own.
+const SAME_CITY_KM = 30;
 // A region joins its city's page when it is the city itself ("State of Berlin", "Minsk City", "Zurich" for Zürich):
 // the region name without generic words equals the whole city name and the region point is near the city.
 // "Oklahoma" stays apart from "Oklahoma City" (the city name keeps "City"), "Kyiv Oblast" too (its point is 78 km away).
 const REGION_CITY_KM = 30;
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const km = (a: Place, b: Place) => haversineKm(a.lat, a.lon, b.lat, b.lon);
 
-function mergeCityRegions(groups: Map<string, Place[]>): void {
+function push<K, V>(map: Map<K, V[]>, key: K, value: V): void {
+  const list = map.get(key);
+  if (list) list.push(value);
+  else map.set(key, [value]);
+}
+
+function groupByName(places: Place[], size: (p: Place) => number): Place[][] {
+  const byName = new Map<string, Place[]>();
+  for (const p of places) push(byName, p.name.trim().toLowerCase(), p);
+  const groups: Place[][] = [];
+  for (const list of byName.values()) {
+    const clusters: Place[][] = [];
+    for (const p of [...list].sort((a, b) => size(b) - size(a))) {
+      const near = clusters.find((c) => c.some((m) => km(m, p) <= SAME_CITY_KM));
+      if (near) near.push(p);
+      else clusters.push([p]);
+    }
+    groups.push(...clusters);
+  }
+  return groups;
+}
+
+function mergeCityRegions(groups: Place[][]): Place[][] {
   const cityOf = (g: Place[]) => g.find((p) => p.kind === 'exact');
-  for (const [key, group] of groups) {
+  const out = groups.filter((g) => cityOf(g));
+  for (const group of groups) {
     if (cityOf(group)) continue;
     const region = group[0];
-    const target = [...groups.values()].find((g) => {
+    const key = normalizeName(region.name);
+    let target: Place[] | undefined;
+    let best = REGION_CITY_KM;
+    for (const g of out) {
       const city = cityOf(g);
-      return g !== group && city && fold(city.name) === normalizeName(region.name)
-        && haversineKm(region.lat, region.lon, city.lat, city.lon) <= REGION_CITY_KM;
-    });
-    if (!target) continue;
-    target.push(...group);
-    groups.delete(key);
+      if (!city || fold(city.name) !== key) continue;
+      const d = km(region, city);
+      if (d <= best) { target = g; best = d; }
+    }
+    if (target) target.push(...group);
+    else out.push(group);
   }
+  return out;
 }
 
 const byClicks = (a: StationLite, b: StationLite) => b.clicks - a.clicks || a.name.localeCompare(b.name);
@@ -41,28 +72,19 @@ const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompar
 
 export function buildModel(places: Place[], data: Map<string, CountryData>, countryName: (cc: string) => string): CountryPage[] {
   const placesByCc = new Map<string, Place[]>();
-  for (const p of places) {
-    if (p.kind === 'country') continue;
-    const list = placesByCc.get(p.cc) ?? [];
-    list.push(p);
-    placesByCc.set(p.cc, list);
-  }
+  for (const p of places) if (p.kind !== 'country') push(placesByCc, p.cc, p);
 
   const countries: CountryPage[] = [];
   for (const [cc, { stations, info }] of data) {
     if (stations.length < MIN_STATIONS) continue;
     const byPlace = new Map<string, StationLite[]>();
-    for (const s of stations) byPlace.set(s.placeId, [...(byPlace.get(s.placeId) ?? []), s]);
+    for (const st of stations) push(byPlace, st.placeId, st);
     const size = (p: Place) => byPlace.get(p.id)?.length ?? 0;
 
-    // A city and a region with the same English name ("Lisbon") are one page.
-    const groups = new Map<string, Place[]>();
-    for (const p of placesByCc.get(cc) ?? []) {
-      const key = p.name.trim().toLowerCase();
-      groups.set(key, [...(groups.get(key) ?? []), p]);
-    }
-    mergeCityRegions(groups);
-    const candidates = [...groups.values()]
+    // Stations far from any city sit on placeholder places, often named after the country: no city page.
+    const cityPlaces = (placesByCc.get(cc) ?? []).filter((p) => !isPlaceholder(p.id));
+    const groups = mergeCityRegions(groupByName(cityPlaces, size));
+    const candidates = groups
       .map((group) => {
         // Name and point of the city when the group has one, even if its region has more stations.
         const cities = group.filter((p) => p.kind === 'exact');
@@ -85,9 +107,12 @@ export function buildModel(places: Place[], data: Map<string, CountryData>, coun
     countries.push({ cc, name, slug: '', placeNames, stations: [...stations].sort(byClicks), cities });
   }
 
-  const bySize = [...countries].sort((a, b) => b.stations.length - a.stations.length);
-  const slugs = assignSlugs(bySize, (c) => c.name, (c) => c.cc);
-  for (const c of countries) c.slug = slugs.get(c)!;
+  // Same slugs as the app's country links: the same list (all countries of the snapshot, even one whose
+  // station file is missing) through the same function (src/seo/country.ts).
+  const list = eligibleCountries(places, countryName);
+  for (const c of countries) if (!list.some((e) => e.cc === c.cc)) list.push({ cc: c.cc, name: c.name, count: c.stations.length });
+  const slugs = countrySlugs(list);
+  for (const c of countries) c.slug = slugs.get(c.cc)!;
   return countries.sort(byName);
 }
 

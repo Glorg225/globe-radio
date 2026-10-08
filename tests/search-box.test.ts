@@ -145,3 +145,35 @@ test('without a browse block, focusing an empty field opens nothing', () => {
   input.dispatchEvent(new Event('focus'));
   expect(pop()).toBeNull();
 });
+
+test('browse block closes when focus leaves it, and on Escape from a link', () => {
+  const block = document.createElement('section');
+  block.className = 'browse';
+  block.innerHTML = '<a href="radio/a/">A</a>';
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  createSearchBox(input, i18n, { ...d, browse: () => block });
+  input.dispatchEvent(new Event('focus'));
+  const link = block.querySelector('a')!;
+  link.focus();
+  link.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  expect(pop()).not.toBeNull();
+  outside.focus();
+  outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  expect(pop()).toBeNull();
+  input.dispatchEvent(new Event('focus'));
+  block.querySelector('a')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  expect(pop()).toBeNull();
+  expect(document.activeElement).toBe(input);
+});
+
+test('the results list also closes when focus moves elsewhere', async () => {
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  createSearchBox(input, i18n, d);
+  await type('lis');
+  expect(pop()).not.toBeNull();
+  outside.focus();
+  outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  expect(pop()).toBeNull();
+});
