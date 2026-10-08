@@ -14,6 +14,6 @@ function files(dir: string): string[] {
 test('only src/data/place-name.ts builds country names with Intl.DisplayNames', () => {
   const offenders = [...files('src'), ...files('scripts')]
     .filter((f) => /\.ts$/.test(f) && f !== join('src', 'data', 'place-name.ts'))
-    .filter((f) => /type:\s*'region'/.test(readFileSync(f, 'utf8')));
+    .filter((f) => /type:\s*['"`]region['"`]/.test(readFileSync(f, 'utf8')));
   expect(offenders).toEqual([]);
 });
