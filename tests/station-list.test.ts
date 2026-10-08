@@ -16,7 +16,8 @@ test('renders title, subtitle, names, tags and letter tiles', () => {
   expect(el.querySelector('.list-sub')!.textContent).toContain('2 станции');
   const rows = el.querySelectorAll('.station');
   expect(rows).toHaveLength(2);
-  expect(rows[0].querySelector('.station__tags')!.textContent).toBe('fado · jazz · pop');
+  // Styles from the dictionary when a station has any; raw tags otherwise.
+  expect(rows[0].querySelector('.station__tags')!.textContent).toBe('Pop · Rock · Jazz');
   expect(rows[0].querySelector('.station__tile')!.textContent).toBe('F');
 });
 
@@ -76,7 +77,7 @@ test('learn variant: tip on top, teal list, "речь" chip only on talk/news st
   const rows = el.querySelectorAll('.station');
   expect(rows[0].querySelector('.talk-chip')!.textContent).toBe('речь');
   expect(rows[1].querySelector('.talk-chip')).toBeNull();
-  expect(rows[0].querySelector('.station__tags')!.textContent).toContain('talk · spanish');
+  expect(rows[0].querySelector('.station__tags')!.textContent).toContain('Talk');
 });
 
 test('active stars when favorites are wired: pressed state, toggle, refresh', () => {

@@ -1,6 +1,6 @@
 import type { PlaceKind, PlaceRef } from './types';
 
-// styles: up to 3 most frequent station styles (ids from src/data/genres.ts), for the map tooltip.
+// styles: the 2 most frequent station styles (ids from src/data/genres.ts), for the map tooltip.
 export interface Place extends PlaceRef { count: number; pop: number; langs?: Record<string, number>; styles?: string[] }
 // tz: index into PlacesFile.tzs (-1: unknown); styles: one character per style, its index in PlacesFile.styles
 // (the file carries its own style table, so a later change of the dictionary cannot shift old files).

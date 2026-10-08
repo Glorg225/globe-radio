@@ -14,7 +14,7 @@ export interface ShellRefs {
   stage: HTMLElement; stars: HTMLElement; map: HTMLElement; status: HTMLElement;
   zoomIn: HTMLButtonElement; zoomOut: HTMLButtonElement; viewButtons: HTMLButtonElement[];
   placeCard: HTMLElement; player: HTMLElement;
-  banner: HTMLElement; learnButton: HTMLButtonElement;
+  banner: HTMLElement; learnButton: HTMLButtonElement; styleButton: HTMLButtonElement; styleBanner: HTMLElement;
   tabs: HTMLButtonElement[]; searchInput: HTMLInputElement; surpriseButton: HTMLButtonElement;
   netBanner: HTMLElement; root: HTMLElement; installButton: HTMLButtonElement;
   navButtons: HTMLButtonElement[]; sheetHandle: HTMLElement; placeToggle: HTMLButtonElement; cookiesButton: HTMLButtonElement;
@@ -33,6 +33,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       <button class="btn btn--accent" data-action="surprise" aria-label="${t('header.surprise')}">${icons.shuffle}<span>${t('header.surprise')}</span></button>
       <div class="spacer"></div>
       <button class="btn btn--outline" data-action="learn" aria-label="${t('header.learn')}">${icons.message}<span>${t('header.learn')}</span></button>
+      <button class="btn btn--outline" data-action="style" aria-label="${t('style.button')}" aria-haspopup="dialog" aria-expanded="false">${icons.volume}<span>${t('style.button')}</span></button>
       <div class="segment" role="group" aria-label="${t('header.view.label')}">
         <button aria-pressed="true" data-view="globe">${t('header.view.globe')}</button>
         <button aria-pressed="false" data-view="map">${t('header.view.map')}</button>
@@ -40,6 +41,7 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
       <button class="btn btn--outline btn--icon" data-action="install" aria-label="${t('header.install')}">${icons.download}</button>
     </header>
     <div class="learn-banner" hidden></div>
+    <div class="learn-banner style-banner" hidden></div>
     <div class="net-banner" hidden></div>
     <div class="shell__body">
       <aside class="shell__left">
@@ -95,8 +97,10 @@ export function renderShell(root: HTMLElement, i18n: I18n): ShellRefs {
     viewButtons: [...root.querySelectorAll<HTMLButtonElement>('[data-view]')],
     placeCard: q('.shell__place'),
     player: q('.shell__player'),
-    banner: q('.learn-banner'),
+    banner: q('.learn-banner:not(.style-banner)'),
     learnButton: q<HTMLButtonElement>('[data-action="learn"]'),
+    styleButton: q<HTMLButtonElement>('[data-action="style"]'),
+    styleBanner: q('.style-banner'),
     tabs: [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')],
     searchInput: q<HTMLInputElement>('.search input'),
     surpriseButton: q<HTMLButtonElement>('[data-action="surprise"]'),

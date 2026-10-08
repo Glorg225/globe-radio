@@ -1,4 +1,6 @@
 export const LEARN_KEY = 'learnLang';
+// The style mode (#40) keeps its choice the same way under its own key.
+export const STYLE_KEY = 'styleId';
 
 export interface LearnState {
   get(): string | null;
@@ -6,12 +8,12 @@ export interface LearnState {
   subscribe(l: (code: string | null) => void): () => void;
 }
 
-export function createLearnState(storage: Storage | null, isKnown: (code: string) => boolean): LearnState {
+export function createLearnState(storage: Storage | null, isKnown: (code: string) => boolean, key = LEARN_KEY): LearnState {
   let current: string | null = null;
-  try { current = storage?.getItem(LEARN_KEY) ?? null; } catch { current = null; }
+  try { current = storage?.getItem(key) ?? null; } catch { current = null; }
   if (current && !isKnown(current)) {
     current = null;
-    try { storage?.removeItem(LEARN_KEY); } catch { /* unavailable */ }
+    try { storage?.removeItem(key); } catch { /* unavailable */ }
   }
   const listeners = new Set<(code: string | null) => void>();
   return {
@@ -20,8 +22,8 @@ export function createLearnState(storage: Storage | null, isKnown: (code: string
       if (code === current) return;
       current = code;
       try {
-        if (code) storage?.setItem(LEARN_KEY, code);
-        else storage?.removeItem(LEARN_KEY);
+        if (code) storage?.setItem(key, code);
+        else storage?.removeItem(key);
       } catch { /* unavailable */ }
       for (const l of listeners) l(code);
     },

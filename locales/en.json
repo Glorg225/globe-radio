@@ -132,5 +132,20 @@
   "footer.cookies": "Cookie settings",
   "browse.title": "Browse by country",
   "browse.all": "All countries →",
-  "list.clear": "Clear selection"
+  "list.clear": "Clear selection",
+  "style.button": "Style",
+  "style.picker": "Listen by style",
+  "style.loading": "Loading styles…",
+  "style.error": "Couldn't load styles",
+  "style.group.genre": "Genres",
+  "style.group.format": "Formats",
+  "style.group.decade": "Decades",
+  "style.banner.title": "Style",
+  "style.banner.info": "{style} · {stations} in {countries} · “Next” picks only from them",
+  "style.subtitle": "{country} · {stations} · {style}",
+  "style.subtitleApprox": "Approximate location · {stations} · {style}",
+  "style.empty": "No {style} stations here",
+  "style.next": "Next: {style}",
+  "style.noNext": "No more {style} stations nearby",
+  "browse.styles": "Listen by style"
 }
