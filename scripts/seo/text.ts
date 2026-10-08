@@ -25,18 +25,6 @@ export function topLanguages(stations: StationLite[], n = 3): string[] {
   return top(counts, n).map(languageName);
 }
 
-// Station tags that describe the programme; skips bitrates ("64kbps"), place names and one-off tags.
-export function genreTags(tags: string[], exclude: string[] = []): string[] {
-  const skip = new Set(exclude.map((e) => e.toLowerCase()));
-  return tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length >= 2 && t.length <= 24 && !/\d/.test(t) && !skip.has(t));
-}
-
-export function topGenres(stations: StationLite[], exclude: string[] = [], n = 3): string[] {
-  const counts = new Map<string, number>();
-  for (const s of stations) for (const t of new Set(genreTags(s.tags, exclude))) counts.set(t, (counts.get(t) ?? 0) + 1);
-  return top(counts, n, 2);
-}
-
 export function listPhrase(items: string[]): string {
   if (items.length <= 1) return items.join('');
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;

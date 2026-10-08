@@ -35,7 +35,7 @@ test('writes country, city, index and 404 pages, sitemap, robots and the stylesh
   const data = tmp();
   const out = tmp();
   snapshot(data);
-  expect(buildSeoPages({ dataDir: data, outDir: out, site, css })).toEqual({ countries: 1, cities: 1 });
+  expect(buildSeoPages({ dataDir: data, outDir: out, site, css })).toMatchObject({ countries: 1, cities: 1 });
   for (const f of ['radio/index.html', 'radio/portugal/index.html', 'radio/portugal/lisbon/index.html', '404.html', 'robots.txt']) {
     expect(existsSync(join(out, f)), f).toBe(true);
   }
@@ -47,7 +47,7 @@ test('writes country, city, index and 404 pages, sitemap, robots and the stylesh
   expect(readFileSync(join(out, '404.html'), 'utf8')).toContain(`<style>${css}</style>`);
   const sitemap = readFileSync(join(out, 'sitemap.xml'), 'utf8');
   expect([...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1])).toEqual([
-    'https://example.com/gr/', 'https://example.com/gr/radio/', 'https://example.com/gr/radio/portugal/', 'https://example.com/gr/radio/portugal/lisbon/',
+    'https://example.com/gr/', 'https://example.com/gr/radio/', 'https://example.com/gr/radio/portugal/', 'https://example.com/gr/radio/portugal/lisbon/', 'https://example.com/gr/radio/genre/',
   ]);
   expect(sitemap).toContain('<lastmod>2026-10-08</lastmod>');
 });
@@ -96,3 +96,21 @@ test('app country links match generated pages even when country slugs collide', 
   expect(links.map((c) => c.path)).toEqual(['radio/atlantis/', 'radio/atlantis-aa/']);
   for (const c of links) expect(existsSync(join(out, c.path, 'index.html')), c.path).toBe(true);
 });
+
+test('style pages: index, style worldwide and style in a country, all in the sitemap', () => {
+  const data = tmp();
+  const out = tmp();
+  const places = [place({ id: 'k:PT', kind: 'country', name: 'Portugal', count: 12 })];
+  const stations = Array.from({ length: 12 }, (_, i) => ({ ...st(String(i), 'k:PT'), tags: ['jazz'] }));
+  mkdirSync(join(data, 'stations'), { recursive: true });
+  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map(encodePlace) }));
+  writeFileSync(join(data, 'stations', 'PT.json'), JSON.stringify({ v: 2, cc: 'PT', stations: stations.map(encodeStation) }));
+  expect(buildSeoPages({ dataDir: data, outDir: out, site, css })).toMatchObject({ genres: 1, genreCountries: 1 });
+  for (const f of ['radio/genre/index.html', 'radio/genre/jazz/index.html', 'radio/genre/jazz/portugal/index.html']) {
+    expect(existsSync(join(out, f)), f).toBe(true);
+  }
+  const sitemap = readFileSync(join(out, 'sitemap.xml'), 'utf8');
+  for (const u of ['radio/genre/', 'radio/genre/jazz/', 'radio/genre/jazz/portugal/']) expect(sitemap).toContain(`<loc>https://example.com/gr/${u}</loc>`);
+  expect(readFileSync(join(out, 'radio/portugal/index.html'), 'utf8')).toContain('href="/gr/radio/genre/jazz/portugal/"');
+});
+

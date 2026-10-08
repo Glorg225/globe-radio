@@ -9,8 +9,7 @@ import { assignSlugs } from '../../src/seo/slug';
 export { MIN_STATIONS };
 
 export interface CityPage { cc: string; name: string; slug: string; lat: number; lon: number; tz: string; stations: StationLite[] }
-// placeNames: the country and all its places, lowercased - station tags with these names are not genres.
-export interface CountryPage { cc: string; name: string; slug: string; placeNames: string[]; stations: StationLite[]; cities: CityPage[] }
+export interface CountryPage { cc: string; name: string; slug: string; stations: StationLite[]; cities: CityPage[] }
 export interface CountryData { stations: StationLite[]; info: Map<string, PlaceInfo> }
 export interface CityRef { country: CountryPage; city: CityPage }
 
@@ -103,8 +102,7 @@ export function buildModel(places: Place[], data: Map<string, CountryData>, coun
       .sort(byName);
 
     const name = countryName(cc);
-    const placeNames = [...new Set([name, ...(placesByCc.get(cc) ?? []).map((p) => p.name)].map((n) => n.trim().toLowerCase()))];
-    countries.push({ cc, name, slug: '', placeNames, stations: [...stations].sort(byClicks), cities });
+    countries.push({ cc, name, slug: '', stations: [...stations].sort(byClicks), cities });
   }
 
   // Same slugs as the app's country links: the same list (all countries of the snapshot, even one whose
