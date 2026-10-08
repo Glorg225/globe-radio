@@ -4,8 +4,9 @@ import type { StationLite } from '../../src/data/shards';
 import { MIN_STATIONS } from '../../src/seo/country';
 import type { CountryPage } from './model';
 
-// A style gets a world page from this many stations; a style in a country from MIN_STATIONS.
+// A style gets a world page from this many stations, a style in a country from GENRE_MIN_COUNTRY.
 export const GENRE_MIN_WORLD = 10;
+export const GENRE_MIN_COUNTRY = MIN_STATIONS;
 // "Popular styles here" lists a style from this many stations of the place.
 const STYLE_MIN_HERE = 2;
 
@@ -24,7 +25,7 @@ function stylesOfStation(s: StationLite): string[] {
   return ids;
 }
 
-export const hasCountryPage = (gc: GenreCountry) => gc.stations.length >= MIN_STATIONS;
+export const hasCountryPage = (gc: GenreCountry) => gc.stations.length >= GENRE_MIN_COUNTRY;
 
 export function buildGenres(countries: CountryPage[]): GenrePage[] {
   const byGenre = new Map<string, Map<CountryPage, StationLite[]>>();
