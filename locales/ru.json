@@ -152,5 +152,6 @@
   "style.next": "Следующая: {style}",
   "style.noNext": "Рядом больше нет станций в стиле {style}",
   "browse.styles": "Слушать по стилю",
-  "style.none": "Сейчас нет станций в стиле {style}"
+  "style.none": "Сейчас нет станций в стиле {style}",
+  "browse.allStyles": "Все стили →"
 }
