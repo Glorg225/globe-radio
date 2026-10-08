@@ -199,9 +199,16 @@ export function indexPage(site: Site, countries: CountryPage[]): string {
 
 const styles: Crumb = { name: 'Styles', path: genreIndexPath() };
 const GROUPS: [GenreGroup, string][] = [['genre', 'Genres'], ['format', 'Formats'], ['decade', 'Decades']];
-const GENRE_COUNTRY_MAX = 100;
-// A city page lists this many stations at most: Mexico City has 374, and the full list made a 171 KB page.
-const CITY_MAX = 100;
+// City and style-in-country pages list this many stations at most: Mexico City has 374 and made a 171 KB page.
+const LIST_MAX = 100;
+
+// The longest lists stop at LIST_MAX; the link opens the app on the first station not listed, with its place.
+function listedStations(site: Site, stations: StationLite[]): string {
+  const more = stations.length > LIST_MAX
+    ? `<p class="stations-more">Showing the ${LIST_MAX} most popular of ${stations.length.toLocaleString('en-US')} stations. <a href="${esc(listenHref(site, stations[LIST_MAX]))}">Open the 3D globe</a> to hear all of them.</p>`
+    : '';
+  return stationList(site, stations.slice(0, LIST_MAX)) + more;
+}
 
 export function genreIndexPage(site: Site, pages: GenrePage[]): string {
   const total = new Set(pages.flatMap((p) => p.stations.map((s) => s.id))).size;
@@ -258,7 +265,7 @@ export function genreCountryPage(site: Site, page: GenrePage, gc: GenreCountry):
     crumbs: [home, styles, { name: genre.name, path: genrePath(genre) }, { name: country.name, path: genreCountryPath(genre, country) }],
     data: [stationsData(site, where, stations, () => undefined)],
     main: [
-      `<section><h2>${esc(where)}</h2>${stationList(site, stations.slice(0, GENRE_COUNTRY_MAX))}</section>`,
+      `<section><h2>${esc(where)}</h2>${listedStations(site, stations)}</section>`,
       `<p class="more"><a href="${esc(link(site, countryPath(country)))}">All radio stations in ${esc(countryInSentence(country.name))}</a> · <a href="${esc(link(site, genrePath(genre)))}">${esc(genre.name)} radio worldwide</a></p>`,
     ].join('\n'),
   });
@@ -305,11 +312,7 @@ export function cityPage(site: Site, ref: CityRef, nearby: CityRef[], styles: St
     crumbs: [home, { name: country.name, path: countryPath(country) }, { name: city.name, path: cityPath(ref) }],
     data: [stationsData(site, `${city.name} radio stations`, city.stations, () => city.name)],
     main: [
-      `<section><h2>Stations in ${esc(city.name)}</h2>${stationList(site, city.stations.slice(0, CITY_MAX))}${
-        n > CITY_MAX
-          ? `<p class="stations-more">Showing the ${CITY_MAX} most popular of ${n.toLocaleString('en-US')} stations. <a href="${esc(site.base)}">Open the 3D globe</a> to hear all of them.</p>`
-          : ''
-      }</section>`,
+      `<section><h2>Stations in ${esc(city.name)}</h2>${listedStations(site, city.stations)}</section>`,
       stylesSection(site, country, styles),
       nearbyItems.length ? `<section><h2>Nearby cities</h2>${linkList('nearby', nearbyItems)}</section>` : '',
       `<p class="more"><a href="${esc(link(site, countryPath(country)))}">All radio stations in ${esc(countryInSentence(country.name))}</a></p>`,

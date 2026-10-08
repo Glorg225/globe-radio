@@ -238,8 +238,18 @@ test('a big city lists its 100 most popular stations and points to the globe for
   expect(doc.querySelector('.intro')!.textContent).toContain('130 live radio stations');
   const more = doc.querySelector('.stations-more')!;
   expect(more.textContent).toBe('Showing the 100 most popular of 130 stations. Open the 3D globe to hear all of them.');
-  expect(more.querySelector('a')!.getAttribute('href')).toBe('/gr/');
+  // The first station not listed, opened in the app with its place.
+  expect(more.querySelector('a')!.getAttribute('href')).toBe('/gr/?station=b100&c=PT');
   const small = parse(cityPage(site, { country: pt, city: lisbon }, []));
   expect(small.querySelector('.stations-more')).toBeNull();
+});
+
+test('a style in a country with more than 100 stations says so too', () => {
+  const { pt } = fixture();
+  const stations = Array.from({ length: 120 }, (_, i) => st(`n${i}`, { clicks: 120 - i }));
+  const page = { genre: { id: 'news', name: 'News', group: 'format' as const, aliases: [] }, stations, countries: [{ country: pt, stations }] };
+  const doc = parse(genreCountryPage(site, page, page.countries[0]));
+  expect(doc.querySelectorAll('a.listen')).toHaveLength(100);
+  expect(doc.querySelector('.stations-more')!.textContent).toContain('100 most popular of 120 stations');
 });
 
