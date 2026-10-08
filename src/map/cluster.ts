@@ -1,9 +1,11 @@
 import Supercluster from 'supercluster';
 import type { Place } from '../data/places';
 
+// muted: everything under a highlight; teal: Learn a language; amber: the style mode (the site's accent).
+export type Tone = 'muted' | 'teal' | 'amber';
 export type MapItem =
-  | { type: 'place'; key: string; place: Place; lat: number; lon: number; count: number; pop: number; tone?: 'muted' | 'teal' }
-  | { type: 'cluster'; key: string; lat: number; lon: number; count: number; pop: number; zoomTo: number; tone?: 'muted' | 'teal' };
+  | { type: 'place'; key: string; place: Place; lat: number; lon: number; count: number; pop: number; tone?: Tone }
+  | { type: 'cluster'; key: string; lat: number; lon: number; count: number; pop: number; zoomTo: number; tone?: Tone };
 export interface Clusterer { items(zoom: number): MapItem[] }
 
 // Above this zoom places are never grouped; both views can zoom past it, so every cluster opens.
@@ -45,13 +47,13 @@ export function createClusterer(all: Place[], weight?: (p: Place) => number): Cl
   };
 }
 
-// Learn mode: every place muted underneath, places of the chosen language in teal on top.
-export function layered(base: Clusterer, highlight: Clusterer | null): Clusterer {
+// Learn / style mode: every place muted underneath, the highlighted places on top in the mode's tone.
+export function layered(base: Clusterer, highlight: Clusterer | null, tone: 'teal' | 'amber' = 'teal'): Clusterer {
   if (!highlight) return base;
   return {
     items: (zoom) => {
-      const top = highlight.items(zoom).map((i) => ({ ...i, tone: 'teal' as const }));
-      // A teal place is not drawn again underneath: otherwise the globe picks the muted twin for the tooltip.
+      const top = highlight.items(zoom).map((i) => ({ ...i, tone }));
+      // A highlighted place is not drawn again underneath: otherwise the globe picks the muted twin for the tooltip.
       const tealPlaces = new Set(top.filter((i) => i.type === 'place').map((i) => i.key));
       const bottom = base.items(zoom)
         .filter((i) => !(i.type === 'place' && tealPlaces.has(i.key)))
