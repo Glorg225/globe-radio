@@ -4,6 +4,7 @@ import { startApp, type AppDeps } from '../src/app/app';
 import type { Place } from '../src/data/places';
 import type { PlaceInfo, ShardStore, StationLite } from '../src/data/shards';
 import { createI18n } from '../src/i18n/i18n';
+import type { Clusterer } from '../src/map/cluster';
 import type { MapCallbacks, MapFactory, MapView } from '../src/map/map-view';
 import type { Player, PlayerState } from '../src/player/player';
 import { renderShell } from '../src/ui/shell';
@@ -27,13 +28,15 @@ class Mem {
 function fakeFactory() {
   const views: (MapView & { setPlaying: ReturnType<typeof vi.fn>; flyTo: ReturnType<typeof vi.fn>; refresh: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> })[] = [];
   let cb!: MapCallbacks;
-  const factory: MapFactory = async (_el, _c, callbacks) => {
+  let source!: Clusterer;
+  const factory: MapFactory = async (_el, c, callbacks) => {
     cb = callbacks;
+    source = c;
     const v = { setPlaying: vi.fn(), flyTo: vi.fn(), zoomBy: vi.fn(), refresh: vi.fn(), destroy: vi.fn() };
     views.push(v);
     return v;
   };
-  return { factory, views, cb: () => cb };
+  return { factory, views, cb: () => cb, source: () => source };
 }
 
 function fakePlayer() {
@@ -1077,4 +1080,15 @@ test('the style dialog closes when keyboard focus leaves it', async () => {
   outside.focus();
   outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
   expect(document.querySelector('.style-pop')).toBeNull();
+});
+
+test('the style mode highlights in amber, the learn mode in teal', async () => {
+  const app = await startApp(deps);
+  app.style('jazz');
+  await flush();
+  const tones = () => new Set(globe.source().items(12).map((i) => i.tone));
+  expect(tones()).toEqual(new Set(['muted', 'amber']));
+  app.learn('en');
+  await flush();
+  expect(tones()).toEqual(new Set(['muted', 'teal']));
 });

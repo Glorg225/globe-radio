@@ -547,7 +547,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   // The highlighted layer follows the active mode: places weighted by the language or by the style.
   function rebuildLayer() {
     if (!base) return;
-    layer = layered(base, learnCode || (styleId && styleIndex) ? createClusterer(places, placeWeight) : null);
+    layer = layered(base, learnCode || (styleId && styleIndex) ? createClusterer(places, placeWeight) : null, learnCode ? 'teal' : 'amber');
   }
 
   const ensureStyles = () => (styleLoad ??= d.loadStyles()

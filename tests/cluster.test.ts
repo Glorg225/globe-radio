@@ -60,3 +60,11 @@ test('layered source: muted base first, teal highlight on top; no highlight = ba
   expect(items.filter((i) => i.key === 'far')).toHaveLength(1);
   expect(items.at(-1)).toMatchObject({ key: 'far', tone: 'teal' });
 });
+
+test('layered source can highlight in amber (style mode) instead of teal (learn mode)', async () => {
+  const { createClusterer, layered } = await import('../src/map/cluster');
+  const p = { id: 'c:1', lat: 0, lon: 0, kind: 'exact' as const, cc: 'PT', nameRu: '', name: 'A', count: 3, pop: 1 };
+  const base = createClusterer([p]);
+  const items = layered(base, createClusterer([p], () => 1), 'amber').items(12);
+  expect(items.map((i) => i.tone)).toEqual(['amber']);
+});

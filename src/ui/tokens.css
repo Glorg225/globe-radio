@@ -19,6 +19,11 @@
 
   --accent: #FFB547;
   --on-accent: #1A1206;
+  /* Style mode banner and picker (amber = the accent, as teal is for Learn a language). */
+  --amber-banner-bg: #2A2010;
+  --amber-banner-border: #4D3A17;
+  --amber-text-muted: #E8CFA0;
+  --amber-chip-bg: #3A2C12;
   --link: #FFC978;
   --link-hover: #FFE2B0;
   --live: #FF5D6C;
