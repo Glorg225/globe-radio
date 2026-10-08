@@ -2,7 +2,7 @@ import type { I18n } from '../i18n/i18n';
 import type { CountryLink } from '../seo/country';
 
 // "Browse by country": links from the app to the static country pages (/radio/...).
-// styles: biggest styles as buttons that switch the style mode on (#40).
+// styles: biggest styles as buttons that switch the style mode on (#40), then a link to the style pages.
 export function renderBrowseCountries(i18n: I18n, countries: CountryLink[], styles?: { ids: { id: string; name: string }[]; current?: string | null; onPick(id: string): void }): HTMLElement {
   const section = document.createElement('section');
   section.className = 'browse';
@@ -41,7 +41,11 @@ export function renderBrowseCountries(i18n: I18n, countries: CountryLink[], styl
       b.addEventListener('click', () => styles.onPick(s.id));
       row.append(b);
     }
-    section.append(label, row);
+    const allStyles = document.createElement('a');
+    allStyles.className = 'browse__all';
+    allStyles.href = 'radio/genre/';
+    allStyles.textContent = i18n.t('browse.allStyles');
+    section.append(label, row, allStyles);
   }
   return section;
 }

@@ -71,3 +71,10 @@ test('no country name starts with "The", so a sentence never reads "the The ..."
     expect(countryInSentence(name), a + b).not.toMatch(/^the the /i);
   }
 });
+
+test('renderBrowseCountries: under the style buttons a link to all styles, as under the countries', () => {
+  const el = renderBrowseCountries(createI18n('en', en), [{ cc: 'PT', name: 'Portugal', path: 'radio/portugal/', count: 3 }],
+    { ids: [{ id: 'jazz', name: 'Jazz' }], onPick: () => {} });
+  const last = el.lastElementChild as HTMLAnchorElement;
+  expect([last.className, last.textContent, last.getAttribute('href')]).toEqual(['browse__all', 'All styles →', 'radio/genre/']);
+});
