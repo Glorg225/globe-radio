@@ -41,7 +41,10 @@ test('writes country, city, index and 404 pages, sitemap, robots and the stylesh
   }
   expect(existsSync(join(out, 'radio/portugal/porto/index.html'))).toBe(false);
   expect(readFileSync(join(out, 'radio/portugal/lisbon/index.html'), 'utf8')).toContain('Local time zone: Europe/Lisbon.');
-  expect(readFileSync(join(out, 'radio/seo.css'), 'utf8')).toBe(css);
+  // Styles are inlined into every page: no separate stylesheet request.
+  expect(existsSync(join(out, 'radio/seo.css'))).toBe(false);
+  expect(readFileSync(join(out, 'radio/portugal/index.html'), 'utf8')).toContain(`<style>${css}</style>`);
+  expect(readFileSync(join(out, '404.html'), 'utf8')).toContain(`<style>${css}</style>`);
   const sitemap = readFileSync(join(out, 'sitemap.xml'), 'utf8');
   expect([...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1])).toEqual([
     'https://example.com/gr/', 'https://example.com/gr/radio/', 'https://example.com/gr/radio/portugal/', 'https://example.com/gr/radio/portugal/lisbon/',

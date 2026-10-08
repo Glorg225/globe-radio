@@ -78,7 +78,7 @@ test('JSON-LD: breadcrumbs and a list of radio stations with absolute URLs', () 
     'https://example.com/gr/', 'https://example.com/gr/radio/portugal/', 'https://example.com/gr/radio/portugal/lisbon/',
   ]);
   const list = data.find((d) => d['@type'] === 'ItemList');
-  expect(list.itemListElement[1]).toEqual({ '@type': 'ListItem', position: 2, item: { '@type': 'RadioStation', name: 'Station s2', url: 'https://example.com/gr/?station=s2&c=PT' } });
+  expect(list.itemListElement[1]).toEqual({ '@type': 'ListItem', position: 2, item: { '@type': 'RadioStation', name: 'Station s2', url: 'https://example.com/gr/?station=s2&c=PT', address: { '@type': 'PostalAddress', addressLocality: 'Lisbon', addressCountry: 'PT' } } });
 });
 
 test('country page: top 50 stations, links to its cities, JSON-LD capped at 50', () => {
@@ -120,4 +120,46 @@ test('footer: attribution, link to all countries, cookie settings hidden until t
   expect(foot.textContent).toContain("We don't store or rebroadcast streams");
   expect(foot.querySelector('a[href="/gr/radio/"]')).not.toBeNull();
   expect(foot.querySelector<HTMLElement>('.cookies')!.hidden).toBe(true);
+});
+
+test('JSON-LD stations carry the logo (https only) and the city and country as address', () => {
+  const { pt, lisbon } = fixture();
+  lisbon.stations[1].favicon = 'https://cdn.example/logo.png';
+  lisbon.stations[2].favicon = 'http://insecure.example/logo.png';
+  const items = ld(parse(cityPage(site, { country: pt, city: lisbon }, []))).find((d) => d['@type'] === 'ItemList').itemListElement;
+  expect(items[1].item.image).toBe('https://cdn.example/logo.png');
+  expect(items[2].item).not.toHaveProperty('image');
+  expect(items[1].item.address).toEqual({ '@type': 'PostalAddress', addressLocality: 'Lisbon', addressCountry: 'PT' });
+});
+
+test('nothing blocks the first paint: styles inline, web fonts load without blocking', () => {
+  const { pt } = fixture();
+  const html = countryPage({ ...site, css: '.x{color:var(--text)}' }, pt);
+  const doc = parse(html);
+  expect(doc.querySelector('head style')!.textContent).toBe('.x{color:var(--text)}');
+  expect(doc.querySelector('link[rel="stylesheet"][href*="seo.css"]')).toBeNull();
+  // The only stylesheet link to Google Fonts is inside <noscript>; scripts load it via preload + onload.
+  expect([...doc.querySelectorAll('head > link[rel="stylesheet"]')].map((l) => l.getAttribute('href'))).toEqual([]);
+  const preload = doc.querySelector('link[rel="preload"][as="style"]')!;
+  expect(preload.getAttribute('href')).toContain('fonts.googleapis.com');
+  expect(preload.getAttribute('onload')).toContain("this.rel='stylesheet'");
+  expect(html).toMatch(/<noscript><link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com/);
+});
+
+test('station image only for https links to an image file; country pages give the station city', () => {
+  const { pt, lisbon } = fixture();
+  lisbon.stations[0].favicon = 'https://cdn.example/favicon.ico';
+  lisbon.stations[1].favicon = 'https://cdn.example/logo.PNG?v=2';
+  lisbon.stations[2].favicon = 'https://cdn.example/logo';
+  const items = ld(parse(cityPage(site, { country: pt, city: lisbon }, []))).find((d) => d['@type'] === 'ItemList').itemListElement;
+  expect(items.map((i: { item: { image?: string } }) => i.item.image)).toEqual([undefined, 'https://cdn.example/logo.PNG?v=2', undefined]);
+  const countryItems = ld(parse(countryPage(site, pt))).find((d) => d['@type'] === 'ItemList').itemListElement;
+  expect(countryItems[0].item.address).toEqual({ '@type': 'PostalAddress', addressLocality: 'Lisbon', addressCountry: 'PT' });
+});
+
+test('inlined CSS cannot close the style element', () => {
+  const { pt } = fixture();
+  const doc = parse(countryPage({ ...site, css: '/* </style><script>x()</script> */ .a{}' }, pt));
+  expect(doc.querySelector('head style')!.textContent).toContain('.a{}');
+  expect(doc.querySelectorAll('script:not([type])')).toHaveLength(1);
 });

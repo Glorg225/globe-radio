@@ -31,10 +31,11 @@ function write(outDir: string, file: string, content: string): void {
 }
 
 // Returns null (and writes nothing) when there is no snapshot, so local builds and tests still pass.
-export function buildSeoPages({ dataDir, outDir, site, css }: BuildOptions): { countries: number; cities: number } | null {
+export function buildSeoPages({ dataDir, outDir, site: siteBase, css }: BuildOptions): { countries: number; cities: number } | null {
   const file = readJson<PlacesFile>(join(dataDir, 'places.json'));
   if (!file || file.v !== 2 || !Array.isArray(file.places)) return null;
   const places = file.places.map(decodePlace);
+  const site: Site = { ...siteBase, css };
 
   const data = new Map<string, CountryData>();
   for (const cc of new Set(places.map((p) => p.cc))) {
@@ -51,7 +52,6 @@ export function buildSeoPages({ dataDir, outDir, site, css }: BuildOptions): { c
   for (const c of countries) write(outDir, `${countryPath(c)}index.html`, countryPage(site, c));
   for (const ref of cities) write(outDir, `${cityPath(ref)}index.html`, cityPage(site, ref, nearbyCities(ref, cities)));
   write(outDir, '404.html', notFoundPage(site));
-  write(outDir, 'radio/seo.css', css);
 
   const lastmod = readJson<{ generated?: string }>(join(dataDir, 'meta.json'))?.generated ?? file.generated ?? '';
   const urls = ['', radioPath(), ...countries.map(countryPath), ...cities.map(cityPath)].map((p) => `${site.url}/${p}`);
