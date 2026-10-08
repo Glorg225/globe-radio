@@ -17,7 +17,7 @@ const gz = decodeGazetteer(JSON.parse(readFileSync('data/gazetteer.json', 'utf8'
 const matcher = createPlaceMatcher(gz, centroids, countryName);
 
 const raw = await fetchWithMirrors<RawStation[]>('/json/stations/search?hidebroken=true&is_https=true&limit=200000&order=clickcount&reverse=true');
-const { places, shards, report } = buildSnapshot(raw, centroids, matcher);
+const { places, shards, report, styles } = buildSnapshot(raw, centroids, matcher);
 if (report.stations < 1000) throw new Error(`suspiciously few stations: ${report.stations}`);
 
 const generated = new Date().toISOString();
@@ -26,6 +26,7 @@ mkdirSync('public/data/stations', { recursive: true });
 const placesFile = encodePlacesFile(places, generated);
 writeFileSync('public/data/places.json', JSON.stringify(placesFile));
 writeFileSync('public/data/search.json', JSON.stringify({ v: 1, stations: searchRows(shards) }));
+writeFileSync('public/data/styles.json', JSON.stringify({ v: 1, styles }));
 for (const [cc, list] of shards) {
   const file: ShardFile = { v: 2, cc, stations: list.map(encodeStation), places: placeInfoRows(places, cc) };
   writeFileSync(`public/data/stations/${cc}.json`, JSON.stringify(file));

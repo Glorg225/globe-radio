@@ -127,3 +127,12 @@ test('each place gets its 2 most frequent styles from the style dictionary', () 
   expect(places[0].styles).toEqual(['jazz', 'news']);
   expect(places[0].tz).toBe('Europe/Berlin');
 });
+
+test('style index: for each style the places that have it and how many stations', () => {
+  const { styles } = buildSnapshot([
+    raw({ stationuuid: 'a', tags: 'jazz' }),
+    raw({ stationuuid: 'b', tags: 'jazz,news' }),
+    raw({ stationuuid: 'c', tags: 'jazz', countrycode: 'FR' }),
+  ], centroids, { match: (s) => ({ id: s.cc === 'FR' ? 'k:FR' : 'c:1', lat: 1, lon: 1, kind: 'exact', cc: s.cc, nameRu: '', name: 'X' }) });
+  expect(styles).toEqual({ jazz: [['c:1', 2], ['k:FR', 1]], news: [['c:1', 1]] });
+});
