@@ -1,5 +1,5 @@
 import { countryName, placeTitle } from '../data/place-name';
-import { GENRES, genreById, stationGenres } from '../data/genres';
+import { GENRES, genreById, stationStyles } from '../data/genres';
 import type { StyleIndex } from '../data/styles';
 import type { Place } from '../data/places';
 import type { PlaceInfo, ShardStore, StationLite } from '../data/shards';
@@ -8,7 +8,7 @@ import type { I18n } from '../i18n/i18n';
 import { initialMode, MODE_STORAGE_KEY, type ViewMode } from '../map/choose-mode';
 import { prepositional } from '../i18n/ru-grammar';
 import { buildLanguageIndex, lowerFirst, type LanguageEntry } from '../learn/language-index';
-import { createLearnState, STYLE_KEY, type LearnState } from '../learn/learn-state';
+import { createChoiceState, createLearnState, STYLE_KEY, type ChoiceState, type LearnState } from '../learn/learn-state';
 import { createClusterer, layered, type Clusterer, type MapItem } from '../map/cluster';
 import { createLearnBanner } from '../ui/learn-banner';
 import { createLearnPicker } from '../ui/learn-picker';
@@ -90,7 +90,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   let learnState: LearnState | null = null;
   let learnCode: string | null = null;
   // Style mode (#40): a style id, its index once loaded (styles.json), and the shared load.
-  let styleState: LearnState | null = null;
+  let styleState: ChoiceState | null = null;
   let styleId: string | null = null;
   let styleIndex: StyleIndex | null = null;
   let styleLoad: Promise<StyleIndex | null> | null = null;
@@ -205,7 +205,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     const code = learnCode;
     if (code) return (s) => s.langs.includes(code);
     const id = styleId;
-    if (id) return (s) => stationGenres(s.tags).includes(id);
+    if (id) return (s) => stationStyles(s).includes(id);
     return undefined;
   }
   function placeWeight(p: Place): number {
@@ -578,6 +578,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       if (my !== styleToken) return;
       if (!idx) { showToast(refs.stage, t('style.error')); styleState?.set(null); return; }
     }
+    if (id && !styleIndex?.get(id)?.size) { showToast(refs.stage, t('style.none', { style: styleName() })); styleState?.set(null); return; }
     rebuildLayer();
     view?.refresh();
     styleBanner.show(id ? styleSummary(id) : null);
@@ -646,7 +647,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   });
   learnState.subscribe(applyLearn);
   applyLearn(learnState.get());
-  styleState = createLearnState(d.storage, (id) => !!genreById(id), STYLE_KEY);
+  styleState = createChoiceState(d.storage, (id) => !!genreById(id), STYLE_KEY);
   stylePicker = createStylePicker(i18n, refs.styleButton, {
     styles: async () => {
       const idx = await ensureStyles();

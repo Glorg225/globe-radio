@@ -147,5 +147,6 @@
   "style.empty": "No {style} stations here",
   "style.next": "Next: {style}",
   "style.noNext": "No more {style} stations nearby",
-  "browse.styles": "Listen by style"
+  "browse.styles": "Listen by style",
+  "style.none": "No {style} stations on air right now"
 }

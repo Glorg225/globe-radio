@@ -13,6 +13,10 @@ export function createStylePicker(i18n: I18n, button: HTMLButtonElement, p: Styl
   const onOutside = (e: MouseEvent) => {
     if (pop && !pop.contains(e.target as Node) && !button.contains(e.target as Node)) close();
   };
+  // Keyboard users tab out of the dialog: close it as a click outside would.
+  const onFocusIn = (e: FocusEvent) => {
+    if (pop && !pop.contains(e.target as Node) && e.target !== button) close();
+  };
 
   function close(returnFocus = false) {
     token++;
@@ -21,6 +25,7 @@ export function createStylePicker(i18n: I18n, button: HTMLButtonElement, p: Styl
     pop = null;
     button.setAttribute('aria-expanded', 'false');
     document.removeEventListener('mousedown', onOutside);
+    document.removeEventListener('focusin', onFocusIn);
     if (returnFocus) button.focus();
   }
 
@@ -69,6 +74,7 @@ export function createStylePicker(i18n: I18n, button: HTMLButtonElement, p: Styl
     if (room) pop.style.insetInlineStart = `${Math.max(8, Math.min(button.offsetLeft, room - pop.offsetWidth - 8))}px`;
     button.setAttribute('aria-expanded', 'true');
     document.addEventListener('mousedown', onOutside);
+    document.addEventListener('focusin', onFocusIn);
     const my = ++token;
     const styles = await p.styles();
     if (my !== token || !pop) return;

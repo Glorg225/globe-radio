@@ -1058,3 +1058,23 @@ test('phone: a style picked in the empty search field closes the suggestions', a
   expect((deps.storage as unknown as Mem).getItem('styleId')).toBe('jazz');
 });
 
+test('a style with no stations in styles.json switches the mode off with a notice', async () => {
+  const app = await startApp(deps);
+  app.style('kids');
+  await flush();
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBeNull();
+  expect(deps.refs.styleButton.classList.contains('is-active')).toBe(false);
+  expect(deps.refs.stage.querySelector('.toast')!.textContent).toContain('Kids');
+});
+
+test('the style dialog closes when keyboard focus leaves it', async () => {
+  await startApp(deps);
+  deps.refs.styleButton.click();
+  await flush();
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  outside.focus();
+  outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  expect(document.querySelector('.style-pop')).toBeNull();
+});
