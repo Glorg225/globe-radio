@@ -21,6 +21,7 @@ class Mem {
   m = new Map<string, string>();
   getItem(k: string) { return this.m.get(k) ?? null; }
   setItem(k: string, v: string) { this.m.set(k, v); }
+  removeItem(k: string) { this.m.delete(k); }
 }
 
 function fakeFactory() {
@@ -82,6 +83,7 @@ beforeEach(() => {
     replaceUrl: vi.fn(),
     flagUrl: () => null,
     now: () => new Date(Date.UTC(2026, 0, 15, 14, 32)),
+    loadStyles: vi.fn(async () => new Map([['jazz', new Map([['c:1', 1]])], ['news', new Map([['c:1', 1], ['c:2', 1]])]])),
   };
 });
 
@@ -938,4 +940,141 @@ test('cookie settings button appears when the consent snippet is present and reo
   } finally {
     delete (globalThis as { globeConsent?: unknown }).globeConsent;
   }
+});
+
+// Style mode: Radio a plays jazz in Lisbon, Radio b news in Lisbon, Radio p news in Porto.
+const styled = () => [{ ...st('a', 'c:1', 9), tags: ['jazz'] }, { ...st('b', 'c:1', 3), tags: ['news'] }, { ...st('p', 'c:2', 1), tags: ['news'] }];
+
+test('style mode: loads styles.json once, filters the list, shows the banner, remembers the choice', async () => {
+  shards.get.mockImplementation(async () => styled());
+  const app = await startApp(deps);
+  app.style('jazz');
+  await flush();
+  expect(deps.loadStyles).toHaveBeenCalledOnce();
+  expect(globe.views[0].refresh).toHaveBeenCalled();
+  await app.selectPlace(lisbon);
+  expect([...deps.refs.panelBody.querySelectorAll('.station__name')].map((n) => n.textContent)).toEqual(['Radio a']);
+  const banner = document.querySelector<HTMLElement>('.style-banner')!;
+  expect(banner.hidden).toBe(false);
+  expect(banner.textContent).toContain('Jazz');
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBe('jazz');
+  app.style('news');
+  await flush();
+  expect(deps.loadStyles).toHaveBeenCalledOnce();
+  banner.querySelector<HTMLButtonElement>('button')!.click();
+  expect(banner.hidden).toBe(true);
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBeNull();
+});
+
+test('style and learn modes turn each other off', async () => {
+  const app = await startApp(deps);
+  app.learn('en');
+  app.style('jazz');
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('learnLang')).toBeNull();
+  expect(document.querySelector<HTMLElement>('.learn-banner:not(.style-banner)')!.hidden).toBe(true);
+  app.learn('pt');
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBeNull();
+  expect(document.querySelector<HTMLElement>('.style-banner')!.hidden).toBe(true);
+});
+
+test('style mode: "next" stays within the style; no station of it says so', async () => {
+  shards.get.mockImplementation(async () => styled());
+  const app = await startApp(deps);
+  app.style('news');
+  await flush();
+  await app.selectPlace(lisbon);
+  (deps.refs.panelBody.querySelector('.station__pick') as HTMLButtonElement).click();
+  await flush();
+  expect((player.play as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0].id).toBe('b');
+  await app.next();
+  expect((player.play as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0].id).toBe('p');
+  expect(deps.refs.player.querySelector('.pb__next')!.textContent).toContain('News');
+});
+
+test('style mode: a place without the style offers to show all its stations', async () => {
+  shards.get.mockImplementation(async () => styled());
+  const app = await startApp(deps);
+  app.style('jazz');
+  await flush();
+  await app.selectPlace(porto);
+  expect(deps.refs.panelBody.textContent).toContain('Jazz');
+  (deps.refs.panelBody.querySelector('.panel-action') as HTMLButtonElement).click();
+  await flush();
+  expect([...deps.refs.panelBody.querySelectorAll('.station__name')].map((n) => n.textContent)).toEqual(['Radio p']);
+});
+
+test('style mode: styles.json failing to load turns the mode off with a notice', async () => {
+  (deps.loadStyles as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('net'));
+  const app = await startApp(deps);
+  app.style('jazz');
+  await flush();
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBeNull();
+  expect(document.querySelector<HTMLElement>('.style-banner')!.hidden).toBe(true);
+  expect(deps.refs.stage.querySelector('.toast')).not.toBeNull();
+});
+
+test('a remembered style that is not in the dictionary is dropped at start', async () => {
+  (deps.storage as unknown as Mem).setItem('styleId', 'no-such-style');
+  await startApp(deps);
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBeNull();
+});
+
+test('header Style button opens the picker; a style turns the mode on, the same one turns it off', async () => {
+  await startApp(deps);
+  deps.refs.styleButton.click();
+  await flush();
+  const pop = document.querySelector<HTMLElement>('.style-pop')!;
+  expect(pop.getAttribute('role')).toBe('dialog');
+  const jazz = [...pop.querySelectorAll<HTMLButtonElement>('.style-pop__item')].find((b) => b.textContent!.startsWith('Jazz'))!;
+  jazz.click();
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBe('jazz');
+  expect(deps.refs.styleButton.classList.contains('is-active')).toBe(true);
+  deps.refs.styleButton.click();
+  await flush();
+  [...document.querySelectorAll<HTMLButtonElement>('.style-pop__item')].find((b) => b.textContent!.startsWith('Jazz'))!.click();
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBeNull();
+});
+
+test('the browse block offers styles that switch the mode on', async () => {
+  await startApp({ ...deps, loadPlaces: async () => [{ ...lisbon, count: 5, styles: ['jazz', 'news'] }, porto] });
+  const chip = deps.refs.panelBody.querySelector<HTMLButtonElement>('.browse__style')!;
+  expect(chip.textContent).toBe('Jazz');
+  chip.click();
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBe('jazz');
+});
+
+test('phone: a style picked in the empty search field closes the suggestions', async () => {
+  await startApp({ ...deps, narrow: () => true, loadPlaces: async () => [{ ...lisbon, count: 5, styles: ['jazz'] }, porto] });
+  deps.refs.searchInput.dispatchEvent(new Event('focus'));
+  document.querySelector<HTMLButtonElement>('.search-pop .browse__style')!.click();
+  await flush();
+  expect(document.querySelector('.search-pop')).toBeNull();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBe('jazz');
+});
+
+test('a style with no stations in styles.json switches the mode off with a notice', async () => {
+  const app = await startApp(deps);
+  app.style('kids');
+  await flush();
+  await flush();
+  expect((deps.storage as unknown as Mem).getItem('styleId')).toBeNull();
+  expect(deps.refs.styleButton.classList.contains('is-active')).toBe(false);
+  expect(deps.refs.stage.querySelector('.toast')!.textContent).toContain('Kids');
+});
+
+test('the style dialog closes when keyboard focus leaves it', async () => {
+  await startApp(deps);
+  deps.refs.styleButton.click();
+  await flush();
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  outside.focus();
+  outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  expect(document.querySelector('.style-pop')).toBeNull();
 });

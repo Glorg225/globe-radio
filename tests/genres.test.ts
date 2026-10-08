@@ -51,3 +51,12 @@ test('every spelling belongs to exactly one style, ids are page slugs, groups ar
   expect(genreById('jazz')?.name).toBe('Jazz');
   expect(GENRES.filter((g) => g.group === 'decade').map((g) => g.id)).toEqual(['50s', '60s', '70s', '80s', '90s', '2000s', '2010s']);
 });
+
+test('stationStyles caches per station object', async () => {
+  const { stationStyles } = await import('../src/data/genres');
+  const s = { tags: ['jazz', 'news'] };
+  const first = stationStyles(s);
+  expect(first).toEqual(['jazz', 'news']);
+  s.tags.push('pop');
+  expect(stationStyles(s)).toBe(first);
+});

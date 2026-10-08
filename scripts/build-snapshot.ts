@@ -94,7 +94,13 @@ export function buildSnapshot(raw: RawStation[], centroids: Centroids, matcher: 
     unknownRegions: top(unknownRegions),
     unknownLanguages: top(unknownLanguages),
   };
-  return { places: [...places.values()], shards, report };
+  // Style mode: for each style the places that have it, biggest first (public/data/styles.json).
+  const styles: Record<string, [string, number][]> = {};
+  for (const [placeId, counts] of styleCounts) {
+    for (const [style, n] of counts) (styles[style] ??= []).push([placeId, n]);
+  }
+  for (const list of Object.values(styles)) list.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return { places: [...places.values()], shards, report, styles };
 }
 
 export function placeInfoRows(places: Place[], cc: string): PlaceInfoRow[] {

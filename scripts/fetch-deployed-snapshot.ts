@@ -14,6 +14,9 @@ export async function fetchDeployedSnapshot(baseUrl: string, fetchFn: typeof fet
   const places = await get('places.json');
   files.set('places.json', places);
   files.set('meta.json', await get('meta.json'));
+  files.set('search.json', await get('search.json'));
+  // styles.json appeared later than the rest: a site built before it simply has none.
+  try { files.set('styles.json', await get('styles.json')); } catch { /* older deploy */ }
   const countries = new Set((JSON.parse(places) as PlacesFile).places.map((p) => p[4]));
   for (const cc of countries) files.set(`stations/${cc}.json`, await get(`stations/${cc}.json`));
   return files;

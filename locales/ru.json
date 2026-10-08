@@ -136,5 +136,21 @@
   "footer.cookies": "Настройки cookies",
   "browse.title": "Радио по странам",
   "browse.all": "Все страны →",
-  "list.clear": "Сбросить выбор"
+  "list.clear": "Сбросить выбор",
+  "style.button": "Стиль",
+  "style.picker": "Слушать по стилю",
+  "style.loading": "Загружаем стили…",
+  "style.error": "Не удалось загрузить стили",
+  "style.group.genre": "Жанры",
+  "style.group.format": "Форматы",
+  "style.group.decade": "Десятилетия",
+  "style.banner.title": "Стиль",
+  "style.banner.info": "{style} · {stations} в {countries} · «Следующая» — только из них",
+  "style.subtitle": "{country} · {stations} · {style}",
+  "style.subtitleApprox": "Примерное место · {stations} · {style}",
+  "style.empty": "Здесь нет станций в стиле {style}",
+  "style.next": "Следующая: {style}",
+  "style.noNext": "Рядом больше нет станций в стиле {style}",
+  "browse.styles": "Слушать по стилю",
+  "style.none": "Сейчас нет станций в стиле {style}"
 }

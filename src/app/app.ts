@@ -1,5 +1,6 @@
 import { countryName, placeTitle } from '../data/place-name';
-import { genreById } from '../data/genres';
+import { GENRES, genreById, stationStyles } from '../data/genres';
+import type { StyleIndex } from '../data/styles';
 import type { Place } from '../data/places';
 import type { PlaceInfo, ShardStore, StationLite } from '../data/shards';
 import type { PlaceCardData } from '../place-card/place-card';
@@ -7,7 +8,7 @@ import type { I18n } from '../i18n/i18n';
 import { initialMode, MODE_STORAGE_KEY, type ViewMode } from '../map/choose-mode';
 import { prepositional } from '../i18n/ru-grammar';
 import { buildLanguageIndex, lowerFirst, type LanguageEntry } from '../learn/language-index';
-import { createLearnState, type LearnState } from '../learn/learn-state';
+import { createChoiceState, createLearnState, STYLE_KEY, type ChoiceState, type LearnState } from '../learn/learn-state';
 import { createClusterer, layered, type Clusterer, type MapItem } from '../map/cluster';
 import { createLearnBanner } from '../ui/learn-banner';
 import { createLearnPicker } from '../ui/learn-picker';
@@ -30,6 +31,8 @@ import type { SearchResult } from '../search/search-index';
 import { buildShareUrl, parseShareParams, resolveShared, stripShareParams } from '../share/share-link';
 import { topCountries, type CountryLink } from '../seo/country';
 import { renderBrowseCountries } from '../ui/browse-countries';
+import { createStyleBanner } from '../ui/style-banner';
+import { createStylePicker } from '../ui/style-picker';
 import { createMobileNav } from '../ui/mobile-nav';
 import { createSearchBox } from '../ui/search-box';
 import { attachSheetDrag } from '../ui/sheet';
@@ -42,6 +45,8 @@ import { showToast } from '../ui/toast';
 export interface AppDeps {
   refs: ShellRefs; i18n: I18n; storage: Storage | null;
   loadPlaces(): Promise<Place[]>; shards: ShardStore;
+  // Style mode data (public/data/styles.json), fetched on first use.
+  loadStyles(): Promise<StyleIndex>;
   factories: Record<ViewMode, MapFactory>;
   player: Player; blacklist: Blacklist;
   hasWebGL: boolean; narrowTouch: boolean;
@@ -63,7 +68,7 @@ export interface AppDeps {
 }
 export type PanelTab = 'here' | 'favorites' | 'history';
 export interface AppHandle {
-  mode(): ViewMode; selectPlace(p: Place): Promise<void>; next(): Promise<void>; learn(code: string | null): void;
+  mode(): ViewMode; selectPlace(p: Place): Promise<void>; next(): Promise<void>; learn(code: string | null): void; style(id: string | null): void;
   surprise(): Promise<void>; tab(name: PanelTab): void;
 }
 
@@ -84,6 +89,14 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   let languages: LanguageEntry[] = [];
   let learnState: LearnState | null = null;
   let learnCode: string | null = null;
+  // Style mode (#40): a style id, its index once loaded (styles.json), and the shared load.
+  let styleState: ChoiceState | null = null;
+  let styleId: string | null = null;
+  let styleIndex: StyleIndex | null = null;
+  let styleLoad: Promise<StyleIndex | null> | null = null;
+  let browseStyles: { id: string; name: string }[] = [];
+  let searchBox: { close(): void } | null = null;
+  const styleName = () => (styleId ? genreById(styleId)?.name ?? styleId : '');
   let langPrep = '';
   let view: MapView | null = null;
   let mode: ViewMode = 'globe';
@@ -105,7 +118,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
 
   const stationsLabel = (n: number) => t('stations.count', { count: n });
   const label = (item: MapItem) => {
-    if (item.tone === 'teal') {
+    if (item.tone === 'teal' && learnCode) {
       return item.type === 'place'
         ? t('learn.tooltip', { place: placeTitle(item.place, i18n.locale), stations: stationsLabel(item.count), langPrep })
         : t('learn.stationsIn', { stations: stationsLabel(item.count), langPrep });
@@ -120,7 +133,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     const p = item.place;
     const langs = Object.entries(p.langs ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([code]) => code);
     const parts = [
-      p.tz && isValidTimeZone(p.tz) ? formatClock(p.tz, new Date(), i18n.locale) : '',
+      p.tz && isValidTimeZone(p.tz) ? formatClock(p.tz, d.now(), i18n.locale) : '',
       langs.length ? languageNames(langs, i18n.locale) : '',
       (p.styles ?? []).slice(0, 2).map((id) => genreById(id)?.name).filter(Boolean).join(', '),
     ].filter(Boolean);
@@ -177,7 +190,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   });
   const renderBar = () => bar.render({
     state: player.getState(), place: placeLabel(playingPlace), volume, muted,
-    nextLabel: learnCode ? t('learn.next', { langPrep }) : undefined,
+    nextLabel: learnCode ? t('learn.next', { langPrep }) : styleId ? t('style.next', { style: styleName() }) : undefined,
     favorite: (() => { const s = player.getState(); return s.kind !== 'idle' && d.library.isFavorite(s.station.id); })(),
     sleepMinutes: d.sleep.minutesLeft() ?? undefined,
     sleepLabel: (() => { const m = d.sleep.minutesLeft(); return m === null ? undefined : t('sleep.active', { m }); })(),
@@ -187,6 +200,20 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     renderBar();
   });
 
+  // The active filter of the list, "next", "surprise" and the map layer: a language (learn) or a style (#40).
+  function stationMatch(): ((s: StationLite) => boolean) | undefined {
+    const code = learnCode;
+    if (code) return (s) => s.langs.includes(code);
+    const id = styleId;
+    if (id) return (s) => stationStyles(s).includes(id);
+    return undefined;
+  }
+  function placeWeight(p: Place): number {
+    if (learnCode) return p.langs?.[learnCode] ?? 0;
+    if (styleId) return styleIndex?.get(styleId)?.get(p.id) ?? 0;
+    return p.count;
+  }
+
   async function renderList(place: Place, showLoading = true, showAll = false) {
     list = null;
     if (showLoading) renderListMessage(refs.panelBody, t('data.loading'));
@@ -195,9 +222,12 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       if (selected !== place || tab !== 'here') return;
       const inPlace = all.filter((s) => s.placeId === place.id);
       const lang = showAll ? null : learnCode;
-      const stations = lang ? inPlace.filter((s) => s.langs.includes(lang)) : inPlace;
-      if (lang && stations.length === 0) {
-        renderListMessage(refs.panelBody, t('learn.empty', { langPrep }), { label: t('learn.showAll'), onClick: () => { void renderList(place, false, true); } }, clearAction());
+      const style = showAll ? null : styleId;
+      const match = showAll ? undefined : stationMatch();
+      const stations = match ? inPlace.filter(match) : inPlace;
+      if (match && stations.length === 0) {
+        const empty = lang ? t('learn.empty', { langPrep }) : t('style.empty', { style: styleName() });
+        renderListMessage(refs.panelBody, empty, { label: t('learn.showAll'), onClick: () => { void renderList(place, false, true); } }, clearAction());
         return;
       }
       const state = player.getState();
@@ -205,7 +235,9 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       const country = countryName(place.cc, i18n.locale);
       const subtitle = lang
         ? place.kind === 'country' ? t('learn.subtitleApprox', { stations: count, langPrep }) : t('learn.subtitle', { country, stations: count, langPrep })
-        : place.kind === 'country' ? t('list.subtitleApprox', { stations: count }) : t('list.subtitle', { country, stations: count });
+        : style
+          ? place.kind === 'country' ? t('style.subtitleApprox', { stations: count, style: styleName() }) : t('style.subtitle', { country, stations: count, style: styleName() })
+          : place.kind === 'country' ? t('list.subtitleApprox', { stations: count }) : t('list.subtitle', { country, stations: count });
       const handle = renderStationList(refs.panelBody, i18n, {
         title: placeTitle(place, i18n.locale),
         subtitle,
@@ -264,20 +296,20 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   async function next() {
     const state = player.getState();
     if (state.kind === 'idle' || !playingPlace) return;
-    const code = learnCode;
     const current = playingPlace;
+    const match = stationMatch();
     const query = {
       currentId: state.station.id,
       currentPlace: current,
-      // In learn mode search only places that have the language (the nearest 60 of any language may have none).
-      places: code ? places.filter((p) => (p.langs?.[code] ?? 0) > 0 || p.id === current.id) : places,
+      // In learn or style mode search only places that have it (the nearest 60 of any kind may have none).
+      places: match ? places.filter((p) => placeWeight(p) > 0 || p.id === current.id) : places,
       stationsOf: (cc: string) => d.shards.get(cc),
-      filter: code ? (s: StationLite) => s.langs.includes(code) : undefined,
+      filter: match,
     };
     // Prefer stations not heard recently; when everything around was played, start a new round.
     const found = await findNextNearby({ ...query, isBlocked: (id) => d.blacklist.has(id) || recent.includes(id) })
       ?? await findNextNearby({ ...query, isBlocked: (id) => d.blacklist.has(id) });
-    if (!found) { showToast(refs.stage, learnCode ? t('learn.noNext', { langPrep }) : t('player.noNext')); return; }
+    if (!found) { showToast(refs.stage, learnCode ? t('learn.noNext', { langPrep }) : styleId ? t('style.noNext', { style: styleName() }) : t('player.noNext')); return; }
     if (found.place.id !== playingPlace.id) view?.flyTo(found.place.lat, found.place.lon);
     selected = found.place;
     void renderList(found.place, false);
@@ -325,7 +357,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       if (selected) void renderList(selected, true);
       else {
         renderListMessage(refs.panelBody, t('panel.empty'));
-        if (countries.length) refs.panelBody.append(renderBrowseCountries(i18n, countries));
+        if (countries.length) refs.panelBody.append(renderBrowseCountries(i18n, countries, browseStylesProps()));
       }
       return;
     }
@@ -407,13 +439,12 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
 
   async function surprise() {
     track('surprise');
-    const code = learnCode;
     const found = await pickSurprise({
       places,
-      weightOf: (p) => (code ? p.langs?.[code] ?? 0 : p.count),
+      weightOf: placeWeight,
       stationsOf: (cc) => d.shards.get(cc),
       isBlocked: (id) => d.blacklist.has(id) || recent.includes(id),
-      filter: code ? (s) => s.langs.includes(code) : undefined,
+      filter: stationMatch(),
     });
     if (!found) { showToast(refs.stage, t('surprise.none')); return; }
     view?.flyTo(found.place.lat, found.place.lon);
@@ -510,12 +541,68 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
 
   let picker: { update(): void } | null = null;
   const banner = createLearnBanner(refs.banner, i18n, () => learnState?.set(null));
+  const styleBanner = createStyleBanner(refs.styleBanner, i18n, () => styleState?.set(null));
+  let stylePicker: { update(): void } | null = null;
+
+  // The highlighted layer follows the active mode: places weighted by the language or by the style.
+  function rebuildLayer() {
+    if (!base) return;
+    layer = layered(base, learnCode || (styleId && styleIndex) ? createClusterer(places, placeWeight) : null);
+  }
+
+  const ensureStyles = () => (styleLoad ??= d.loadStyles()
+    .then((idx) => (styleIndex = idx))
+    .catch(() => { styleLoad = null; return null; }));
+
+  function styleSummary(id: string) {
+    const per = styleIndex?.get(id);
+    if (!per) return null;
+    let stations = 0;
+    const ccs = new Set<string>();
+    for (const [placeId, n] of per) {
+      stations += n;
+      const p = byId.get(placeId);
+      if (p) ccs.add(p.cc);
+    }
+    return { name: genreById(id)?.name ?? id, stations, countries: ccs.size };
+  }
+
+  let styleToken = 0;
+  async function applyStyle(id: string | null) {
+    styleId = id;
+    const my = ++styleToken;
+    if (id) learnState?.set(null);
+    stylePicker?.update();
+    if (id && !styleIndex) {
+      const idx = await ensureStyles();
+      if (my !== styleToken) return;
+      if (!idx) { showToast(refs.stage, t('style.error')); styleState?.set(null); return; }
+    }
+    if (id && !styleIndex?.get(id)?.size) { showToast(refs.stage, t('style.none', { style: styleName() })); styleState?.set(null); return; }
+    rebuildLayer();
+    view?.refresh();
+    styleBanner.show(id ? styleSummary(id) : null);
+    renderBar();
+    if (selected) void renderList(selected, false);
+  }
+
+  // The biggest styles (by stations of the places that list them) as buttons in the browse block.
+  function topStyles(n = 8) {
+    const counts = new Map<string, number>();
+    for (const p of places) for (const id of p.styles ?? []) counts.set(id, (counts.get(id) ?? 0) + p.count);
+    return [...counts].sort((a, b) => b[1] - a[1]).slice(0, n).map(([id]) => ({ id, name: genreById(id)?.name ?? id }));
+  }
+  const browseStylesProps = (fromSearch = false) => ({
+    ids: browseStyles,
+    onPick: (id: string) => { if (fromSearch) { searchBox?.close(); closeSearch(); } styleState?.set(id); },
+  });
   function applyLearn(code: string | null) {
     learnCode = code;
     const entry = code ? languages.find((e) => e.code === code) ?? null : null;
     // Russian needs the prepositional case; other languages use the language name as is ("in Spanish").
     langPrep = entry ? (i18n.locale === 'ru' ? prepositional(lowerFirst(entry.name, i18n.locale)) : entry.name) : '';
-    if (base) layer = layered(base, code ? createClusterer(places, (p) => p.langs?.[code] ?? 0) : null);
+    if (code) styleState?.set(null);
+    rebuildLayer();
     view?.refresh();
     picker?.update();
     nav.setLearning(!!entry);
@@ -531,7 +618,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     (refs.cookiesButton.closest('.cookies-link') as HTMLElement).hidden = false;
     refs.cookiesButton.addEventListener('click', () => consent.open());
   }
-  const handle: AppHandle = { mode: () => mode, selectPlace, next, learn: (code) => learnState?.set(code), surprise, tab: setTab };
+  const handle: AppHandle = { mode: () => mode, selectPlace, next, learn: (code) => learnState?.set(code), style: (id) => styleState?.set(id), surprise, tab: setTab };
   d.card.show(null);
   d.card.setLearn(null, (c) => learnState?.set(c));
   renderBar();
@@ -546,6 +633,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   refs.status.textContent = '';
   byId = new Map(places.map((p) => [p.id, p]));
   countries = topCountries(places);
+  browseStyles = topStyles();
   if (tab === 'here' && !selected) renderTab();
   base = createClusterer(places);
   layer = base;
@@ -559,12 +647,24 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   });
   learnState.subscribe(applyLearn);
   applyLearn(learnState.get());
+  styleState = createChoiceState(d.storage, (id) => !!genreById(id), STYLE_KEY);
+  stylePicker = createStylePicker(i18n, refs.styleButton, {
+    styles: async () => {
+      const idx = await ensureStyles();
+      if (!idx) return null;
+      return GENRES.map((g) => ({ id: g.id, name: g.name, group: g.group, stations: [...(idx.get(g.id)?.values() ?? [])].reduce((sum, n) => sum + n, 0) }));
+    },
+    current: () => styleState!.get(),
+    onPick: (id) => styleState!.set(id === styleState!.get() ? null : id),
+  });
+  styleState.subscribe((id) => { void applyStyle(id); });
+  if (styleState.get()) void applyStyle(styleState.get());
   const searchIndex = d.createSearch(places);
-  createSearchBox(refs.searchInput, i18n, {
+  searchBox = createSearchBox(refs.searchInput, i18n, {
     search: (q) => { track('search', { search_term: q }); return searchIndex.search(q); },
     prefetch: () => searchIndex.prefetch?.(),
     // On a wide screen the Here tab already shows the block when nothing is selected: no duplicate under the field.
-    browse: () => (countries.length && (d.narrow?.() || !refs.panelBody.querySelector('.browse')) ? renderBrowseCountries(i18n, countries) : null),
+    browse: () => (countries.length && (d.narrow?.() || !refs.panelBody.querySelector('.browse')) ? renderBrowseCountries(i18n, countries, browseStylesProps(true)) : null),
     placeLabel: (p) => placeLabel(p),
     onPlace: (p) => { closeSearch(); nav.set('globe'); view?.flyTo(p.lat, p.lon); void selectPlace(p); },
     onStation: async (h) => {

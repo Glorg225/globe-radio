@@ -1,5 +1,6 @@
 import en from '../../locales/en.json';
 import { loadPlaces } from '../data/places';
+import { loadStyles } from '../data/styles';
 import { createShardStore } from '../data/shards';
 import { applyDirection, createI18n, resolveLocale, type Messages } from '../i18n/i18n';
 import { safeStorage } from '../i18n/storage';
@@ -75,6 +76,7 @@ void startApp({
   i18n,
   storage,
   loadPlaces: () => loadPlaces(base),
+  loadStyles: () => loadStyles(base),
   shards: createShardStore(base),
   factories: {
     globe: (el, c, cb) => import('../map/globe3d').then((m) => m.createGlobe3D(el, c, cb)),

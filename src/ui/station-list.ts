@@ -1,4 +1,5 @@
 import type { StationLite } from '../data/shards';
+import { genreById, stationStyles } from '../data/genres';
 import type { I18n } from '../i18n/i18n';
 import { isTalk } from '../learn/talk';
 import type { SavedStation } from '../library/library';
@@ -63,7 +64,9 @@ export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListP
       chip.append(p.learn.talkLabel);
       tags.append(chip);
     }
-    tags.append(s.tags.slice(0, 3).join(' · '));
+    // Styles from the dictionary (as on the SEO pages); raw tags only when a station has none.
+    const styles = stationStyles(s).slice(0, 3).map((id) => genreById(id)!.name);
+    tags.append((styles.length ? styles : s.tags.slice(0, 3)).join(' · '));
     text.append(el('span', 'station__name', s.name), tags);
     pick.append(tile(s), text);
     pick.addEventListener('click', () => p.onPick(s));

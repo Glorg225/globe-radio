@@ -88,3 +88,16 @@ export function stationGenres(tags: string[]): string[] {
   }
   return [...ids].sort((a, b) => ORDER.get(a)! - ORDER.get(b)!);
 }
+
+// Same as stationGenres(station.tags), computed once per station object: the app filters
+// thousands of stations by style on every "next" and every list.
+const perStation = new WeakMap<object, string[]>();
+export function stationStyles(station: { tags: string[] }): string[] {
+  let ids = perStation.get(station);
+  if (!ids) {
+    ids = stationGenres(station.tags);
+    perStation.set(station, ids);
+  }
+  return ids;
+}
+
