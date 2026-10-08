@@ -131,5 +131,6 @@
   "footer.byCountry": "Radio by country",
   "footer.cookies": "Cookie settings",
   "browse.title": "Browse by country",
-  "browse.all": "All countries →"
+  "browse.all": "All countries →",
+  "list.clear": "Clear selection"
 }

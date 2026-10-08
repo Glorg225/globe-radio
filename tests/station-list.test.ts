@@ -125,3 +125,24 @@ test('saved list keeps focus on the starred row, or the same position when the r
   expect(el.querySelectorAll('.station')[1].classList.contains('is-playing')).toBe(true);
   expect(el.querySelectorAll('.station')[0].classList.contains('is-playing')).toBe(false);
 });
+
+test('a close button in the header clears the selection; none without onClose', () => {
+  const onClose = vi.fn();
+  renderStationList(el, i18n, { title: 'X', subtitle: '', stations: [st('a', 'A')], playingId: null, onPick() {}, onClose });
+  const btn = el.querySelector<HTMLButtonElement>('.list-head .list-close')!;
+  expect(btn.getAttribute('aria-label')).toBe('Сбросить выбор');
+  btn.click();
+  expect(onClose).toHaveBeenCalledOnce();
+  renderStationList(el, i18n, { title: 'X', subtitle: '', stations: [], playingId: null, onPick() {} });
+  expect(el.querySelector('.list-close')).toBeNull();
+});
+
+test('a message for a selected place can carry the close button too', () => {
+  const onClose = vi.fn();
+  renderListMessage(el, 'Нет станций', { label: 'Показать все', onClick() {} }, { label: 'Сбросить выбор', onClick: onClose });
+  el.querySelector<HTMLButtonElement>('.list-close')!.click();
+  expect(onClose).toHaveBeenCalledOnce();
+  expect(el.querySelector('.panel-empty')!.textContent).toBe('Нет станций');
+  renderListMessage(el, 'Пусто');
+  expect(el.querySelector('.list-close')).toBeNull();
+});
