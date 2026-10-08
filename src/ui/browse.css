@@ -13,8 +13,12 @@
 .search-pop .browse { padding: 4px 10px 8px; }
 .browse__styles-title { margin-block-start: 6px; }
 button.browse__chip { font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
-[data-action="style"].is-active { background: var(--teal); border-color: var(--teal); color: var(--on-teal); font-weight: 600; }
+[data-action="style"].is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.style-banner { background: var(--amber-banner-bg); border-block-end-color: var(--amber-banner-border); color: var(--accent); }
+.style-banner .learn-banner__info { color: var(--amber-text-muted); }
+.style-banner .learn-banner__off { border-color: var(--amber-banner-border); color: var(--accent); }
+.style-pop__item.is-selected { background: var(--amber-chip-bg); color: var(--accent); }
 .style-pop { overflow-y: auto; }
 .style-pop__group { margin: 10px 10px 4px; font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
 .style-pop__group:first-child { margin-block-start: 2px; }
-
+.browse__style.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
