@@ -115,3 +115,15 @@ test('search rows: every station as [name, placeId], most clicked first', async 
   ]);
   expect(searchRows(shards)).toEqual([['Beta', 'c:2'], ['Alpha', 'c:1']]);
 });
+
+test('each place gets its 2 most frequent styles from the style dictionary', () => {
+  const { places } = buildSnapshot([
+    raw({ stationuuid: 'a', tags: 'jazz,smooth jazz,news' }),
+    raw({ stationuuid: 'b', tags: 'jazz' }),
+    raw({ stationuuid: 'c', tags: 'news,80s' }),
+    raw({ stationuuid: 'd', tags: 'pop,webradio' }),
+    raw({ stationuuid: 'e', tags: 'music' }),
+  ], centroids, { match: () => ({ id: 'c:1', lat: 1, lon: 1, kind: 'exact', cc: 'DE', nameRu: '', name: 'Munich', tz: 'Europe/Berlin' }) });
+  expect(places[0].styles).toEqual(['jazz', 'news']);
+  expect(places[0].tz).toBe('Europe/Berlin');
+});

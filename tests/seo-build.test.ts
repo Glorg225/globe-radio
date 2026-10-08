@@ -23,7 +23,7 @@ function snapshot(dir: string) {
   const places = [place({ id: 'k:PT', kind: 'country', name: 'Portugal', count: 1 }), place({ id: 'c:10', name: 'Lisbon', count: 3 }), place({ id: 'c:20', name: 'Porto', count: 1 })];
   const stations = [st('1', 'c:10'), st('2', 'c:10'), st('3', 'c:10'), st('4', 'c:20'), st('5', 'k:PT')];
   mkdirSync(join(dir, 'stations'), { recursive: true });
-  writeFileSync(join(dir, 'places.json'), JSON.stringify({ v: 2, generated: '2026-10-07T16:21:04.852Z', places: places.map(encodePlace) }));
+  writeFileSync(join(dir, 'places.json'), JSON.stringify({ v: 2, generated: '2026-10-07T16:21:04.852Z', places: places.map((p) => encodePlace(p)) }));
   writeFileSync(join(dir, 'stations', 'PT.json'), JSON.stringify({ v: 2, cc: 'PT', stations: stations.map(encodeStation), places: [['c:10', 'Europe/Lisbon', '', '']] }));
   writeFileSync(join(dir, 'meta.json'), JSON.stringify({ generated: '2026-10-08T03:17:00.000Z' }));
 }
@@ -72,7 +72,7 @@ test('country links in the app point to generated pages', async () => {
   const out = tmp();
   snapshot(data);
   buildSeoPages({ dataDir: data, outDir: out, site, css });
-  const places = JSON.parse(readFileSync(join(data, 'places.json'), 'utf8')).places.map(decodePlace);
+  const places = JSON.parse(readFileSync(join(data, 'places.json'), 'utf8')).places.map((c: Parameters<typeof decodePlace>[0]) => decodePlace(c));
   const links = topCountries(places);
   expect(links.map((c) => c.path)).toEqual(['radio/portugal/']);
   for (const c of links) expect(existsSync(join(out, c.path, 'index.html')), c.path).toBe(true);
@@ -86,13 +86,13 @@ test('app country links match generated pages even when country slugs collide', 
   const p = (id: string, cc: string, count: number) => place({ id, cc, kind: 'country', name: 'Atlantis', count });
   const places = [p('k:AA', 'AA', 3), p('k:AB', 'AB', 4)];
   mkdirSync(join(data, 'stations'), { recursive: true });
-  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map(encodePlace) }));
+  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map((p) => encodePlace(p)) }));
   for (const pl of places) {
     const stations = Array.from({ length: pl.count }, (_, i) => ({ ...st(`${pl.cc}${i}`, pl.id), cc: pl.cc }));
     writeFileSync(join(data, 'stations', `${pl.cc}.json`), JSON.stringify({ v: 2, cc: pl.cc, stations: stations.map(encodeStation) }));
   }
   buildSeoPages({ dataDir: data, outDir: out, site, css });
-  const links = topCountries(JSON.parse(readFileSync(join(data, 'places.json'), 'utf8')).places.map(decodePlace));
+  const links = topCountries(JSON.parse(readFileSync(join(data, 'places.json'), 'utf8')).places.map((c: Parameters<typeof decodePlace>[0]) => decodePlace(c)));
   expect(links.map((c) => c.path)).toEqual(['radio/atlantis/', 'radio/atlantis-aa/']);
   for (const c of links) expect(existsSync(join(out, c.path, 'index.html')), c.path).toBe(true);
 });
@@ -103,7 +103,7 @@ test('style pages: index, style worldwide and style in a country, all in the sit
   const places = [place({ id: 'k:PT', kind: 'country', name: 'Portugal', count: 12 })];
   const stations = Array.from({ length: 12 }, (_, i) => ({ ...st(String(i), 'k:PT'), tags: ['jazz'] }));
   mkdirSync(join(data, 'stations'), { recursive: true });
-  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map(encodePlace) }));
+  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map((p) => encodePlace(p)) }));
   writeFileSync(join(data, 'stations', 'PT.json'), JSON.stringify({ v: 2, cc: 'PT', stations: stations.map(encodeStation) }));
   expect(buildSeoPages({ dataDir: data, outDir: out, site, css })).toMatchObject({ genres: 1, genreCountries: 1 });
   for (const f of ['radio/genre/index.html', 'radio/genre/jazz/index.html', 'radio/genre/jazz/portugal/index.html']) {
@@ -120,7 +120,7 @@ test('a renamed country keeps its old address as a redirect page, outside the si
   const places = [place({ id: 'k:HK', cc: 'HK', kind: 'country', name: 'Hong Kong', count: 3 })];
   const stations = Array.from({ length: 3 }, (_, i) => ({ ...st(String(i), 'k:HK'), cc: 'HK' }));
   mkdirSync(join(data, 'stations'), { recursive: true });
-  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map(encodePlace) }));
+  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map((p) => encodePlace(p)) }));
   writeFileSync(join(data, 'stations', 'HK.json'), JSON.stringify({ v: 2, cc: 'HK', stations: stations.map(encodeStation) }));
   buildSeoPages({ dataDir: data, outDir: out, site, css });
   expect(existsSync(join(out, 'radio/hong-kong/index.html'))).toBe(true);

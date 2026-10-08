@@ -1,4 +1,5 @@
 import type { Place } from '../src/data/places';
+import { stationGenres } from '../src/data/genres';
 import type { PlaceInfoRow, StationLite } from '../src/data/shards';
 import { dedupe, toStation } from '../src/data/stations';
 import type { Centroids, PlaceKind, PlaceRef, RawStation, Station } from '../src/data/types';
@@ -34,12 +35,15 @@ function separateColocated(list: Place[]) {
   }
 }
 
+const PLACE_STYLES = 2;
+
 export function buildSnapshot(raw: RawStation[], centroids: Centroids, matcher: { match(s: Station): PlaceRef | null }) {
   const places = new Map<string, Place>();
   const shards = new Map<string, StationLite[]>();
   const byKind: Record<PlaceKind, number> = { exact: 0, region: 0, country: 0 };
   const unknownRegions = new Map<string, number>();
   const unknownLanguages = new Map<string, number>();
+  const styleCounts = new Map<string, Map<string, number>>();
   const rawById = new Map(raw.map((r) => [r.stationuuid, r]));
   let count = 0;
 
@@ -61,6 +65,8 @@ export function buildSnapshot(raw: RawStation[], centroids: Centroids, matcher: 
     place.pop += s.clicks;
     place.langs ??= {};
     for (const l of s.langs) place.langs[l] = (place.langs[l] ?? 0) + 1;
+    const counts = styleCounts.get(ref.id) ?? styleCounts.set(ref.id, new Map()).get(ref.id)!;
+    for (const id of stationGenres(s.tags)) counts.set(id, (counts.get(id) ?? 0) + 1);
     if (RANK[ref.kind] < RANK[place.kind]) place.kind = ref.kind;
 
     const lite: StationLite = {
@@ -70,6 +76,11 @@ export function buildSnapshot(raw: RawStation[], centroids: Centroids, matcher: 
     (shards.get(s.cc) ?? shards.set(s.cc, []).get(s.cc)!).push(lite);
   }
   for (const list of shards.values()) list.sort((a, b) => b.clicks - a.clicks);
+  // The map tooltip shows a place's 2 most frequent styles (ties: dictionary order).
+  for (const [id, counts] of styleCounts) {
+    const top = [...counts].sort((a, b) => b[1] - a[1]).slice(0, PLACE_STYLES).map(([style]) => style);
+    if (top.length) places.get(id)!.styles = top;
+  }
   separateColocated([...places.values()]);
 
   const all = [...shards.values()].flat();

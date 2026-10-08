@@ -176,6 +176,17 @@ test('Escape while typing in search does not clear the selected place', async ()
   expect(deps.refs.panelBody.querySelector('.list-title')).not.toBeNull();
 });
 
+test('hover detail for a place: flag, local time, languages, styles; none for clusters', async () => {
+  await startApp(deps);
+  const detail = globe.cb().detail!;
+  const place = { ...lisbon, tz: 'Europe/Lisbon', styles: ['pop', 'news'], langs: { pt: 5, en: 2 } };
+  const d = detail({ type: 'place', key: 'c:1', place, lat: 0, lon: 0, count: 7, pop: 1 })!;
+  expect(d.text).toMatch(/^\d{2}:\d{2} · португальский, английский · Pop, News$/);
+  expect(d).toHaveProperty('flag');
+  expect(detail({ type: 'place', key: 'c:2', place: { ...porto, langs: {} }, lat: 0, lon: 0, count: 1, pop: 1 })).toMatchObject({ text: '' });
+  expect(detail({ type: 'cluster', key: 'cl:1', lat: 0, lon: 0, count: 5, pop: 1, zoomTo: 3 })).toBeNull();
+});
+
 test('no WebGL → flat map', async () => {
   const app = await startApp({ ...deps, hasWebGL: false });
   expect(app.mode()).toBe('map');
