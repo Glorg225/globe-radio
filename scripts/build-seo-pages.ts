@@ -6,9 +6,11 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { decodePlace, type PlacesFile } from '../src/data/places';
 import { decodeStation, type PlaceInfo, type ShardFile } from '../src/data/shards';
+import { officialCountryName } from '../src/data/place-name';
 import { seoCountryName } from '../src/seo/country';
+import { slugify } from '../src/seo/slug';
 import { buildGenres, genreCoverage, hasCountryPage, stylesOf } from './seo/genres';
-import { cityPage, cityPath, countryPage, countryPath, genreCountryPage, genreCountryPath, genreIndexPage, genreIndexPath, genrePage, genrePath, indexPage, notFoundPage, radioPath, type Site } from './seo/html';
+import { cityPage, cityPath, countryPage, countryPath, genreCountryPage, genreCountryPath, genreIndexPage, genreIndexPath, genrePage, genrePath, indexPage, notFoundPage, radioPath, redirectPage, type Site } from './seo/html';
 import { allCities, buildModel, nearbyCities, type CountryData } from './seo/model';
 import { robotsTxt, sitemapXml } from './seo/sitemap';
 
@@ -62,6 +64,14 @@ export function buildSeoPages({ dataDir, outDir, site: siteBase, css }: BuildOpt
   write(outDir, `${genreIndexPath()}index.html`, genreIndexPage(site, genres));
   for (const page of genres) write(outDir, `${genrePath(page.genre)}index.html`, genrePage(site, page));
   for (const { page, gc } of genreCountries) write(outDir, `${genreCountryPath(page.genre, gc.country)}index.html`, genreCountryPage(site, page, gc));
+  // Countries renamed from Intl's official form ("hong-kong-sar-china" -> "hong-kong"): the old addresses redirect.
+  const taken = new Set(countries.map((c) => c.slug));
+  for (const c of countries) {
+    const old = slugify(officialCountryName(c.cc));
+    if (!old || old === c.slug || taken.has(old)) continue;
+    write(outDir, `radio/${old}/index.html`, redirectPage(site, countryPath(c)));
+    for (const city of c.cities) write(outDir, `radio/${old}/${city.slug}/index.html`, redirectPage(site, cityPath({ country: c, city })));
+  }
   write(outDir, '404.html', notFoundPage(site));
 
   const lastmod = readJson<{ generated?: string }>(join(dataDir, 'meta.json'))?.generated ?? file.generated ?? '';

@@ -311,6 +311,23 @@ export function cityPage(site: Site, ref: CityRef, nearby: CityRef[], styles: St
   });
 }
 
+// An address that moved (a country renamed): send people and crawlers to the new one, keep it out of the index.
+export function redirectPage(site: Site, toPath: string): string {
+  const to = link(site, toPath);
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Moved | ${SITE_NAME}</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="${esc(absolute(site, toPath))}">
+<meta http-equiv="refresh" content="0; url=${esc(to)}">
+</head>
+<body><p><a href="${esc(to)}">This page has moved</a></p></body>
+</html>
+`;
+}
+
 export function notFoundPage(site: Site): string {
   return layout(site, {
     title: `Page not found | ${SITE_NAME}`,

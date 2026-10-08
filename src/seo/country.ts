@@ -7,20 +7,10 @@ import { assignSlugs } from './slug';
 // A country or city gets its own page only with at least this many stations.
 export const MIN_STATIONS = 3;
 
-// Intl names some countries the way a passport office would ("Hong Kong SAR China", "Congo - Kinshasa",
-// "Myanmar (Burma)", "Bosnia & Herzegovina", "St. Lucia"): pages and links use the everyday name.
-const NAMES: Record<string, string> = {
-  CD: 'DR Congo', CG: 'Republic of the Congo', PS: 'Palestine', VC: 'Saint Vincent and the Grenadines',
-};
-function everydayName(name: string): string {
-  return name.replace(/ SAR China$/, '').replace(/\s*\([^)]*\)/g, '').replace(/ & /g, ' and ').replace(/^St\. /, 'Saint ').trim();
-}
-
 // ZZ is CLDR's "Unknown Region": Intl names it, but it is not a country name.
 export function seoCountryName(cc: string, fallback = ''): string {
-  if (NAMES[cc]) return NAMES[cc];
   const name = cc === 'ZZ' ? cc : countryName(cc, 'en');
-  return name !== cc ? everydayName(name) : fallback || cc;
+  return name !== cc ? name : fallback || cc;
 }
 
 // Page slugs of all countries, shared by the app links and the page generator. Biggest first keeps the plain
