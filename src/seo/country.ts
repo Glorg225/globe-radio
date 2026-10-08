@@ -23,17 +23,17 @@ export function countrySlugs(list: { cc: string; name: string; count: number }[]
 
 export interface CountryLink { cc: string; name: string; path: string; count: number }
 
+// Countries of the snapshot that get a page (at least MIN_STATIONS stations), by the place counts.
+export function eligibleCountries(places: Place[], name: (cc: string) => string): { cc: string; name: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const p of places) counts.set(p.cc, (counts.get(p.cc) ?? 0) + p.count);
+  return [...counts].filter(([, count]) => count >= MIN_STATIONS).map(([cc, count]) => ({ cc, count, name: name(cc) }));
+}
+
 // The biggest countries by number of stations, each with its page path (relative to the site base).
 export function topCountries(places: Place[], n = 8): CountryLink[] {
-  const counts = new Map<string, number>();
-  const snapshotNames = new Map<string, string>();
-  for (const p of places) {
-    counts.set(p.cc, (counts.get(p.cc) ?? 0) + p.count);
-    if (p.kind === 'country') snapshotNames.set(p.cc, p.name);
-  }
-  const eligible = [...counts]
-    .filter(([, count]) => count >= MIN_STATIONS)
-    .map(([cc, count]) => ({ cc, count, name: seoCountryName(cc, snapshotNames.get(cc)) }));
+  const snapshotNames = new Map(places.filter((p) => p.kind === 'country').map((p) => [p.cc, p.name]));
+  const eligible = eligibleCountries(places, (cc) => seoCountryName(cc, snapshotNames.get(cc)));
   const slugs = countrySlugs(eligible);
   return eligible
     .sort((a, b) => b.count - a.count || a.cc.localeCompare(b.cc))

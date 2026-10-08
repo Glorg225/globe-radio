@@ -116,3 +116,28 @@ test('a region joins the nearest of the matching cities', () => {
   const [ch] = buildModel(places, new Map([['CH', { stations, info: new Map() }]]), () => 'Switzerland');
   expect(Object.fromEntries(ch.cities.map((c) => [c.name, c.stations.length]))).toEqual({ 'Zürich': 3, Zurich: 3 });
 });
+
+test('a same-name region far from the city keeps its own page; a place near any member of a city joins it', () => {
+  const places = [
+    place({ id: 'c:1', cc: 'PT', name: 'Lisbon', lat: 38.7, lon: -9.1 }),
+    place({ id: 'c:2', cc: 'PT', name: 'Lisbon', lat: 38.7, lon: -8.85 }),
+    place({ id: 'c:3', cc: 'PT', name: 'Lisbon', lat: 38.7, lon: -8.6 }),
+    place({ id: 'a:PT.99', cc: 'PT', kind: 'region', name: 'Lisbon', lat: 41, lon: -8 }),
+  ];
+  const n: Record<string, number> = { 'c:1': 3, 'c:2': 1, 'c:3': 1, 'a:PT.99': 3 };
+  const stations = Object.entries(n).flatMap(([pid, k]) => Array.from({ length: k }, (_, i) => st(`${pid}-${i}`, pid)));
+  const [pt] = buildModel(places, new Map([['PT', { stations, info: new Map() }]]), () => 'Portugal');
+  // c:3 is 43 km from c:1 but 22 km from c:2, which is part of the same Lisbon.
+  expect(Object.fromEntries(pt.cities.map((c) => [c.slug, c.stations.length]))).toEqual({ lisbon: 5, 'lisbon-pt-99': 3 });
+});
+
+test('country slugs come from all countries in the snapshot, even one without a station file', () => {
+  const places = [
+    place({ id: 'k:AA', cc: 'AA', kind: 'country', name: 'Atlantis', count: 9 }),
+    place({ id: 'k:AB', cc: 'AB', kind: 'country', name: 'Atlantis', count: 4 }),
+  ];
+  const stations = Array.from({ length: 4 }, (_, i) => st(String(i), 'k:AB', 0, 'AB'));
+  const countries = buildModel(places, new Map([['AB', { stations, info: new Map() }]]), () => 'Atlantis');
+  // AA has no station file here, but the app still knows it as the bigger "Atlantis": AB keeps the suffixed slug.
+  expect(countries.map((c) => c.slug)).toEqual(['atlantis-ab']);
+});

@@ -166,3 +166,14 @@ test('browse block closes when focus leaves it, and on Escape from a link', () =
   expect(pop()).toBeNull();
   expect(document.activeElement).toBe(input);
 });
+
+test('the results list also closes when focus moves elsewhere', async () => {
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  createSearchBox(input, i18n, d);
+  await type('lis');
+  expect(pop()).not.toBeNull();
+  outside.focus();
+  outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  expect(pop()).toBeNull();
+});

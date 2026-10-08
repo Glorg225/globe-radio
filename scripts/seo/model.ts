@@ -1,9 +1,9 @@
 // Groups the station snapshot into the static SEO pages: one per country and one per city.
 import { normalizeName } from '../../src/data/gazetteer';
 import { haversineKm } from '../../src/data/geo';
-import type { Place } from '../../src/data/places';
+import { isPlaceholder, type Place } from '../../src/data/places';
 import type { PlaceInfo, StationLite } from '../../src/data/shards';
-import { countrySlugs, MIN_STATIONS } from '../../src/seo/country';
+import { countrySlugs, eligibleCountries, MIN_STATIONS } from '../../src/seo/country';
 import { assignSlugs } from '../../src/seo/slug';
 
 export { MIN_STATIONS };
@@ -37,7 +37,7 @@ function groupByName(places: Place[], size: (p: Place) => number): Place[][] {
   for (const list of byName.values()) {
     const clusters: Place[][] = [];
     for (const p of [...list].sort((a, b) => size(b) - size(a))) {
-      const near = clusters.find((c) => km(c[0], p) <= SAME_CITY_KM);
+      const near = clusters.find((c) => c.some((m) => km(m, p) <= SAME_CITY_KM));
       if (near) near.push(p);
       else clusters.push([p]);
     }
@@ -81,8 +81,8 @@ export function buildModel(places: Place[], data: Map<string, CountryData>, coun
     for (const st of stations) push(byPlace, st.placeId, st);
     const size = (p: Place) => byPlace.get(p.id)?.length ?? 0;
 
-    // Stations far from any city sit on placeholder places ("p:CC:lat,lon") named after the country: no city page.
-    const cityPlaces = (placesByCc.get(cc) ?? []).filter((p) => !p.id.startsWith('p:'));
+    // Stations far from any city sit on placeholder places, often named after the country: no city page.
+    const cityPlaces = (placesByCc.get(cc) ?? []).filter((p) => !isPlaceholder(p.id));
     const groups = mergeCityRegions(groupByName(cityPlaces, size));
     const candidates = groups
       .map((group) => {
@@ -107,8 +107,11 @@ export function buildModel(places: Place[], data: Map<string, CountryData>, coun
     countries.push({ cc, name, slug: '', placeNames, stations: [...stations].sort(byClicks), cities });
   }
 
-  // Same slugs as the app's country links (src/seo/country.ts).
-  const slugs = countrySlugs(countries.map((c) => ({ cc: c.cc, name: c.name, count: c.stations.length })));
+  // Same slugs as the app's country links: the same list (all countries of the snapshot, even one whose
+  // station file is missing) through the same function (src/seo/country.ts).
+  const list = eligibleCountries(places, countryName);
+  for (const c of countries) if (!list.some((e) => e.cc === c.cc)) list.push({ cc: c.cc, name: c.name, count: c.stations.length });
+  const slugs = countrySlugs(list);
   for (const c of countries) c.slug = slugs.get(c.cc)!;
   return countries.sort(byName);
 }
