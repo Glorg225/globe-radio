@@ -136,3 +136,13 @@ test('a close button in the header clears the selection; none without onClose', 
   renderStationList(el, i18n, { title: 'X', subtitle: '', stations: [], playingId: null, onPick() {} });
   expect(el.querySelector('.list-close')).toBeNull();
 });
+
+test('a message for a selected place can carry the close button too', () => {
+  const onClose = vi.fn();
+  renderListMessage(el, 'Нет станций', { label: 'Показать все', onClick() {} }, { label: 'Сбросить выбор', onClick: onClose });
+  el.querySelector<HTMLButtonElement>('.list-close')!.click();
+  expect(onClose).toHaveBeenCalledOnce();
+  expect(el.querySelector('.panel-empty')!.textContent).toBe('Нет станций');
+  renderListMessage(el, 'Пусто');
+  expect(el.querySelector('.list-close')).toBeNull();
+});

@@ -140,6 +140,35 @@ test('Escape that closes an open menu does not also clear the selected place', a
   expect(deps.refs.panelBody.querySelector('.list-title')).not.toBeNull();
 });
 
+test('Escape on the Favorites tab, or on a phone, leaves the selection alone', async () => {
+  await startApp(deps);
+  await globe.cb().onSelect(lisbon);
+  deps.refs.tabs[1].click();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(deps.refs.tabs[1].classList.contains('is-active')).toBe(true);
+  deps.refs.tabs[0].click();
+  await new Promise((r) => setTimeout(r, 0));
+  expect(deps.refs.panelBody.querySelector('.list-title')).not.toBeNull();
+});
+
+test('phone: Escape does not clear the selected place', async () => {
+  await startApp({ ...deps, narrow: () => true });
+  await globe.cb().onSelect(lisbon);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(deps.refs.panelBody.querySelector('.list-title')).not.toBeNull();
+});
+
+test('Escape from outside the panel keeps the focus where it was', async () => {
+  await startApp(deps);
+  await globe.cb().onSelect(lisbon);
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  outside.focus();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(deps.refs.panelBody.querySelector('.browse')).not.toBeNull();
+  expect(document.activeElement).toBe(outside);
+});
+
 test('Escape while typing in search does not clear the selected place', async () => {
   await startApp(deps);
   await globe.cb().onSelect(lisbon);
@@ -195,7 +224,7 @@ test('shard failure shows retry that reloads', async () => {
   await app.selectPlace(lisbon);
   const body = deps.refs.panelBody;
   expect(body.textContent).toContain('Не удалось загрузить станции этого места');
-  (body.querySelector('button') as HTMLButtonElement).click();
+  (body.querySelector('.panel-action') as HTMLButtonElement).click();
   await flush();
   expect(body.querySelectorAll('.station')).toHaveLength(2);
 });
@@ -383,7 +412,7 @@ test('a place without stations in the language offers to show all of them', asyn
   await app.selectPlace(porto);
   const body = deps.refs.panelBody;
   expect(body.textContent).toContain('Здесь нет станций на английском');
-  (body.querySelector('button') as HTMLButtonElement).click();
+  (body.querySelector('.panel-action') as HTMLButtonElement).click();
   await flush();
   expect([...body.querySelectorAll('.station__name')].map((n) => n.textContent)).toEqual(['Radio p']);
 });

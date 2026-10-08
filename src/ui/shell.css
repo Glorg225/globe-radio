@@ -49,6 +49,7 @@ button { font-family: inherit; cursor: pointer; }
 .panel-body { flex: 1; min-block-size: 0; overflow-y: auto; }
 .panel-action { margin-inline: var(--pad-panel); }
 .list-head { position: relative; padding: 10px calc(var(--pad-panel) + 36px) 12px var(--pad-panel); }
+.list-head--bare { padding-block: 0; min-block-size: 36px; }
 .list-close { position: absolute; inset-block-start: 8px; inset-inline-end: calc(var(--pad-panel) - 6px); }
 .list-title { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 500; }
 .list-sub { margin: 4px 0 0; font-size: 14px; color: var(--text-muted); }

@@ -182,7 +182,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       const lang = showAll ? null : learnCode;
       const stations = lang ? inPlace.filter((s) => s.langs.includes(lang)) : inPlace;
       if (lang && stations.length === 0) {
-        renderListMessage(refs.panelBody, t('learn.empty', { langPrep }), { label: t('learn.showAll'), onClick: () => { void renderList(place, false, true); } });
+        renderListMessage(refs.panelBody, t('learn.empty', { langPrep }), { label: t('learn.showAll'), onClick: () => { void renderList(place, false, true); } }, clearAction());
         return;
       }
       const state = player.getState();
@@ -199,24 +199,26 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
         onPick: (s) => { if (d.narrow?.()) { closeSheet(); nav.set('globe'); } void playStation(s, place); },
         learn: lang ? { tip: t('learn.tip'), talkLabel: t('learn.talk') } : undefined,
         favorites: { isFavorite: (id) => d.library.isFavorite(id), onToggle: (s) => { d.library.toggleFavorite(toSaved(s)); } },
-        onClose: clearSelection,
+        onClose: () => clearSelection(true),
       });
       list = { placeId: place.id, handle };
     } catch {
       if (selected !== place || tab !== 'here') return;
-      renderListMessage(refs.panelBody, t('list.loadError'), { label: t('common.retry'), onClick: () => { void renderList(place); } });
+      renderListMessage(refs.panelBody, t('list.loadError'), { label: t('common.retry'), onClick: () => { void renderList(place); } }, clearAction());
     }
   }
 
-  // Back to "Pick a point on the globe" and the country links.
-  function clearSelection() {
+  // Back to "Pick a point on the globe" and the country links. The close button vanishes, so focus goes to
+  // the Here tab; Escape moves it there only from inside the panel and otherwise leaves it where it is.
+  function clearSelection(fromButton: boolean) {
     if (!selected) return;
+    const focusInPanel = fromButton || refs.left.contains(document.activeElement);
     selected = null;
     list = null;
-    showTab('here');
-    renderTab();
-    refs.tabs[0]?.focus();
+    if (tab === 'here') renderTab();
+    if (focusInPanel) refs.tabs[0]?.focus();
   }
+  const clearAction = () => ({ label: t('list.clear'), onClick: () => clearSelection(true) });
 
   async function selectPlace(p: Place) {
     selected = p;
@@ -355,11 +357,13 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
   // Escape clears the selected place, unless something on top of the page takes it first: a typing field,
   // an open menu or dialog (they close themselves on the same key), or the place drawer (closed below).
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || e.defaultPrevented || !selected || refs.placeCard.classList.contains('is-open')) return;
+    // Only where the list with its close button is in view: the Here tab on a wide screen (phones close the sheet).
+    if (e.key !== 'Escape' || e.defaultPrevented || !selected || tab !== 'here' || d.narrow?.()) return;
+    if (refs.placeCard.classList.contains('is-open')) return;
     const target = e.target as HTMLElement | null;
     if (target?.closest?.('input, textarea, select, [contenteditable]')) return;
     if (document.querySelector('[role="menu"], [role="dialog"], .learn-pop, .search-pop')) return;
-    clearSelection();
+    clearSelection(false);
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && refs.placeCard.classList.contains('is-open')) setPlaceDrawer(false); });
   attachSheetDrag(refs.left, refs.sheetHandle, { expandable: true, onClose: () => { closeSheet(); nav.set('globe'); } });

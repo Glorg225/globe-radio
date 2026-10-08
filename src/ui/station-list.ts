@@ -45,14 +45,7 @@ function paintStar(star: HTMLButtonElement, i18n: I18n, on: boolean) {
 export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListProps): StationListHandle {
   const head = el('div', 'list-head');
   head.append(el('h2', 'list-title', p.title), el('p', 'list-sub', p.subtitle));
-  if (p.onClose) {
-    const close = el('button', 'btn--ghost list-close');
-    close.type = 'button';
-    close.setAttribute('aria-label', i18n.t('list.clear'));
-    close.innerHTML = icons.x;
-    close.addEventListener('click', () => p.onClose?.());
-    head.append(close);
-  }
+  if (p.onClose) head.append(closeButton({ label: i18n.t('list.clear'), onClick: p.onClose }));
   const list = el('ul', p.learn ? 'stations stations--learn' : 'stations');
   const rows = new Map<string, { row: HTMLLIElement; pick: HTMLButtonElement }>();
   const stars = new Map<string, HTMLButtonElement>();
@@ -110,13 +103,33 @@ export function renderStationList(host: HTMLElement, i18n: I18n, p: StationListP
   };
 }
 
-export function renderListMessage(host: HTMLElement, text: string, action?: { label: string; onClick(): void }): void {
-  const msg = el('p', 'panel-empty', text);
-  if (!action) { host.replaceChildren(msg); return; }
-  const btn = el('button', 'btn btn--outline panel-action', action.label);
+interface Action { label: string; onClick(): void }
+
+function closeButton(close: Action): HTMLButtonElement {
+  const btn = el('button', 'btn--ghost list-close');
   btn.type = 'button';
-  btn.addEventListener('click', action.onClick);
-  host.replaceChildren(msg, btn);
+  btn.setAttribute('aria-label', close.label);
+  btn.innerHTML = icons.x;
+  btn.addEventListener('click', () => close.onClick());
+  return btn;
+}
+
+// close: the message is about a selected place ("no stations in this language", load error) - offer to clear it.
+export function renderListMessage(host: HTMLElement, text: string, action?: Action, close?: Action): void {
+  const nodes: HTMLElement[] = [];
+  if (close) {
+    const head = el('div', 'list-head list-head--bare');
+    head.append(closeButton(close));
+    nodes.push(head);
+  }
+  nodes.push(el('p', 'panel-empty', text));
+  if (action) {
+    const btn = el('button', 'btn btn--outline panel-action', action.label);
+    btn.type = 'button';
+    btn.addEventListener('click', action.onClick);
+    nodes.push(btn);
+  }
+  host.replaceChildren(...nodes);
 }
 
 export interface SavedListProps {
