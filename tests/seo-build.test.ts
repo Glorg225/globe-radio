@@ -114,3 +114,19 @@ test('style pages: index, style worldwide and style in a country, all in the sit
   expect(readFileSync(join(out, 'radio/portugal/index.html'), 'utf8')).toContain('href="/gr/radio/genre/jazz/portugal/"');
 });
 
+test('a renamed country keeps its old address as a redirect page, outside the sitemap', () => {
+  const data = tmp();
+  const out = tmp();
+  const places = [place({ id: 'k:HK', cc: 'HK', kind: 'country', name: 'Hong Kong', count: 3 })];
+  const stations = Array.from({ length: 3 }, (_, i) => ({ ...st(String(i), 'k:HK'), cc: 'HK' }));
+  mkdirSync(join(data, 'stations'), { recursive: true });
+  writeFileSync(join(data, 'places.json'), JSON.stringify({ v: 2, generated: '', places: places.map(encodePlace) }));
+  writeFileSync(join(data, 'stations', 'HK.json'), JSON.stringify({ v: 2, cc: 'HK', stations: stations.map(encodeStation) }));
+  buildSeoPages({ dataDir: data, outDir: out, site, css });
+  expect(existsSync(join(out, 'radio/hong-kong/index.html'))).toBe(true);
+  const old = readFileSync(join(out, 'radio/hong-kong-sar-china/index.html'), 'utf8');
+  expect(old).toContain('<meta http-equiv="refresh" content="0; url=/gr/radio/hong-kong/">');
+  expect(old).toContain('<link rel="canonical" href="https://example.com/gr/radio/hong-kong/">');
+  expect(old).toContain('<meta name="robots" content="noindex">');
+  expect(readFileSync(join(out, 'sitemap.xml'), 'utf8')).not.toContain('hong-kong-sar-china');
+});

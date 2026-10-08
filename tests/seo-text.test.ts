@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import type { StationLite } from '../src/data/shards';
-import { fitDescription, listPhrase, plural, topLanguages } from '../scripts/seo/text';
+import { countryInSentence, fitDescription, listPhrase, plural, topLanguages } from '../scripts/seo/text';
 
 const st = (langs: string[], tags: string[]): StationLite => ({
   id: 'x', name: 'S', url: '', placeId: 'c:1', cc: 'PT', langs, tags, votes: 0, clicks: 0, favicon: '', hls: false,
@@ -32,4 +32,13 @@ test('fitDescription keeps to 160 characters, dropping station names first', () 
   expect(d.length).toBeLessThanOrEqual(160);
   expect(d).toBe(`${lead}: ${long[0]}. Free, no sign-up.`);
   expect(fitDescription('X'.repeat(200), [], 'Free.')).toHaveLength(160);
+});
+
+test('countryInSentence adds "the" where English needs it', () => {
+  expect(countryInSentence('United States')).toBe('the United States');
+  expect(countryInSentence('United States', true)).toBe('The United States');
+  for (const name of ['Netherlands', 'Philippines', 'Cayman Islands', 'Dominican Republic', 'United Arab Emirates', 'Bahamas', 'Gambia', 'Republic of the Congo', 'Isle of Man']) {
+    expect(countryInSentence(name), name).toBe(`the ${name}`);
+  }
+  for (const name of ['Germany', 'Iceland', 'DR Congo', 'Czechia', 'Ireland', 'Netherlandish']) expect(countryInSentence(name), name).toBe(name);
 });
