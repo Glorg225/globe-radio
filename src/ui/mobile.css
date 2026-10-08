@@ -86,3 +86,5 @@
 }
 /* Consent banner sits above the phone mini-player and bottom menu. */
 @media (max-width: 760px) { .consent-bar { bottom: 150px; } }
+/* While the consent banner is up (same spot on phones), the add-to-home-screen banner waits. */
+@media (max-width: 760px) { body:has(.consent-bar) .install-banner { display: none; } }

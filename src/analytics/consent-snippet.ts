@@ -10,7 +10,7 @@ const STYLE = `.consent-bar{position:fixed;z-index:50;left:16px;right:16px;botto
 
 function script(id: string): string {
   return `(function(){
-var ID=${JSON.stringify(id)},KEY='consent',loaded=false,bar=null;
+var ID=${JSON.stringify(id)},KEY='globe-radio:consent',loaded=false,bar=null;
 window.dataLayer=window.dataLayer||[];
 function gtag(){window.dataLayer.push(arguments);}
 window.gtag=gtag;
@@ -18,7 +18,7 @@ gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personali
 gtag('js',new Date());
 gtag('config',ID);
 function load(){if(loaded)return;loaded=true;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id='+ID;document.head.appendChild(s);}
-function read(){try{return localStorage.getItem(KEY);}catch(e){return null;}}
+function read(){try{var old=localStorage.getItem('consent');if(old==='granted'||old==='denied'){localStorage.setItem(KEY,old);localStorage.removeItem('consent');}return localStorage.getItem(KEY);}catch(e){return null;}}
 function save(v){try{localStorage.setItem(KEY,v);}catch(e){}}
 function wipe(){document.cookie.split(';').forEach(function(c){var n=c.split('=')[0].trim();if(n==='_ga'||n.indexOf('_ga_')===0){document.cookie=n+'=; Max-Age=0; path=/';}});}
 function apply(v){if(v==='granted'){window['ga-disable-'+ID]=false;gtag('consent','update',{analytics_storage:'granted'});load();}else if(v==='denied'){gtag('consent','update',{analytics_storage:'denied'});if(loaded){window['ga-disable-'+ID]=true;wipe();try{location.reload();}catch(e){}}}}
@@ -35,8 +35,11 @@ if(v!=='granted'&&v!=='denied'){if(document.body)show();else document.addEventLi
 })();`;
 }
 
+// GA4 measurement ids only: anything else (empty, Universal Analytics, injected markup) disables analytics.
+const GA4_ID = /^G-[A-Z0-9]{4,20}$/;
+
 export function consentSnippet(id: string): string {
-  if (!id) return '';
+  if (!GA4_ID.test(id)) return '';
   return `<style>${STYLE}</style>\n<script>${script(id)}</script>`;
 }
 

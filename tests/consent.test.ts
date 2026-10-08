@@ -39,14 +39,14 @@ test('Accept: consent granted, Google script loaded once, choice saved, banner g
   (document.querySelector('.consent-bar__accept') as HTMLButtonElement).click();
   expect(calls()).toContainEqual(['consent', 'update', { analytics_storage: 'granted' }]);
   expect(gaScript()!.getAttribute('src')).toContain('id=G-TEST');
-  expect(localStorage.getItem('consent')).toBe('granted');
+  expect(localStorage.getItem('globe-radio:consent')).toBe('granted');
   expect(document.querySelector('.consent-bar')).toBeNull();
 });
 
 test('Reject: saved, no Google script; next visit shows no banner; settings reopen it (review focus 2)', () => {
   run('G-TEST');
   (document.querySelector('.consent-bar__reject') as HTMLButtonElement).click();
-  expect(localStorage.getItem('consent')).toBe('denied');
+  expect(localStorage.getItem('globe-radio:consent')).toBe('denied');
   expect(gaScript()).toBeNull();
   document.body.innerHTML = '';
   run('G-TEST');
@@ -56,7 +56,7 @@ test('Reject: saved, no Google script; next visit shows no banner; settings reop
 });
 
 test('a returning visitor who accepted gets analytics without a banner', () => {
-  localStorage.setItem('consent', 'granted');
+  localStorage.setItem('globe-radio:consent', 'granted');
   run('G-TEST');
   expect(document.querySelector('.consent-bar')).toBeNull();
   expect(gaScript()).not.toBeNull();
@@ -97,5 +97,19 @@ test('review: Accept then Reject stops Google at once and removes its cookies', 
   (document.querySelector('.consent-bar__reject') as HTMLButtonElement).click();
   expect((g as unknown as Record<string, unknown>)['ga-disable-G-TEST']).toBe(true);
   expect(document.cookie).not.toContain('_ga');
-  expect(localStorage.getItem('consent')).toBe('denied');
+  expect(localStorage.getItem('globe-radio:consent')).toBe('denied');
+});
+
+test('the choice key is namespaced for this site; an old shared key is migrated', () => {
+  localStorage.setItem('consent', 'denied');
+  run('G-TEST');
+  expect(localStorage.getItem('globe-radio:consent')).toBe('denied');
+  expect(localStorage.getItem('consent')).toBeNull();
+  expect(document.querySelector('.consent-bar')).toBeNull();
+});
+
+test('an id that is not a GA4 measurement id is ignored', () => {
+  expect(consentSnippet('G-ABC123')).not.toBe('');
+  expect(consentSnippet('G-1</script><script>alert(1)')).toBe('');
+  expect(consentSnippet('UA-123')).toBe('');
 });
