@@ -40,7 +40,7 @@ export interface BuildResult { countries: number; cities: number; genres: number
 export function buildSeoPages({ dataDir, outDir, site: siteBase, css }: BuildOptions): BuildResult | null {
   const file = readJson<PlacesFile>(join(dataDir, 'places.json'));
   if (!file || file.v !== 2 || !Array.isArray(file.places)) return null;
-  const places = file.places.map((c) => decodePlace(c, file.tzs));
+  const places = file.places.map((c) => decodePlace(c, file.tzs, file.styles));
   const site: Site = { ...siteBase, css };
 
   const data = new Map<string, CountryData>();

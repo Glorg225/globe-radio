@@ -1,5 +1,5 @@
 import { geoEquirectangular, geoGraticule10, geoPath, type GeoPermissibleObjects } from 'd3-geo';
-import { tooltipContent } from './tooltip';
+import { fillTooltip } from './tooltip';
 import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity, type ZoomTransform } from 'd3-zoom';
 import { feature } from 'topojson-client';
@@ -134,7 +134,7 @@ export const createMap2D: MapFactory = async (el, clusterer, cb) => {
     tooltip.hidden = !item;
     if (!item) return;
     const r = canvas.getBoundingClientRect();
-    tooltip.innerHTML = tooltipContent(cb.label(item), cb.detail?.(item) ?? null);
+    fillTooltip(tooltip, cb, item);
     tooltip.style.left = `${e.clientX - r.left}px`;
     tooltip.style.top = `${e.clientY - r.top}px`;
   });

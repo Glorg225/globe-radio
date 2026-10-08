@@ -1,5 +1,5 @@
 import Globe from 'globe.gl';
-import { tooltipHtml } from './tooltip';
+import { globeLabel } from './tooltip';
 import type { Place } from '../data/places';
 import type { MapItem } from './cluster';
 import { dotStyle, hexToRgba } from './dot-style';
@@ -69,7 +69,7 @@ export const createGlobe3D: MapFactory = async (el, clusterer, cb) => {
       if (item.tone === 'muted') return hexToRgba(muted, 0.35);
       return hexToRgba(item.tone === 'teal' ? teal : accent, dotStyle(item.pop, maxPop).opacity);
     })
-    .pointLabel((o: object) => tooltipHtml(cb.label(o as MapItem), cb.detail?.(o as MapItem) ?? null))
+    .pointLabel((o: object) => globeLabel(cb, o as MapItem))
     .onPointClick((o: object) => {
       const item = o as MapItem;
       if (item.type === 'cluster') {

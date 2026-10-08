@@ -124,7 +124,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
       langs.length ? languageNames(langs, i18n.locale) : '',
       (p.styles ?? []).slice(0, 2).map((id) => genreById(id)?.name).filter(Boolean).join(', '),
     ].filter(Boolean);
-    return parts.length ? { flag: d.flagUrl(p.cc), text: parts.join(' · ') } : null;
+    return { flag: d.flagUrl(p.cc), text: parts.join(' · ') };
   };
   const placeLabel = (p: Place | null) => {
     if (!p) return '';

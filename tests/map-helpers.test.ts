@@ -82,3 +82,15 @@ test('tooltip HTML: title, flag and a second line; place names are escaped', asy
   expect(plain.querySelector('.map-tooltip__detail')).toBeNull();
   expect(plain.querySelector('img')).toBeNull();
 });
+
+test('both map views take the second line and flag from cb.detail', async () => {
+  const { fillTooltip, globeLabel } = await import('../src/map/tooltip');
+  const item = { type: 'cluster' as const, key: 'k', lat: 0, lon: 0, count: 2, pop: 1, zoomTo: 2 };
+  const cb = { onSelect() {}, label: () => 'Lisbon · 2 stations', detail: () => ({ flag: '/pt.svg', text: '14:32 · Portuguese' }) };
+  const el = document.createElement('div');
+  fillTooltip(el, cb, item);
+  expect(el.querySelector('.map-tooltip__detail')!.textContent).toBe('14:32 · Portuguese');
+  expect(el.querySelector('img')!.getAttribute('src')).toBe('/pt.svg');
+  expect(globeLabel(cb, item)).toContain('map-tooltip__detail');
+  expect(globeLabel({ ...cb, detail: undefined }, item)).not.toContain('map-tooltip__detail');
+});

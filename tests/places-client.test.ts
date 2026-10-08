@@ -71,7 +71,7 @@ test('places file: time-zone table and 2 styles for places with 3+ stations; sma
     { ...base, id: 'c:4', name: 'Tiny', count: 2, tz: 'Europe/Madrid', styles: ['jazz'] },
   ], '2026-10-08T00:00:00Z');
   expect(file.tzs).toEqual(['Europe/Lisbon']);
-  const [a, b, c, tiny] = file.places.map((row) => decodePlace(row, file.tzs));
+  const [a, b, c, tiny] = file.places.map((row) => decodePlace(row, file.tzs, file.styles));
   expect(tiny.tz).toBeUndefined();
   expect(tiny.styles).toBeUndefined();
   expect(file.places[0][11]).toHaveLength(2);
@@ -90,6 +90,15 @@ test('every style of the dictionary survives the one-character encoding', async 
   expect(GENRES.length).toBeLessThanOrEqual(STYLE_ALPHABET.length);
   const places = GENRES.map((g, i) => ({ id: `c:${i}`, lat: 0, lon: 0, kind: 'exact' as const, cc: 'PT', nameRu: '', name: g.id, count: 3, pop: 1, styles: [g.id, GENRES[0].id] }));
   const file = encodePlacesFile(places, '');
-  expect(file.places.map((row) => decodePlace(row, file.tzs).styles)).toEqual(places.map((p) => p.styles));
+  expect(file.places.map((row) => decodePlace(row, file.tzs, file.styles).styles)).toEqual(places.map((p) => p.styles));
+});
+
+test('the file carries its own style table: a later dictionary order cannot shift old files', async () => {
+  const { encodePlacesFile, decodePlace } = await import('../src/data/places');
+  const base = { lat: 0, lon: 0, kind: 'exact' as const, cc: 'PT', nameRu: '', count: 3, pop: 1 };
+  const file = encodePlacesFile([{ ...base, id: 'c:1', name: 'A', styles: ['jazz', 'news'] }, { ...base, id: 'c:2', name: 'B', styles: ['80s'] }], '');
+  expect(file.styles).toEqual(['80s', 'jazz', 'news']);
+  const reread = JSON.parse(JSON.stringify(file));
+  expect(decodePlace(reread.places[0], reread.tzs, reread.styles).styles).toEqual(['jazz', 'news']);
 });
 

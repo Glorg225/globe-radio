@@ -183,7 +183,7 @@ test('hover detail for a place: flag, local time, languages, styles; none for cl
   const d = detail({ type: 'place', key: 'c:1', place, lat: 0, lon: 0, count: 7, pop: 1 })!;
   expect(d.text).toMatch(/^\d{2}:\d{2} · португальский, английский · Pop, News$/);
   expect(d).toHaveProperty('flag');
-  expect(detail({ type: 'place', key: 'c:2', place: { ...porto, langs: {} }, lat: 0, lon: 0, count: 1, pop: 1 })).toBeNull();
+  expect(detail({ type: 'place', key: 'c:2', place: { ...porto, langs: {} }, lat: 0, lon: 0, count: 1, pop: 1 })).toMatchObject({ text: '' });
   expect(detail({ type: 'cluster', key: 'cl:1', lat: 0, lon: 0, count: 5, pop: 1, zoomTo: 3 })).toBeNull();
 });
 
