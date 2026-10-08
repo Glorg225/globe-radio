@@ -1,7 +1,8 @@
 import { expect, test } from 'vitest';
 import type { StationLite } from '../src/data/shards';
 import type { CityPage, CountryPage } from '../scripts/seo/model';
-import { cityPage, countryPage, indexPage, notFoundPage, type Site } from '../scripts/seo/html';
+import { cityPage, countryPage, genreCountryPage, genreIndexPage, genrePage, indexPage, notFoundPage, type Site } from '../scripts/seo/html';
+import { buildGenres, stylesOf } from '../scripts/seo/genres';
 
 const site: Site = { url: 'https://example.com/gr', base: '/gr/' };
 const EVIL = '</script><script>alert(1)</script>';
@@ -91,7 +92,7 @@ test('country page: top 50 stations, links to its cities, JSON-LD capped at 50',
   expect([...doc.querySelectorAll('.cities a')].map((a) => a.getAttribute('href'))).toEqual(['/gr/radio/portugal/lisbon/', '/gr/radio/portugal/porto/']);
   expect(ld(doc).find((d) => d['@type'] === 'ItemList').itemListElement).toHaveLength(50);
   expect(doc.querySelector('.intro')!.textContent).toContain('2 cities');
-  expect(doc.querySelector('.intro')!.textContent).toContain('Popular genres: news and talk.');
+  expect(doc.querySelector('.intro')!.textContent).toContain('Popular styles: News and Talk.');
 });
 
 test('index page lists every country', () => {
@@ -163,3 +164,58 @@ test('inlined CSS cannot close the style element', () => {
   expect(doc.querySelector('head style')!.textContent).toContain('.a{}');
   expect(doc.querySelectorAll('script:not([type])')).toHaveLength(1);
 });
+
+function genres() {
+  const { pt } = fixture();
+  const pages = buildGenres([pt]);
+  return { pt, pages, news: pages.find((p) => p.genre.id === 'news')! };
+}
+
+test('style index: all styles with a page, in three groups', () => {
+  const { pages } = genres();
+  const doc = commonChecks(genreIndexPage(site, pages));
+  expect(doc.title).toBe('Radio Stations by Style — Listen Live Online | Globe Radio');
+  expect(meta(doc, 'link[rel="canonical"]')).toBe('https://example.com/gr/radio/genre/');
+  expect([...doc.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['Formats']);
+  expect([...doc.querySelectorAll('.styles a')].map((a) => a.getAttribute('href'))).toEqual(['/gr/radio/genre/news/', '/gr/radio/genre/talk/']);
+});
+
+test('style page: stations worldwide and links to the style in each country', () => {
+  const { news } = genres();
+  const doc = commonChecks(genrePage(site, news));
+  expect(doc.title).toBe('News Radio Stations — Listen Live Online | Globe Radio');
+  expect(meta(doc, 'link[rel="canonical"]')).toBe('https://example.com/gr/radio/genre/news/');
+  expect(doc.querySelector('h1')!.textContent).toBe('News Radio Stations');
+  expect([...doc.querySelectorAll('.crumbs li')].map((li) => li.textContent)).toEqual(['Home', 'Styles', 'News']);
+  expect(doc.querySelectorAll('a.listen')).toHaveLength(50);
+  expect(doc.querySelector('.countries a[href="/gr/radio/genre/news/portugal/"]')).not.toBeNull();
+  expect(ld(doc).find((d) => d['@type'] === 'ItemList').itemListElement).toHaveLength(50);
+});
+
+test('style in a country: title, crumbs, links to the country and to the style worldwide', () => {
+  const { news } = genres();
+  const doc = commonChecks(genreCountryPage(site, news, news.countries[0]));
+  expect(doc.title).toBe('News Radio Stations in Portugal — Listen Live Online | Globe Radio');
+  expect(meta(doc, 'link[rel="canonical"]')).toBe('https://example.com/gr/radio/genre/news/portugal/');
+  expect([...doc.querySelectorAll('.crumbs li')].map((li) => li.textContent)).toEqual(['Home', 'Styles', 'News', 'Portugal']);
+  expect(doc.querySelector('main a[href="/gr/radio/portugal/"]')).not.toBeNull();
+  expect(doc.querySelector('main a[href="/gr/radio/genre/news/"]')).not.toBeNull();
+  expect(doc.querySelector('.station__name')!.textContent).toBe(EVIL);
+});
+
+test('country and city pages: popular styles link to the style in that country; intro names styles, not raw tags', () => {
+  const { pt, pages } = genres();
+  const doc = parse(countryPage(site, pt, stylesOf(pt.stations, pages, pt)));
+  expect([...doc.querySelectorAll('.styles a')].map((a) => a.getAttribute('href'))).toEqual(['/gr/radio/genre/news/portugal/', '/gr/radio/genre/talk/portugal/']);
+  expect(doc.querySelector('.intro')!.textContent).toContain('Popular styles: News and Talk.');
+  const city = parse(cityPage(site, { country: pt, city: pt.cities[0] }, [], stylesOf(pt.cities[0].stations, pages, pt)));
+  expect(city.querySelector('.styles a[href="/gr/radio/genre/news/portugal/"]')).not.toBeNull();
+});
+
+test('the country index and the footer link to the styles', () => {
+  const { pt } = genres();
+  const doc = parse(indexPage(site, [pt]));
+  expect(doc.querySelector('main a[href="/gr/radio/genre/"]')).not.toBeNull();
+  expect(doc.querySelector('footer a[href="/gr/radio/genre/"]')).not.toBeNull();
+});
+

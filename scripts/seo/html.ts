@@ -1,9 +1,11 @@
 // HTML templates for the static SEO pages. Station names and tags are third-party data:
 // everything goes through escapeHtml, JSON-LD through jsonLd().
+import { genreById, stationGenres, type Genre, type GenreGroup } from '../../src/data/genres';
 import type { StationLite } from '../../src/data/shards';
 import { escapeHtml as esc } from '../../src/ui/html';
+import { hasCountryPage, type GenreCountry, type GenrePage, type StyleHere } from './genres';
 import type { CityRef, CountryPage } from './model';
-import { fitDescription, genreTags, languageName, listPhrase, plural, topGenres, topLanguages } from './text';
+import { fitDescription, genreTags, languageName, listPhrase, plural, topLanguages } from './text';
 
 // url: absolute site address without a trailing slash; base: path prefix with a trailing slash;
 // css: the stylesheet, inlined into every page (one request less before the first paint).
@@ -16,6 +18,9 @@ const FONTS = 'https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&f
 export const radioPath = () => 'radio/';
 export const countryPath = (c: CountryPage) => `radio/${c.slug}/`;
 export const cityPath = (r: CityRef) => `radio/${r.country.slug}/${r.city.slug}/`;
+export const genreIndexPath = () => 'radio/genre/';
+export const genrePath = (g: Genre) => `radio/genre/${g.id}/`;
+export const genreCountryPath = (g: Genre, c: CountryPage) => `radio/genre/${g.id}/${c.slug}/`;
 const absolute = (site: Site, path: string) => `${site.url}/${path}`;
 const link = (site: Site, path: string) => `${site.base}${path}`;
 const stationQuery = (s: StationLite) => `?station=${encodeURIComponent(s.id)}&c=${encodeURIComponent(s.cc)}`;
@@ -89,7 +94,7 @@ ${nav}
 ${p.main}
 </main>
 <footer class="foot">
-<p><a href="${esc(link(site, radioPath()))}">Radio stations by country</a><span class="cookies" hidden> · <button type="button" class="link-btn" onclick="window.globeConsent.open()">Cookie settings</button></span></p>
+<p><a href="${esc(link(site, radioPath()))}">Radio stations by country</a> · <a href="${esc(link(site, genreIndexPath()))}">Radio stations by style</a><span class="cookies" hidden> · <button type="button" class="link-btn" onclick="window.globeConsent.open()">Cookie settings</button></span></p>
 <p>Station directory: <a href="https://www.radio-browser.info/">Radio Browser</a>. Places: <a href="https://www.geonames.org/">GeoNames</a> (CC BY 4.0). Place facts: Wikipedia (CC BY-SA). We don't store or rebroadcast streams.</p>
 </footer>
 <script>if(window.globeConsent)document.querySelector('.cookies').hidden=false</script>
@@ -146,13 +151,31 @@ function linkList(cls: string, items: { href: string; name: string; count: numbe
     .join('')}</ul>`;
 }
 
-function summary(stations: StationLite[], exclude: string[]): string {
+// The 3 most frequent styles (from the style dictionary, not raw tags) of at least 2 stations.
+function topStyles(stations: StationLite[], n = 3): string[] {
+  const counts = new Map<string, number>();
+  for (const s of stations) for (const id of stationGenres(s.tags)) counts.set(id, (counts.get(id) ?? 0) + 1);
+  return [...counts].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, n).map(([id]) => genreById(id)!.name);
+}
+
+function summary(stations: StationLite[]): string {
   const langs = topLanguages(stations);
-  const genres = topGenres(stations, exclude);
+  const styles = topStyles(stations);
   return [
     langs.length ? `Most broadcast in ${listPhrase(langs)}.` : '',
-    genres.length ? `Popular genres: ${listPhrase(genres)}.` : '',
+    styles.length ? `Popular styles: ${listPhrase(styles)}.` : '',
   ].filter(Boolean).join(' ');
+}
+
+// "Popular styles here": the style in this country when that page exists, else the style worldwide.
+function stylesSection(site: Site, country: CountryPage, styles: StyleHere[]): string {
+  if (!styles.length) return '';
+  const items = styles.map((s) => ({
+    href: link(site, s.countryPage ? genreCountryPath(s.genre, country) : genrePath(s.genre)),
+    name: s.genre.name,
+    count: s.count,
+  }));
+  return `<section><h2>Popular styles here</h2>${linkList('styles', items)}</section>`;
 }
 
 const home: Crumb = { name: 'Home', path: '' };
@@ -168,11 +191,79 @@ export function indexPage(site: Site, countries: CountryPage[]): string {
     h1: 'Radio Stations by Country',
     intro: `${SITE_NAME} has ${plural(total, 'live radio station')} from ${plural(countries.length, 'country', 'countries')}. Pick a country to see its stations and cities.`,
     crumbs: [home, { name: 'All countries', path: radioPath() }],
-    main: `<section><h2>All countries</h2>${linkList('countries', countries.map((c) => ({ href: link(site, countryPath(c)), name: c.name, count: c.stations.length })))}</section>`,
+    main: [
+      `<p class="more"><a href="${esc(link(site, genreIndexPath()))}">Browse by style: jazz, news, 80s and more</a></p>`,
+      `<section><h2>All countries</h2>${linkList('countries', countries.map((c) => ({ href: link(site, countryPath(c)), name: c.name, count: c.stations.length })))}</section>`,
+    ].join('\n'),
   });
 }
 
-export function countryPage(site: Site, c: CountryPage): string {
+const styles: Crumb = { name: 'Styles', path: genreIndexPath() };
+const GROUPS: [GenreGroup, string][] = [['genre', 'Genres'], ['format', 'Formats'], ['decade', 'Decades']];
+const GENRE_COUNTRY_MAX = 100;
+
+export function genreIndexPage(site: Site, pages: GenrePage[]): string {
+  const total = new Set(pages.flatMap((p) => p.stations.map((s) => s.id))).size;
+  const sections = GROUPS.map(([group, heading]) => {
+    const list = pages.filter((p) => p.genre.group === group);
+    return list.length
+      ? `<section><h2>${heading}</h2>${linkList('styles', list.map((p) => ({ href: link(site, genrePath(p.genre)), name: p.genre.name, count: p.stations.length })))}</section>`
+      : '';
+  });
+  return layout(site, {
+    path: genreIndexPath(),
+    title: `Radio Stations by Style — Listen Live Online | ${SITE_NAME}`,
+    description: `Browse ${plural(total, 'live radio station')} by style: music genres, news and talk, and the music of every decade. Listen online on ${SITE_NAME}. ${TAIL}`,
+    h1: 'Radio Stations by Style',
+    intro: `Pick a style to hear it live from around the world: ${plural(pages.length, 'style')} with ${plural(total, 'station')}.`,
+    crumbs: [home, styles],
+    main: sections.filter(Boolean).join('\n'),
+  });
+}
+
+export function genrePage(site: Site, page: GenrePage): string {
+  const { genre, stations, countries } = page;
+  const n = stations.length;
+  const top = countries.slice(0, 3).map((c) => c.country.name);
+  const withPage = countries.filter(hasCountryPage);
+  return layout(site, {
+    path: genrePath(genre),
+    title: title(genre.name),
+    description: fitDescription(`Listen to ${plural(n, `live ${genre.name} radio station`)} from ${plural(countries.length, 'country', 'countries')} online`, stations.map((s) => s.name), TAIL),
+    h1: `${genre.name} Radio Stations`,
+    intro: `${SITE_NAME} has ${plural(n, `live ${genre.name} radio station`)} in ${plural(countries.length, 'country', 'countries')}. Most of them broadcast from ${listPhrase(top)}.`,
+    crumbs: [home, styles, { name: genre.name, path: genrePath(genre) }],
+    data: [stationsData(site, `${genre.name} radio stations`, stations, () => undefined)],
+    main: [
+      `<section><h2>Most popular ${esc(genre.name)} stations</h2>${stationList(site, stations.slice(0, TOP_STATIONS), [])}</section>`,
+      withPage.length
+        ? `<section><h2>${esc(genre.name)} radio by country</h2>${linkList('countries', withPage.map((c) => ({ href: link(site, genreCountryPath(genre, c.country)), name: c.country.name, count: c.stations.length })))}</section>`
+        : '',
+    ].join('\n'),
+  });
+}
+
+export function genreCountryPage(site: Site, page: GenrePage, gc: GenreCountry): string {
+  const { genre } = page;
+  const { country, stations } = gc;
+  const n = stations.length;
+  const where = `${genre.name} Radio Stations in ${country.name}`;
+  return layout(site, {
+    path: genreCountryPath(genre, country),
+    title: `${where} — Listen Live Online | ${SITE_NAME}`,
+    description: fitDescription(`Listen to ${plural(n, `live ${genre.name} radio station`)} from ${country.name} online`, stations.map((s) => s.name), TAIL),
+    h1: where,
+    intro: [`${country.name} has ${plural(n, `live ${genre.name} radio station`)} on ${SITE_NAME}.`, summary(stations)].filter(Boolean).join(' '),
+    crumbs: [home, styles, { name: genre.name, path: genrePath(genre) }, { name: country.name, path: genreCountryPath(genre, country) }],
+    data: [stationsData(site, where, stations, () => undefined)],
+    main: [
+      `<section><h2>${esc(where)}</h2>${stationList(site, stations.slice(0, GENRE_COUNTRY_MAX), country.placeNames)}</section>`,
+      `<p class="more"><a href="${esc(link(site, countryPath(country)))}">All radio stations in ${esc(country.name)}</a> · <a href="${esc(link(site, genrePath(genre)))}">${esc(genre.name)} radio worldwide</a></p>`,
+    ].join('\n'),
+  });
+}
+
+export function countryPage(site: Site, c: CountryPage, styles: StyleHere[] = []): string {
   const cityOf = new Map(c.cities.flatMap((city) => city.stations.map((s) => [s.id, city.name] as const)));
   const exclude = c.placeNames;
   const n = c.stations.length;
@@ -182,7 +273,7 @@ export function countryPage(site: Site, c: CountryPage): string {
     title: title(c.name),
     description: fitDescription(lead(n, c.name), c.stations.map((s) => s.name), TAIL),
     h1: `${c.name} Radio Stations`,
-    intro: `${c.name} has ${plural(n, 'live radio station')} on ${SITE_NAME}${cities}. ${summary(c.stations, exclude)}`.trim(),
+    intro: `${c.name} has ${plural(n, 'live radio station')} on ${SITE_NAME}${cities}. ${summary(c.stations)}`.trim(),
     crumbs: [home, { name: c.name, path: countryPath(c) }],
     data: [stationsData(site, `${c.name} radio stations`, c.stations, (s) => cityOf.get(s.id))],
     main: [
@@ -190,11 +281,12 @@ export function countryPage(site: Site, c: CountryPage): string {
       c.cities.length
         ? `<section><h2>Radio by city</h2>${linkList('cities', c.cities.map((city) => ({ href: link(site, cityPath({ country: c, city })), name: city.name, count: city.stations.length })))}</section>`
         : '',
+      stylesSection(site, c, styles),
     ].join('\n'),
   });
 }
 
-export function cityPage(site: Site, ref: CityRef, nearby: CityRef[]): string {
+export function cityPage(site: Site, ref: CityRef, nearby: CityRef[], styles: StyleHere[] = []): string {
   const { country, city } = ref;
   const exclude = country.placeNames;
   const n = city.stations.length;
@@ -209,12 +301,13 @@ export function cityPage(site: Site, ref: CityRef, nearby: CityRef[]): string {
     title: title(city.name),
     description: fitDescription(lead(n, where), city.stations.map((s) => s.name), TAIL),
     h1: `${city.name} Radio Stations`,
-    intro: [`${where} has ${plural(n, 'live radio station')} on ${SITE_NAME}.`, summary(city.stations, exclude), city.tz ? `Local time zone: ${city.tz}.` : '']
+    intro: [`${where} has ${plural(n, 'live radio station')} on ${SITE_NAME}.`, summary(city.stations), city.tz ? `Local time zone: ${city.tz}.` : '']
       .filter(Boolean).join(' '),
     crumbs: [home, { name: country.name, path: countryPath(country) }, { name: city.name, path: cityPath(ref) }],
     data: [stationsData(site, `${city.name} radio stations`, city.stations, () => city.name)],
     main: [
       `<section><h2>Stations in ${esc(city.name)}</h2>${stationList(site, city.stations, exclude)}</section>`,
+      stylesSection(site, country, styles),
       nearbyItems.length ? `<section><h2>Nearby cities</h2>${linkList('nearby', nearbyItems)}</section>` : '',
       `<p class="more"><a href="${esc(link(site, countryPath(country)))}">All radio stations in ${esc(country.name)}</a></p>`,
     ].join('\n'),

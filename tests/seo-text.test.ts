@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import type { StationLite } from '../src/data/shards';
-import { fitDescription, listPhrase, plural, topGenres, topLanguages } from '../scripts/seo/text';
+import { fitDescription, listPhrase, plural, topLanguages } from '../scripts/seo/text';
 
 const st = (langs: string[], tags: string[]): StationLite => ({
   id: 'x', name: 'S', url: '', placeId: 'c:1', cc: 'PT', langs, tags, votes: 0, clicks: 0, favicon: '', hls: false,
@@ -9,14 +9,6 @@ const st = (langs: string[], tags: string[]): StationLite => ({
 test('topLanguages: most used first, as English names', () => {
   const stations = [st(['pt'], []), st(['pt', 'en'], []), st(['es'], []), st(['pt'], []), st(['en'], [])];
   expect(topLanguages(stations, 2)).toEqual(['Portuguese', 'English']);
-});
-
-test('topGenres skips bitrates, place names and tags used by a single station', () => {
-  const stations = [
-    st([], ['Pop', '64kbps', 'portugal', 'news']), st([], ['pop', '128kbps', 'portugal', 'lisbon']),
-    st([], ['news', 'lisbon', 'jazz']), st([], ['pop']),
-  ];
-  expect(topGenres(stations, ['Portugal', 'Lisbon'])).toEqual(['pop', 'news']);
 });
 
 test('listPhrase', () => {
