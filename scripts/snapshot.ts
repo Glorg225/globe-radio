@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { decodeGazetteer, type GazetteerFile } from '../src/data/gazetteer';
 import { countryName } from '../src/data/place-name';
 import { createPlaceMatcher } from '../src/data/place-match';
-import { encodePlace, type PlacesFile } from '../src/data/places';
+import { encodePlacesFile } from '../src/data/places';
 import { encodeStation, type ShardFile } from '../src/data/shards';
 import type { Centroids, RawStation } from '../src/data/types';
 import { buildSnapshot, placeInfoRows, searchRows } from './build-snapshot';
@@ -23,7 +23,7 @@ if (report.stations < 1000) throw new Error(`suspiciously few stations: ${report
 const generated = new Date().toISOString();
 rmSync('public/data', { recursive: true, force: true });
 mkdirSync('public/data/stations', { recursive: true });
-const placesFile: PlacesFile = { v: 2, generated, places: places.map(encodePlace) };
+const placesFile = encodePlacesFile(places, generated);
 writeFileSync('public/data/places.json', JSON.stringify(placesFile));
 writeFileSync('public/data/search.json', JSON.stringify({ v: 1, stations: searchRows(shards) }));
 for (const [cc, list] of shards) {

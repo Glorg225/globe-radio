@@ -1,4 +1,5 @@
 import { countryName, placeTitle } from '../data/place-name';
+import { genreById } from '../data/genres';
 import type { Place } from '../data/places';
 import type { PlaceInfo, ShardStore, StationLite } from '../data/shards';
 import type { PlaceCardData } from '../place-card/place-card';
@@ -11,6 +12,7 @@ import { createClusterer, layered, type Clusterer, type MapItem } from '../map/c
 import { createLearnBanner } from '../ui/learn-banner';
 import { createLearnPicker } from '../ui/learn-picker';
 import type { MapFactory, MapView } from '../map/map-view';
+import type { MapLabelDetail } from '../map/tooltip';
 import type { Blacklist } from '../player/blacklist';
 import { updateMediaSession } from '../player/media-session';
 import { findNextNearby } from '../player/next-nearby';
@@ -18,6 +20,7 @@ import type { Player } from '../player/player';
 import { createPlayerBar } from '../ui/player-bar';
 import type { ShellRefs } from '../ui/shell';
 import { toSaved, type Library, type SavedStation } from '../library/library';
+import { languageNames } from '../place-card/language';
 import { formatClock, isValidTimeZone } from '../place-card/time';
 import type { SleepTimer } from '../player/sleep-timer';
 import { track } from '../analytics/track';
@@ -110,6 +113,18 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     return item.type === 'place'
       ? t('map.tooltip', { place: placeTitle(item.place, i18n.locale), stations: stationsLabel(item.count) })
       : stationsLabel(item.count);
+  };
+  // Tooltip second line: local time, up to 2 languages, up to 2 styles; the flag of the place's country.
+  const detail = (item: MapItem): MapLabelDetail | null => {
+    if (item.type !== 'place') return null;
+    const p = item.place;
+    const langs = Object.entries(p.langs ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([code]) => code);
+    const parts = [
+      p.tz && isValidTimeZone(p.tz) ? formatClock(p.tz, new Date(), i18n.locale) : '',
+      langs.length ? languageNames(langs, i18n.locale) : '',
+      (p.styles ?? []).slice(0, 2).map((id) => genreById(id)?.name).filter(Boolean).join(', '),
+    ].filter(Boolean);
+    return parts.length ? { flag: d.flagUrl(p.cc), text: parts.join(' · ') } : null;
   };
   const placeLabel = (p: Place | null) => {
     if (!p) return '';
@@ -453,7 +468,7 @@ export async function startApp(d: AppDeps): Promise<AppHandle> {
     refs.map.replaceChildren();
     mode = m;
     for (const b of refs.viewButtons) b.setAttribute('aria-pressed', String(b.dataset.view === m));
-    const v = await d.factories[m](refs.map, source, { onSelect: (p) => { void selectPlace(p); }, label });
+    const v = await d.factories[m](refs.map, source, { onSelect: (p) => { void selectPlace(p); }, label, detail });
     // A newer mount started while this view was loading: drop this one.
     if (token !== mountToken) { v.destroy(); return; }
     view = v;

@@ -11,3 +11,7 @@
 .map2d { display: block; cursor: grab; touch-action: none; }
 .view-host { position: absolute; inset: 0; }
 .view-host--map { inset: 20px; }
+.map-tooltip__title { display: flex; align-items: center; gap: 6px; }
+.map-tooltip__flag { inline-size: 16px; block-size: 12px; border-radius: 2px; object-fit: cover; }
+.map-tooltip__detail { display: block; margin-block-start: 2px; color: var(--text-muted); font-size: 12px; }
+

@@ -70,3 +70,15 @@ test('measureFps ignores time while the tab is hidden', async () => {
   };
   await expect(measureFps(1000, raf, () => t, doc)).resolves.toBe(25);
 });
+
+test('tooltip HTML: title, flag and a second line; place names are escaped', async () => {
+  const { tooltipHtml } = await import('../src/map/tooltip');
+  const doc = new DOMParser().parseFromString(tooltipHtml('<b>Lisbon</b> · 3 stations', { flag: '/flags/pt.svg', text: '14:32 · Portuguese · Pop' }), 'text/html');
+  expect(doc.querySelector('.map-tooltip__title')!.textContent).toBe('<b>Lisbon</b> · 3 stations');
+  expect(doc.querySelector('b')).toBeNull();
+  expect(doc.querySelector('img.map-tooltip__flag')!.getAttribute('src')).toBe('/flags/pt.svg');
+  expect(doc.querySelector('.map-tooltip__detail')!.textContent).toBe('14:32 · Portuguese · Pop');
+  const plain = new DOMParser().parseFromString(tooltipHtml('3 stations', null), 'text/html');
+  expect(plain.querySelector('.map-tooltip__detail')).toBeNull();
+  expect(plain.querySelector('img')).toBeNull();
+});
