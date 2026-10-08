@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { decodeGazetteer, type GazetteerFile } from '../src/data/gazetteer';
+import { countryName } from '../src/data/place-name';
 import { createPlaceMatcher } from '../src/data/place-match';
 import { encodePlace, type PlacesFile } from '../src/data/places';
 import { encodeStation, type ShardFile } from '../src/data/shards';
@@ -12,8 +13,8 @@ const require = createRequire(import.meta.url);
 const countries = require('world-countries/countries.json') as { cca2: string; latlng: [number, number] }[];
 const centroids: Centroids = Object.fromEntries(countries.map((c) => [c.cca2, c.latlng]));
 const gz = decodeGazetteer(JSON.parse(readFileSync('data/gazetteer.json', 'utf8')) as GazetteerFile);
-const dn = { ru: new Intl.DisplayNames(['ru'], { type: 'region' }), en: new Intl.DisplayNames(['en'], { type: 'region' }) };
-const matcher = createPlaceMatcher(gz, centroids, (cc, l) => dn[l].of(cc) ?? cc);
+// Same country names as the app and the SEO pages ("Hong Kong", not "Hong Kong SAR China").
+const matcher = createPlaceMatcher(gz, centroids, countryName);
 
 const raw = await fetchWithMirrors<RawStation[]>('/json/stations/search?hidebroken=true&is_https=true&limit=200000&order=clickcount&reverse=true');
 const { places, shards, report } = buildSnapshot(raw, centroids, matcher);
