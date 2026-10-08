@@ -25,7 +25,7 @@
 |---|---|---|
 | `/radio/genre/` | всегда | все стили тремя группами, со счётчиками |
 | `/radio/genre/<style>/` | ≥ 10 станций в мире | H1 «Jazz Radio Stations», вступление (станций, стран, где популярнее всего), топ-50 по `clicks`, список стран со ссылками |
-| `/radio/genre/<style>/<country>/` | ≥ 3 станций стиля в стране | H1 «Jazz Radio Stations in Germany», все станции (до 100), ссылки на стиль по миру и на страну |
+| `/radio/genre/<style>/<country>/` | ≥ 10 станций стиля в стране (решение владельца 08.10: при 3 — 1 317 тонких страниц, при 10 — 601 с охватом 87 %) | H1 «Jazz Radio Stations in Germany», все станции (до 100), ссылки на стиль по миру и на страну |
 
 Как у страниц стран и городов: `title`, `description` ≤ 160, canonical, `og:*`, хлебные крошки (Home › Styles › Jazz › Germany) + JSON-LD `BreadcrumbList` и `ItemList` из `RadioStation`, кнопка Listen, метка `<!-- analytics -->`, встроенные стили. Все адреса — в `sitemap.xml`.
 

@@ -1,12 +1,12 @@
 // Style pages of the static SEO site: /radio/genre/<style>/ and /radio/genre/<style>/<country>/.
 import { GENRES, stationGenres, type Genre } from '../../src/data/genres';
 import type { StationLite } from '../../src/data/shards';
-import { MIN_STATIONS } from '../../src/seo/country';
 import type { CountryPage } from './model';
 
 // A style gets a world page from this many stations, a style in a country from GENRE_MIN_COUNTRY.
 export const GENRE_MIN_WORLD = 10;
-export const GENRE_MIN_COUNTRY = MIN_STATIONS;
+// 10, not 3: a style in a country with fewer stations makes a thin page (601 pages instead of 1,317, 87 % of the stations).
+export const GENRE_MIN_COUNTRY = 10;
 // "Popular styles here" lists a style from this many stations of the place.
 const STYLE_MIN_HERE = 2;
 

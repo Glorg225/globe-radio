@@ -11,7 +11,7 @@ const country = (cc: string, name: string, stations: StationLite[]): CountryPage
   ({ cc, name, slug: name.toLowerCase(), placeNames: [], stations, cities: [] });
 
 function fixture() {
-  const de = country('DE', 'Germany', [...Array.from({ length: 6 }, (_, i) => st('DE', ['Jazz'], i)), st('DE', ['news'])]);
+  const de = country('DE', 'Germany', [...Array.from({ length: 10 }, (_, i) => st('DE', ['Jazz'], i)), st('DE', ['news'])]);
   const fr = country('FR', 'France', [...Array.from({ length: 2 }, () => st('FR', ['smooth jazz'])), st('FR', ['news', 'jazz'], 99)]);
   const us = country('US', 'United States', [st('US', ['jazz', '80s']), st('US', ['music'])]);
   return { de, fr, us, pages: buildGenres([de, fr, us]) };
@@ -21,15 +21,15 @@ test(`a style gets a world page with at least ${GENRE_MIN_WORLD} stations`, () =
   const { pages } = fixture();
   expect(pages.map((p) => p.genre.id)).toEqual(['jazz']);
   const jazz = pages[0];
-  expect(jazz.stations).toHaveLength(10);
+  expect(jazz.stations).toHaveLength(14);
   expect(jazz.stations[0].clicks).toBe(99);
 });
 
-test('countries of a style: biggest first; a country page from 3 stations of the style', () => {
+test('countries of a style: biggest first; a country page from 10 stations of the style', () => {
   const { pages } = fixture();
   const countries = pages[0].countries;
   expect(countries.map((c) => [c.country.cc, c.stations.length, hasCountryPage(c)])).toEqual([
-    ['DE', 6, true], ['FR', 3, true], ['US', 1, false],
+    ['DE', 10, true], ['FR', 3, false], ['US', 1, false],
   ]);
 });
 
@@ -42,7 +42,8 @@ test('genreCoverage: share of stations with a style and frequent unknown tags wi
 
 test('stylesOf: most frequent styles of a place that have a world page, from 2 stations, with the country page when it exists', () => {
   const { de, fr, pages } = fixture();
-  expect(stylesOf(de.stations, pages, de).map((s) => [s.genre.id, s.count, s.countryPage])).toEqual([['jazz', 6, true]]);
+  expect(stylesOf(de.stations, pages, de).map((s) => [s.genre.id, s.count, s.countryPage])).toEqual([['jazz', 10, true]]);
+  expect(stylesOf(fr.stations, pages, fr).map((s) => [s.genre.id, s.countryPage])).toEqual([['jazz', false]]);
   const one = stylesOf([fr.stations[2]], pages, fr);
   expect(one).toEqual([]);
 });
